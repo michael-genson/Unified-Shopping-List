@@ -1,0 +1,49 @@
+{% set title = "Alexa" %}
+{% set active_page = "alexa_config" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row pb-3">
+    <h4>Alexa Settings</h4>
+  </div>
+  <div class="row">
+    {% if auth_error %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        {{ auth_error }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if success_message %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-success text-wrap font-weight-bold" style="font-size: large;">
+        {{ success_message }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not user.is_linked_to_alexa %}
+  <div class="row">
+    <p>
+      Your account is not linked to Alexa. To link your account, install the <u>Mealie Shopping List Helper</u> Alexa skill, then check back here.
+    </p>
+  </div>
+  {% else %}
+  <div class="row">
+    <p>
+      Your account is successfully linked to Alexa.
+    </p>
+    <p>
+      If you want to disconnect from Alexa, or you're having trouble with the skill, try removing the skill from Alexa and re-enabling it.
+      <br />
+      If you're seeing this page, but you're not seeing your Alexa lists on the shopping list map page, make sure you granted the requested permissions in the Alexa app.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

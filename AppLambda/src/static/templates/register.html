@@ -1,0 +1,42 @@
+{% set title = "Register" %}
+{% set active_page = "register" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row">
+    <h4>Register to the Shopping List API</h4>
+  </div>
+
+  <div class="row my-5">
+    <form method="POST" oninput='password_confirm.setCustomValidity(password.value != password_confirm.value ? "Passwords do not match." : "")'>
+      <div class="mb-3">
+        <label>Email</label>
+        <input type="email" required placeholder="Your email" name="username" value="{{ username }}" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label>Password</label>
+        <input type="password" required placeholder="Your password" name="password" minlength="8" class="form-control">
+        <small id="passwordHelp" class="form-text text-muted">Your password must be at least 8 characters long</small>
+      </div>
+      <div class="mb-3">
+        <label>Confirm Your Password</label>
+        <input type="password" required placeholder="Your password, again" name="password_confirm" class="form-control">
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+
+  <div class="row">
+    {% if registration_error %}
+    <div class="text-light font-weight-bold">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        {{ registration_error }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

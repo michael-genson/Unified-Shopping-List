@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+      {% if title %}
+        {{ title }} – Unified Shopping List
+      {% else %}
+        Unified Shopping List
+      {% endif %}
+    </title>
+
+    <!-- Favicon -->
+    <link id="favicon" rel="icon" type="image/x-icon" href='{{ url_for("static", path="/images/favicon.png") }}'>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    
+    <!-- Styles -->
+    <link rel= "stylesheet" type= "text/css" href= '{{ url_for("static", path="/styles/styles.css") }}'>
+    
+    <!-- Extension -->
+    {% block head %}
+
+    {% endblock %}
+  </head>
+  <body>
+    <!-- Nav -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a href='{{ url_for("home") }}'><img src='{{ url_for("static", path="/images/logo-white.svg") }}', alt="logo" width="40px" height="auto" class="me-2 mb-2"></a>
+        <a class='{{ "navbar-brand" if user else "navbar-brand me-auto" }}' href='{{ url_for("home") }}'>Unified Shopping List</a>
+
+        <!-- Primary Nav -->
+        {% if user %}
+        <ul class="navbar-nav me-auto">
+          <!-- Shopping List Map -->
+          <li class="nav-item border-end">
+            <a class='{{ "nav-link active" if active_page == "list_sync_mapping" else "nav-link" }}' href='{{ url_for("configure_shopping_list_sync_maps") }}'>Map Shopping Lists</a>
+          </li>
+
+          <!-- App Configurations -->
+          <li class="nav-item">
+            <a class='{{ "nav-link active" if active_page == "mealie_config" else "nav-link" }}' href='{{ url_for("configure_mealie") }}'>Mealie</a>
+          </li>
+          <li class="nav-item">
+            <a class='{{ "nav-link active" if active_page == "alexa_config" else "nav-link" }}' href='{{ url_for("configure_alexa") }}'>Alexa</a>
+          </li>
+          <li class="nav-item">
+            <a class='{{ "nav-link active" if active_page == "todoist_config" else "nav-link" }}' href='{{ url_for("configure_todoist") }}'>Todoist</a>
+          </li>
+        </ul>
+        {% endif %}
+
+        <!-- Login and Registration -->
+        {% if user %}
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item border-end">
+            <a class="nav-link" href='{{ url_for("home") }}'>{{ user.username }}</a>
+          </li>
+          <li class="nav-item">
+            <form method="POST" action='{{ url_for("log_out_user") }}'>
+              <button type="submit" class="btn btn-link nav-link">Log Out</button>
+            </form>
+          </li>
+        </ul>
+        {% else %}
+        <ul class="navbar-nav me-2">
+          <li class="nav-item border-end">
+            <a class='{{ "nav-link active" if active_page == "log_in" else "nav-link" }}' href='{{ url_for("log_in") }}'>Log in</a>
+          </li>
+          <li class="nav-item">
+            <a class='{{ "nav-link active" if active_page == "register" else "nav-link" }}' href='{{ url_for("register") }}'>Register</a>
+          </li>
+        </ul>
+        {% endif %}
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container">
+    {% block content %}
+
+    {% endblock %}
+    </div>
+    <!-- Footer -->
+    <footer class="fixed-bottom ">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class='{{ "nav-link active" if active_page == "privacy_policy" else "nav-link" }}' href='{{ url_for("privacy_policy") }}'>Privacy Policy</a>
+          </li>
+        </ul>
+        {% if user and active_page in ["home", "privacy_policy"] %}
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="" data-bs-toggle="modal" data-bs-target="#deleteAccount">Delete My Account</a>
+          </li>
+        </ul>
+        <div class="modal fade" id="deleteAccount" tabindex="-1" aria-labelledby="deleteAccountLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteAccountLabel">Delete My Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure you want to delete your account? <em>This will delete all of your data. This action is irreversible!</em>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action='{{ url_for("delete_user") }}' method="POST">
+                  <button type="submit" class="btn btn-danger">Yes, Delete Everything</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </nav>
+    </footer>
+  </body>
+</html>

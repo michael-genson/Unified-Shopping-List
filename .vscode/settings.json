@@ -1,0 +1,42 @@
+{
+  "python.linting.pylintEnabled": true,
+  "python.linting.enabled": true,
+  "python.linting.mypyArgs": [
+    "--follow-imports=silent",
+    "--show-column-numbers",
+    "--disallow-untyped-defs",
+    "--disallow-untyped-calls",
+  ],
+  "python.linting.pylintArgs": [
+    "--enable=W0614"
+  ],
+  "explorer.fileNesting.enabled": true,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": [
+    "--line-length=99"
+  ],
+  "isort.args": [
+    "--profile",
+    "black"
+  ],
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json, yarn.lock, .eslintrc.js, tsconfig.json, .prettierrc, .editorconfig",
+    "pyproject.toml": "poetry.lock, alembic.ini, .pylintrc, .flake8, template.yaml",
+    "netlify.toml": "runtime.txt",
+    "docker-compose.yml": "Dockerfile, .dockerignore, docker-compose.dev.yml, docker-compose.yml",
+    "README.md": "LICENSE, SECURITY.md"
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "ms-python.python",
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    },
+  },
+  "emmet.includeLanguages": {
+    "jinja-html": "html"
+  },
+  "python.analysis.typeCheckingMode": "off"
+}

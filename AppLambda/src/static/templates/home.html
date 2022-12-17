@@ -1,0 +1,28 @@
+{% set active_page = "home" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  {% if user %}
+  Welcome to the Unified Shopping List! Add or change your integration configurations above.
+  {% if docs_url %}
+  <p>
+    <a href="{{ docs_url }}">Click here</a> to check out the API documentation.
+  </p>
+  {% endif %}
+  {% else %}
+  <p>
+    Welcome to the Unified Shopping List! To get started: log in or register.
+  </p>
+  {% endif %}
+  <p>
+    The Unified Shopping List is an open source app to connect your shopping lists in real time. The goal of the USL is to make managing your grocery shopping <em>easy</em> and <em>configurable</em>.
+    This project was born out of a frustration with existing integration tools, for both being a pain (or impossible) to set up, unreliable, and/or having little-to-no configurability.
+  </p>
+  <p>
+    For more information, check us out on GitHub.
+  </p>
+</div>
+
+{% endblock %}

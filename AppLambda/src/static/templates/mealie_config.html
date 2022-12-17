@@ -1,0 +1,123 @@
+{% set title = "Mealie" %}
+{% set active_page = "mealie_config" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row">
+    <h4>Mealie Settings</h4>
+  </div>
+
+  <div class="row">
+    {% if auth_error %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        {{ auth_error }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if success_message %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-success text-wrap font-weight-bold" style="font-size: large;">
+        {{ success_message }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not user.is_linked_to_mealie %}
+  <div class="py-3">
+    <h5 class="mb-0">Connect to Mealie</h5>
+  </div>
+  <div class="row">
+    <p>
+      To begin using the Shopping List API, first link your account to Mealie.
+    </p>
+  </div>
+  <form action='{{ url_for("create_mealie_configuration") }}' method="POST">
+    <div class="mb-3">
+      <label>Mealie URL</label>
+      <input type="text" required placeholder="Your base Mealie URL" name="baseUrl" class="form-control">
+      <small id="urlHelp" class="form-text text-muted">ex. https://my-mealie-site.com</small>
+    </div>
+    <div class="mb-3">
+      <label>Authorization Token</label>
+      <input type="password" required placeholder="Your Authorization Token" name="initialAuthToken" class="form-control">
+      <small class="form-text text-muted">
+        This is your access token created in Mealie. We will create a new dedicated access token on your behalf using this one
+      </small>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+  </form>
+
+  {% else %}
+    <div class="py-3">
+      <h5 class="mb-0">Configure Mealie</h5>
+    </div>
+    
+    <form action='{{ url_for("update_mealie_configuration") }}' method="POST">
+      <div class="mb-3">
+        <div class="custom-control custom-checkbox">
+          <input
+            type="checkbox"
+            name="useFoods"
+            class="custom-control-input" {% if user.is_linked_to_mealie and user.configuration.mealie.use_foods %} checked {% endif %}
+          >
+          <label class="custom-control-label" for="useFoods">Match New Items to Foods</label>
+        </div>
+        <small class="form-text text-muted">Check this if you want to match new items to your Mealie food store, when possible</small>
+      </div>
+      <div class="mb-3">
+        <div class="custom-control custom-checkbox">
+          <input
+            type="checkbox"
+            name="overwriteOriginalItemNames"
+            class="custom-control-input" {% if user.configuration.mealie and user.configuration.mealie.overwrite_original_item_names %} checked {% endif %}
+          >
+          <label class="custom-control-label" for="overwriteOriginalItemNames">Overwrite Original Item names</label>
+        </div>
+        <small class="form-text text-muted">
+          Check this if you want matched foods to override the original shopping list item name
+          <br />
+          Leave unchecked to only add the label/category when a food is matched
+        </small>
+      </div>
+      <div class="mb-3">
+        <label>Food Match Confidence Threshold</label>
+        <input
+          type="number"
+          required name="confidenceThreshold"
+          min="0"
+          max="1"
+          step="0.01"
+          value="{{ user.configuration.mealie.confidence_threshold if user.configuration.mealie else 0.95 }}"
+          class="form-control"
+        >
+        <small class="form-text text-muted">
+          The minimum threshold for a successful food store match
+          <br />
+          0 → match all
+          <br />
+          1 → match exact
+        </small>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+    </form>
+
+    <hr />
+
+    <h5>Unlink Mealie</h5>
+    <form action='{{ url_for("delete_mealie_configuration") }}' method="POST">
+      <button type="submit" class="btn btn-danger">Unlink Mealie</button>
+    </form>
+  {% endif %}
+  </div>
+</div>
+
+{% endblock %}

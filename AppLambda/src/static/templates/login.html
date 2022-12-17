@@ -1,0 +1,37 @@
+{% set title = "Log In" %}
+{% set active_page = "log_in" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row">
+    <h4>Log in to the Shopping List API</h4>
+  </div>
+
+  <div class="row my-5">
+    <form method="POST">
+      <div class="mb-3">
+        <label>Email</label>
+        <input type="email" required placeholder="Your email" name="username" value="{{ username }}" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label>Password</label>
+        <input type="password" required placeholder="Your password" name="password" class="form-control">
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+
+  <div class="row">
+    {% if login_error %}
+    <div class="text-light font-weight-bold">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        Invalid Login!
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

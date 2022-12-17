@@ -1,0 +1,41 @@
+
+body {
+    padding: 0px 0px 50px 0px;
+}
+
+footer {
+    height: 50px;
+}
+
+.container {
+    margin: 20px 20px 20px 20px;
+}
+
+input.form-control[type=number] {
+    max-width: 100px;
+}
+
+input.form-control[type=text], .form-control[type=email], .form-control[type=password] {
+    max-width: 350px;
+}
+
+input.form-control {
+    max-width: 500px;
+}
+
+.table-map.table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.table-map-header {
+    width: 100%;
+}
+
+.table-map-header.table {
+    table-layout: fixed;
+}
+
+.modal-backdrop {
+    z-index: -1;
+  }

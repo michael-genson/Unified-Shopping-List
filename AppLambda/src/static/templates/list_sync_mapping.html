@@ -1,0 +1,120 @@
+{% set title = "Map Lists" %}
+{% set active_page = "list_sync_mapping" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row">
+    {% for error in errors %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        {{ error }}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if success_message %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-success text-wrap font-weight-bold" style="font-size: large;">
+        {{ success_message }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not user.is_linked_to_mealie %}
+  <div class="row">
+    <h4>Connect to Mealie</h4>
+  </div>
+  <div class="row">
+    <p>
+      To begin using the Shopping List API, first link your account to Mealie. Click on the Mealie tab to get started.
+    </p>
+  </div>
+
+  {% elif not mealie_lists or not linked_accounts %}
+  <div class="row">
+    <h4>Map Shopping Lists</h4>
+  </div>
+  <div class="row">
+    <p>
+      To begin mapping shopping lists, first create a Mealie shopping list, then check back here to map to it. Make sure you also have at least one other linked app with a list to map to.
+    </p>
+  </div>
+  
+  {% else %}
+  <div class="row mb-5">
+    <div class="pb-3">
+      <h4>Map Shopping Lists</h4>
+    </div>
+    <p>
+      Here you can control how each of your shopping lists are kept in sync.
+      <br />
+      You cannot keep the same list in sync with multiple lists, i.e. each list can only be selected once per row. If the same list is selected in multiple rows, only the one closest to the top will be saved.
+    </p>
+    <p>
+      If you want to configure <em>how</em> each app syncs, check out each app's configuration tab above. You may also link a new app if you haven't done so already.
+    </p>
+    <small class="text-muted">
+      Looking for more configurations? Make sure you've linked to the app first
+    </small>
+  </div>
+  <form action='{{ url_for("handle_sync_map_update_form") }}' method="POST" class="table-map-wrapper">
+    <table class="table mb-0 pb-0 table-map-header">
+      <thead class="align-top text-center">
+        <tr>
+          <th scope="col">Mealie Shopping List</th>
+          {% for linked_account in linked_accounts.values() %}
+          <th scope="col">
+            {{ linked_account.column_header }}
+            {% if linked_account.is_unidirectional %}
+            <br />
+            <small class="text-muted">*unidirectional</small>
+            {% endif %}  
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+    </table>
+    <div style="max-height: 400px; overflow-y: auto;">
+      <table class="table mt-0 pt-0 table-map">
+        <tbody>
+          {% for mealie_list in mealie_lists %}
+          <tr {% if loop.index == 1 %} style="border-top: hidden;" {% endif %}>
+            <td>{{ mealie_list.list_name }}</td>
+            {% for linked_source, linked_account in linked_accounts.items() %}
+            <td>
+              <select class="form-select" name="listMapData">
+                <option value=""></option>
+                {% for linked_account_list in linked_account.lists %}
+                <!-- we send raw JSON which is parsed server-side -->
+                <option
+                  {% if linked_account_list.selected_mealie_list_id == mealie_list.list_id %} selected {% endif %}
+                  value='{ "{{ mealie_list.list_id }}": { "{{ linked_source.value }}": "{{ linked_account_list.list_id }}" } }'
+                >
+                  {{ linked_account_list.list_name }}
+                </option>
+                {% endfor %}
+              </select>
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+      <p class="mt-2">
+        <small class="text-muted">
+          *lists marked as unidirectional will sync <em><strong>one way</strong></em> to your other lists.
+          Items will be automatically sent to your bi-directional lists and checked-off on your source list
+        </small>
+      </p>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+{% endblock %}

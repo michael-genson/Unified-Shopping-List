@@ -1,0 +1,92 @@
+{% set title = "Todoist" %}
+{% set active_page = "todoist_config" %}
+
+{% extends "_base.html" %}
+{% block content %}
+
+<div>
+  <div class="row">
+    <h4>Todoist Settings</h4>
+  </div>
+
+  <div class="row">
+    {% if auth_error %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
+        {{ auth_error }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if success_message %}
+    <div class="text-light font-weight-bold mb-3">
+      <div class="badge bg-success text-wrap font-weight-bold" style="font-size: large;">
+        {{ success_message }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not user.is_linked_to_todoist %}
+  <div class="py-3">
+    <h5>Connect to Todoist</h5>
+  </div>
+  <div class="row">
+    <p>
+      To link your account to Todoist, click on the button below.
+    </p>
+    <a href='{{ url_for("redirect_to_todoist_auth_request") }}'><button type="button" class="btn btn-primary">Link your account to Todoist</button></a>
+  </div>
+  {% else %}
+  <div class="py-3">
+    <h5 class="mb-0">Configure Todoist</h5>
+  </div>
+  
+  <form action='{{ url_for("update_todoist_configuration") }}' method="POST">
+    <div class="mb-3">
+      <div class="custom-control custom-checkbox">
+        <input
+          type="checkbox"
+          name="mapLabelsToSections"
+          class="custom-control-input" {% if user.is_linked_to_todoist and user.configuration.todoist.map_labels_to_sections %} checked {% endif %}
+        >
+        <label class="custom-control-label" for="useFoods">Map Mealie Labels to Sections</label>
+      </div>
+      <small class="form-text text-muted">Check this if you want to organize your tasks into sections based on the label in Mealie</small>
+    </div>
+    <div class="mb-3">
+      <label>Default Section Name</label>
+      <input
+        type="text"
+        name="defaultSectionName"
+        class="form-control"
+        required
+        placeholder="Uncategorized"
+        value='{{ user.configuration.todoist.default_section_name if user.is_linked_to_todoist else "Uncategorized" }}'
+      >
+      <small class="form-text text-muted">
+        If mapping Mealie labels to sections, this will be the default section if the item has no label
+      </small>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+  </form>
+
+  <hr />
+
+  <h5>Unlink Todoist</h5>
+  <p>
+    To disable Todoist functionality, you must unlink from Todoist here.
+    To fully unlink Todoist, you should also log in to Todoist and remove the app.
+  </p>
+
+  <div class="row">
+    <form action='{{ url_for("delete_todoist_config") }}' method="POST">
+      <button type="submit" class="btn btn-danger">Unlink Todoist</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
