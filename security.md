@@ -1,1 +1,1 @@
-Please send all security concerns/vulnerabilities to genson.michael@gmail.com.
+Please send all security concerns/vulnerabilities to security-usl@genson.dev.
