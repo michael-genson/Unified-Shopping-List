@@ -42,7 +42,8 @@ Roadmap
 While the app in its current state is stable, it's missing a lot of core features that I'd like to get implemented (e.g. an actual API for adding/removing items, although you can always use the Mealie API). It could also use quite a bit of refactoring, particularly around the Alexa integration. It also has no automated testing.
 
 Due to some of the current implementation being bare-bones, registration is open to a small group of people (via a whielist). Some things to implement before I consider opening it up:
-- properly supporting registrations using a JWT/confirmation email
+- ~~properly supporting registrations using a JWT/confirmation email~~ Done!
+- setting up an SMTP service for this domain
 - implementing throttling and rate-limits
 
 In addition for increasing support for other applications, some features on the (soft) roadmap:
