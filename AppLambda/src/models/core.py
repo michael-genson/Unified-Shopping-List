@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
@@ -37,6 +38,7 @@ class User(APIBase):
     username: str
     email: str
     disabled: bool
+    user_expires: Optional[int] = None
 
     configuration: UserConfiguration = UserConfiguration()
     list_sync_maps: dict[str, ListSyncMap] = {}
@@ -61,6 +63,12 @@ class User(APIBase):
             and self.configuration.todoist
             and self.configuration.todoist.is_valid
         )
+
+    def set_expiration(self, expiration_in_seconds: int) -> int:
+        """Sets expiration time in seconds and returns the TTL value"""
+
+        self.user_expires = round(time.time()) + expiration_in_seconds
+        return self.user_expires
 
 
 class UserInDB(User):

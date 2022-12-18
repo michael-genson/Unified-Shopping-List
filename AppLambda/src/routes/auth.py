@@ -11,7 +11,10 @@ from ..app_secrets import (
     SECRET_KEY,
     USE_REGISTRATION_WHITELIST,
 )
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES
+from ..config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION,
+)
 from ..models.core import Token, User
 from ..services.core import CoreUserService
 
@@ -56,20 +59,29 @@ def refresh_access_token(access_token: str, expiration_minutes=None) -> str:
         raise credentials_exception
 
     access_token_expires = timedelta(minutes=expiration_minutes or ACCESS_TOKEN_EXPIRE_MINUTES)
-
     return create_access_token(data={"sub": username}, expires_delta=access_token_expires)
 
 
-def create_new_user(form_data: OAuth2PasswordRequestForm) -> User:
+def create_new_user(form_data: OAuth2PasswordRequestForm) -> str:
+    """Creates a disabled user and returns a JWT to enable them"""
+
     clean_email = form_data.username.strip().lower()
     if USE_REGISTRATION_WHITELIST and clean_email not in EMAIL_WHITELIST:
         raise WhitelistError()
 
-    return users_db.create_new_user(
-        username=clean_email,
-        email=clean_email,
-        password=form_data.password,
+    new_user = users_db.create_new_user(
+        username=clean_email, email=clean_email, password=form_data.password, disabled=True
     )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+    return create_access_token(data={"sub": new_user.username}, expires_delta=access_token_expires)
+
+
+async def enable_user_from_token(token: str) -> User:
+    user = await get_current_user(token)
+    user.disabled = False
+    users_db.update_user(user, remove_expiration=True)
+    return user
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:

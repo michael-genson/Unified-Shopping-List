@@ -1,23 +1,28 @@
-from typing import Optional, Union, cast
+from typing import Any, Optional, Union, cast
 
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
 from ..app import app, templates
 from ..models.core import Token, User
+from ..models.email import RegistrationEmail
 from ..routes.auth import (
     WhitelistError,
     create_new_user,
     delete_existing_user,
+    enable_user_from_token,
     get_current_active_user,
     get_current_user,
     log_in_for_access_token,
+    refresh_access_token,
 )
+from ..services.core import SMTPService, UserAlreadyExistsError
 
 frontend_router = APIRouter(prefix="/app", tags=["Application"])
+smtp = SMTPService()
 
 
 async def get_user_session(request: Request, response: Response) -> Optional[User]:
@@ -131,14 +136,18 @@ async def log_in_user(
 
 
 @frontend_router.get("/register", response_class=HTMLResponse)
-async def register(request: Request):
+async def register(request: Request, token_expired: bool = False):
     """Render the registration page"""
 
     response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
     if await get_user_session(request, response):
         return response
 
-    return templates.TemplateResponse("register.html", {"request": request})
+    context: dict[str, Any] = {"request": request}
+    if token_expired:
+        context["registration_error"] = "Unable to complete registration. Token has expired"
+
+    return templates.TemplateResponse("register.html", context)
 
 
 @frontend_router.post("/register", response_class=HTMLResponse)
@@ -159,9 +168,8 @@ async def send_user_registration(
             },
         )
 
-    # TODO: send verification email instead of directly creating the user
     try:
-        create_new_user(form_data)
+        registration_token = create_new_user(form_data)
 
     except ValueError as e:
         return templates.TemplateResponse(
@@ -173,8 +181,7 @@ async def send_user_registration(
             },
         )
 
-    except ClientError as e:
-        print(e)
+    except (ClientError, UserAlreadyExistsError) as e:
         return templates.TemplateResponse(
             "register.html",
             {
@@ -204,7 +211,40 @@ async def send_user_registration(
             },
         )
 
-    token = await log_in_for_access_token(form_data)
+    # send registration email
+    msg = RegistrationEmail()
+    full_registration_url = str(request.base_url)[:-1] + frontend_router.url_path_for(
+        "complete_registration", registration_token=registration_token
+    )
+
+    smtp.send(
+        msg.message(
+            form_data.username,
+            form_data.username,
+            registration_url=full_registration_url,
+        )
+    )
+
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "registration_email_sent": True},
+    )
+
+
+@frontend_router.get("/complete_registration/{registration_token}", response_class=HTMLResponse)
+async def complete_registration(request: Request, registration_token: str = Path(...)):
+    """Enables a user and logs them in"""
+
+    try:
+        await enable_user_from_token(registration_token)
+        token_data = refresh_access_token(registration_token)
+        token = Token(access_token=token_data, token_type="bearer")
+
+    except Exception:
+        return RedirectResponse(
+            frontend_router.url_path_for("register") + "?token_expired=true", status_code=302
+        )
+
     response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
     await set_user_session(response, token)
     return response
