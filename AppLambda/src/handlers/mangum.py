@@ -12,7 +12,7 @@ class SQS:
     Custom SQS event handler for Mangum
 
     Hijacks all requests with a "Records" key in them and emulates a POST request to the provided path.
-    Must pass to Mangum using the `set_path` class method
+    Must pass to Mangum using the `with_path` class method
     """
 
     path = ""
