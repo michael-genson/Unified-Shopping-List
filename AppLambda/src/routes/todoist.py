@@ -43,10 +43,13 @@ def create_todoist_config_template(request: Request, user: User, **kwargs):
         "user": user,
     }
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "todoist_config.html",
         {**context, **{k: v for k, v in kwargs.items() if k not in context}},
     )
+
+    response.delete_cookie(key="todoist_state")
+    return response
 
 
 @frontend_router.get("", response_class=HTMLResponse)
