@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
 
-from ..app_secrets import SMTP_USERNAME
+from ..app_secrets import SMTP_SENDER
 from ..config import APP_TITLE
 
 email_templates = Jinja2Templates(directory="./src/static/email_templates")
@@ -66,7 +66,7 @@ class RegistrationEmail:
         subject = f"Confirm your email for {APP_TITLE}"
         return self.template.message(
             subject,
-            sender=SMTP_USERNAME,
+            sender=SMTP_SENDER,
             recipients=recipient_email,
             name=recipient_username,
             registration_url=registration_url,

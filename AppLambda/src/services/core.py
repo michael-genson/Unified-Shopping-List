@@ -124,14 +124,12 @@ class SMTPService:
         self,
         server: str = SMTP_SERVER,
         port: int = SMTP_PORT,
-        sender: str = SMTP_SENDER,
         username: str = SMTP_USERNAME,
         password: str = SMTP_PASSWORD,
         use_tls: bool = True,
     ) -> None:
         self.server = server
         self.port = port
-        self.sender = sender
         self.username = username
         self.password = password
         self.use_tls = use_tls
