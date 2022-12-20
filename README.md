@@ -43,11 +43,12 @@ While the app in its current state is stable, it's missing a lot of core feature
 
 Due to some of the current implementation being bare-bones, registration is open to a small group of people (via a whielist). Some things to implement before I consider opening it up:
 - ~~properly supporting registrations using a JWT/confirmation email~~ Done!
-- setting up an SMTP service for this domain
-- implementing throttling and rate-limits
+- ~~setting up an SMTP service for this domain~~ Done!
+- implement login lockouts
+- implement throttling and rate-limits
 
 In addition for increasing support for other applications, some features on the (soft) roadmap:
-- improving the Alexa integration to be bi-directional
-- scheduled weekly items that are automatically added to your shopping list
-- implementing rich features (such as tagging) for applications that support them
+- improve the Alexa integration to be bi-directional
+- add scheduling for items that are automatically added to your shopping list weekly (or otherwise)
+- implement rich features for applications that support them (such as tagging)
 - make the frontend a little more mobile friendly
