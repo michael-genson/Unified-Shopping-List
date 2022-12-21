@@ -37,7 +37,7 @@ from .core import redirect_if_not_logged_in
 
 alexa_list_service = AlexaListService()
 
-frontend_router = APIRouter(prefix="/app/account-linking", tags=["Account Linking"])
+frontend_router = APIRouter(prefix="/app/map-shopping-lists", tags=["Account Linking"])
 api_router = APIRouter(prefix="/api/account-linking", tags=["Account Linking"])
 
 
