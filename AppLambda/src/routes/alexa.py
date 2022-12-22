@@ -39,7 +39,7 @@ from ..models.mealie import (
 )
 from ..services.mealie import MealieListService
 from .account_linking import alexa_list_service, unlink_alexa_account
-from .auth import get_current_active_user
+from .auth import get_current_user
 from .core import redirect_if_not_logged_in
 
 auth_router = APIRouter(prefix="/authorization/alexa", tags=["Alexa"])
@@ -198,7 +198,7 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
 
 @list_router.get("", response_model=AlexaReadListCollection)
 def get_all_lists(
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_user),
     source: str = "API",
     active_lists_only: bool = True,
 ) -> AlexaReadListCollection:
@@ -212,7 +212,7 @@ def get_all_lists(
 
 @list_item_router.post("", response_model=AlexaReadListItemCollection, include_in_schema=False)
 def create_alexa_list_items(
-    user: User = Depends(get_current_active_user), items: AlexaReadListItemCollection = Body(...)
+    user: User = Depends(get_current_user), items: AlexaReadListItemCollection = Body(...)
 ) -> AlexaReadListItemCollection:
     """Receive new list items from Alexa"""
     if not user.is_linked_to_mealie:

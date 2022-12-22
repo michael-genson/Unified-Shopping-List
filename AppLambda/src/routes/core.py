@@ -1,28 +1,27 @@
+import logging
+from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
+from fastapi import APIRouter, Depends, Path, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from ..app import app, templates, token_service
+from ..app import app, smtp_service, templates, token_service, users_service
+from ..app_secrets import EMAIL_WHITELIST, USE_REGISTRATION_WHITELIST
+from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION
 from ..models.core import Token, User
 from ..models.email import RegistrationEmail
-from ..routes.auth import (
-    WhitelistError,
-    create_new_user,
-    delete_existing_user,
-    enable_user_from_token,
-    get_current_active_user,
-    get_current_user,
-    log_in_for_access_token,
-)
 from ..services.auth import InvalidTokenError
-from ..services.core import SMTPService, UserAlreadyExistsError
+from ..services.core import UserAlreadyExistsError
 
 frontend_router = APIRouter(prefix="/app", tags=["Application"])
-smtp = SMTPService()
+
+
+class WhitelistError(Exception):
+    def __init__(self):
+        super().__init__("You are not whitelisted on this application")
 
 
 async def get_user_session(request: Request, response: Response) -> Optional[User]:
@@ -33,12 +32,16 @@ async def get_user_session(request: Request, response: Response) -> Optional[Use
         return None
 
     try:
-        user = await get_current_user(access_token)
-        return await get_current_active_user(user)
+        username = token_service.get_username_from_token(access_token)
 
-    except HTTPException:
-        await clear_user_session(response)
+    except InvalidTokenError:
         return None
+
+    _user_in_db = users_service.get_user(username)
+    if not _user_in_db:
+        return None
+
+    return _user_in_db.cast(User)
 
 
 async def redirect_if_not_logged_in(
@@ -121,16 +124,20 @@ async def log_in_user(
     """Log the user in and store the access token in the user's cookies"""
 
     try:
-        token = await log_in_for_access_token(form_data)
+        user = users_service.get_authenticated_user(form_data.username, form_data.password)
+        if not user:
+            return Exception("Invalid login")
 
-    except HTTPException:
+    except Exception:
         return templates.TemplateResponse(
             "login.html",
             {"request": request, "login_error": True, "username": form_data.username},
         )
 
+    token = token_service.create_token(user.username)
     redirect = request.cookies.get("redirect")
     response = RedirectResponse(redirect or frontend_router.url_path_for("home"), status_code=302)
+
     await set_user_session(response, token)
     return response
 
@@ -168,19 +175,18 @@ async def send_user_registration(
             },
         )
 
+    # create disabled user and generate a temporary registration token for them
     try:
-        token = create_new_user(form_data)
-        registration_token = token.access_token
+        clean_email = form_data.username.strip().lower()
+        if USE_REGISTRATION_WHITELIST and clean_email not in EMAIL_WHITELIST:
+            raise WhitelistError()
 
-    except ValueError as e:
-        return templates.TemplateResponse(
-            "register.html",
-            {
-                "request": request,
-                "registration_error": str(e),
-                "username": form_data.username,
-            },
+        new_user = users_service.create_new_user(
+            username=clean_email, email=clean_email, password=form_data.password, disabled=True
         )
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+        registration_token = token_service.create_token(new_user.username, access_token_expires)
 
     except (ClientError, UserAlreadyExistsError) as e:
         return templates.TemplateResponse(
@@ -202,7 +208,12 @@ async def send_user_registration(
             },
         )
 
-    except Exception:
+    except Exception as e:
+        logging.error(
+            f"Unhandled exception when trying to register a new user ({form_data.username})"
+        )
+        logging.error(f"{type(e).__name__}: {e}")
+
         return templates.TemplateResponse(
             "register.html",
             {
@@ -212,24 +223,40 @@ async def send_user_registration(
             },
         )
 
-    # send registration email
-    msg = RegistrationEmail()
-    full_registration_url = str(request.base_url)[:-1] + frontend_router.url_path_for(
-        "complete_registration", registration_token=registration_token
-    )
-
-    smtp.send(
-        msg.message(
-            form_data.username,
-            form_data.username,
-            registration_url=full_registration_url,
+    try:
+        # send registration email
+        msg = RegistrationEmail()
+        full_registration_url = str(request.base_url)[:-1] + frontend_router.url_path_for(
+            "complete_registration", registration_token=registration_token.access_token
         )
-    )
 
-    return templates.TemplateResponse(
-        "register.html",
-        {"request": request, "registration_email_sent": True},
-    )
+        smtp_service.send(
+            msg.message(
+                form_data.username,
+                form_data.username,
+                registration_url=full_registration_url,
+            )
+        )
+
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "registration_email_sent": True},
+        )
+
+    except Exception as e:
+        logging.error(
+            f"Unhandled exception when trying to send a new user ({form_data.username}) their registration email"
+        )
+        logging.error(f"{type(e).__name__}: {e}")
+
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "registration_error": "An unknown error occurred during registration",
+                "username": form_data.username,
+            },
+        )
 
 
 @frontend_router.get("/complete_registration/{registration_token}", response_class=HTMLResponse)
@@ -237,13 +264,20 @@ async def complete_registration(request: Request, registration_token: str = Path
     """Enables a user and logs them in"""
 
     try:
-        await enable_user_from_token(registration_token)
-        token = token_service.refresh_token(registration_token)
+        username = token_service.get_username_from_token(registration_token)
+        _user_in_db = users_service.get_user(username, active_only=False)
+        if not _user_in_db:
+            raise InvalidTokenError()
 
     except InvalidTokenError:
         return RedirectResponse(
             frontend_router.url_path_for("register") + "?token_expired=true", status_code=302
         )
+
+    user = _user_in_db.cast(User)
+    user.disabled = False
+    users_service.update_user(user, remove_expiration=True)
+    token = token_service.refresh_token(registration_token)
 
     response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
     await set_user_session(response, token)
@@ -268,6 +302,6 @@ async def delete_user(request: Request, response: Response):
     if not user:
         return response
 
-    await delete_existing_user(user)
+    users_service.delete_user(user.username)
     await clear_user_session(response)
     return response

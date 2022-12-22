@@ -7,13 +7,14 @@ from mangum import Mangum
 from .config import APP_TITLE, APP_VERSION
 from .handlers.mangum import SQS
 from .services.auth import AuthTokenService
-from .services.core import CoreUserService
+from .services.core import CoreUserService, SMTPService
 
 ### App Setup ###
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
 app.mount("/static", StaticFiles(directory="./src/static"), name="static")
 templates = Jinja2Templates(directory="./src/static/templates")
 
+smtp_service = SMTPService()
 token_service = AuthTokenService()
 users_service = CoreUserService()
 

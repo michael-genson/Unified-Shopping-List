@@ -32,7 +32,7 @@ from ..models.core import ListSyncMap, Source, User
 from ..models.mealie import MealieEventNotifierOptions, MealieEventNotifierUpdate
 from ..services.alexa import AlexaListService
 from ..services.mealie import MealieListService
-from .auth import get_current_active_user
+from .auth import get_current_user
 from .core import redirect_if_not_logged_in
 
 alexa_list_service = AlexaListService()
@@ -229,7 +229,7 @@ async def handle_sync_map_update_form(
     "/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False
 )
 def link_alexa_account(
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_user),
     alexa_config_input: UserAlexaConfigurationCreate = Depends(),
 ) -> UserAlexaConfiguration:
     user.alexa_user_id = alexa_config_input.user_id
@@ -239,7 +239,7 @@ def link_alexa_account(
 
 
 @api_router.delete("/alexa", tags=["Alexa"])
-def unlink_alexa_account(user: User = Depends(get_current_active_user)) -> User:
+def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
     # TODO: send unlink request to Alexa; currently this just removes the id from the database
     user.alexa_user_id = None
     user.configuration.alexa = None
@@ -250,7 +250,7 @@ def unlink_alexa_account(user: User = Depends(get_current_active_user)) -> User:
 @api_router.post("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
 def link_mealie_account(
     request: Request,
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_user),
     config_input: UserMealieConfigurationCreate = Depends(),
 ) -> UserMealieConfiguration:
     client = MealieClient(config_input.base_url, config_input.initial_auth_token)
@@ -303,7 +303,7 @@ def link_mealie_account(
 
 @api_router.put("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
 def update_mealie_account_link(
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_user),
     mealie_config: UserMealieConfigurationUpdate = Depends(),
 ) -> UserMealieConfiguration:
     if not user.configuration.mealie:
@@ -320,7 +320,7 @@ def update_mealie_account_link(
 
 
 @api_router.delete("/mealie", tags=["Mealie"])
-def unlink_mealie_account(user: User = Depends(get_current_active_user)) -> User:
+def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     mealie_config = user.configuration.mealie
     if not mealie_config:
         return user
@@ -348,7 +348,7 @@ def unlink_mealie_account(user: User = Depends(get_current_active_user)) -> User
     "/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False
 )
 def link_todoist_account(
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_user),
     config_input: UserTodoistConfigurationCreate = Depends(),
 ) -> UserTodoistConfiguration:
     client = TodoistAPI(config_input.access_token)
@@ -386,8 +386,7 @@ def link_todoist_account(
 
 
 def update_todoist_account_link(
-    user: User = Depends(get_current_active_user),
-    config_input: UserTodoistConfigurationUpdate = Depends(),
+    user: User, config_input: UserTodoistConfigurationUpdate
 ) -> UserTodoistConfiguration:
     if not user.is_linked_to_todoist:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Todoist")
@@ -402,7 +401,7 @@ def update_todoist_account_link(
 
 
 @api_router.delete("/todoist", tags=["Todoist"])
-def unlink_todoist_account(user: User = Depends(get_current_active_user)) -> User:
+def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
     user.todoist_user_id = None
     user.configuration.todoist = None
     users_service.update_user(user)
