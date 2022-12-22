@@ -126,7 +126,7 @@ async def log_in_user(
     try:
         user = users_service.get_authenticated_user(form_data.username, form_data.password)
         if not user:
-            return Exception("Invalid login")
+            raise Exception("Invalid login")
 
     except Exception:
         return templates.TemplateResponse(
