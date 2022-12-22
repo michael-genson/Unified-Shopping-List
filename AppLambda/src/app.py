@@ -23,7 +23,7 @@ users_service = CoreUserService()
 from .routes import account_linking, alexa, auth, core, event_handlers, mealie, todoist
 
 # frontend routes
-app.include_router(core.frontend_router, include_in_schema=False)
+app.include_router(core.router, include_in_schema=False)
 app.include_router(account_linking.frontend_router, include_in_schema=False)
 
 app.include_router(alexa.frontend_router, include_in_schema=False)
@@ -48,7 +48,7 @@ app.include_router(alexa.list_item_router)
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
 def home():
     return RedirectResponse(
-        core.frontend_router.url_path_for("home"), status_code=status.HTTP_301_MOVED_PERMANENTLY
+        core.router.url_path_for("home"), status_code=status.HTTP_301_MOVED_PERMANENTLY
     )
 
 

@@ -16,7 +16,7 @@ from ..models.email import RegistrationEmail
 from ..services.auth import InvalidTokenError
 from ..services.core import UserAlreadyExistsError
 
-frontend_router = APIRouter(prefix="/app", tags=["Application"])
+router = APIRouter(prefix="/app", tags=["Application"])
 
 
 class WhitelistError(Exception):
@@ -52,7 +52,7 @@ async def redirect_if_not_logged_in(
     if params is None:
         params = {}
 
-    response = RedirectResponse(frontend_router.url_path_for("log_in"), status_code=302)
+    response = RedirectResponse(router.url_path_for("log_in"), status_code=302)
     user = await get_user_session(request, response)
 
     if user:
@@ -81,7 +81,7 @@ async def clear_user_session(response: Response) -> None:
     response.delete_cookie(key="access_token")
 
 
-@frontend_router.get("", response_class=HTMLResponse)
+@router.get("", response_class=HTMLResponse)
 async def home(request: Request, response: Response):
     """Render the home page"""
 
@@ -94,7 +94,7 @@ async def home(request: Request, response: Response):
     )
 
 
-@frontend_router.get("/privacy-policy", response_class=HTMLResponse)
+@router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request, response: Response):
     user = await get_user_session(request, response)
     return templates.TemplateResponse(
@@ -102,12 +102,12 @@ async def privacy_policy(request: Request, response: Response):
     )
 
 
-@frontend_router.get("/login", response_class=HTMLResponse)
+@router.get("/login", response_class=HTMLResponse)
 async def log_in(request: Request, error=False, redirect=None):
     """Render the login page"""
 
     redirect = request.cookies.get("redirect")
-    response = RedirectResponse(redirect or frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(redirect or router.url_path_for("home"), status_code=302)
     response.delete_cookie(key="redirect")
 
     if await get_user_session(request, response):
@@ -116,7 +116,7 @@ async def log_in(request: Request, error=False, redirect=None):
     return templates.TemplateResponse("login.html", {"request": request, "login_error": error})
 
 
-@frontend_router.post("/login", response_class=HTMLResponse)
+@router.post("/login", response_class=HTMLResponse)
 async def log_in_user(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -136,17 +136,17 @@ async def log_in_user(
 
     token = token_service.create_token(user.username)
     redirect = request.cookies.get("redirect")
-    response = RedirectResponse(redirect or frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(redirect or router.url_path_for("home"), status_code=302)
 
     await set_user_session(response, token)
     return response
 
 
-@frontend_router.get("/register", response_class=HTMLResponse)
+@router.get("/register", response_class=HTMLResponse)
 async def register(request: Request, token_expired: bool = False):
     """Render the registration page"""
 
-    response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(router.url_path_for("home"), status_code=302)
     if await get_user_session(request, response):
         return response
 
@@ -157,7 +157,7 @@ async def register(request: Request, token_expired: bool = False):
     return templates.TemplateResponse("register.html", context)
 
 
-@frontend_router.post("/register", response_class=HTMLResponse)
+@router.post("/register", response_class=HTMLResponse)
 async def send_user_registration(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -226,7 +226,7 @@ async def send_user_registration(
     try:
         # send registration email
         msg = RegistrationEmail()
-        full_registration_url = str(request.base_url)[:-1] + frontend_router.url_path_for(
+        full_registration_url = str(request.base_url)[:-1] + router.url_path_for(
             "complete_registration", registration_token=registration_token.access_token
         )
 
@@ -259,7 +259,7 @@ async def send_user_registration(
         )
 
 
-@frontend_router.get("/complete_registration/{registration_token}", response_class=HTMLResponse)
+@router.get("/complete_registration/{registration_token}", response_class=HTMLResponse)
 async def complete_registration(request: Request, registration_token: str = Path(...)):
     """Enables a user and logs them in"""
 
@@ -271,7 +271,7 @@ async def complete_registration(request: Request, registration_token: str = Path
 
     except InvalidTokenError:
         return RedirectResponse(
-            frontend_router.url_path_for("register") + "?token_expired=true", status_code=302
+            router.url_path_for("register") + "?token_expired=true", status_code=302
         )
 
     user = _user_in_db.cast(User)
@@ -279,25 +279,25 @@ async def complete_registration(request: Request, registration_token: str = Path
     users_service.update_user(user, remove_expiration=True)
     token = token_service.refresh_token(registration_token)
 
-    response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(router.url_path_for("home"), status_code=302)
     await set_user_session(response, token)
     return response
 
 
-@frontend_router.post("/logout", response_class=HTMLResponse)
+@router.post("/logout", response_class=HTMLResponse)
 async def log_out_user(response: Response):
     """Log the user out and return to the home page"""
 
-    response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(router.url_path_for("home"), status_code=302)
     await clear_user_session(response)
     return response
 
 
-@frontend_router.post("/delete-account", response_class=HTMLResponse)
+@router.post("/delete-account", response_class=HTMLResponse)
 async def delete_user(request: Request, response: Response):
     """Completely remove all user data"""
 
-    response = RedirectResponse(frontend_router.url_path_for("home"), status_code=302)
+    response = RedirectResponse(router.url_path_for("home"), status_code=302)
     user = await get_user_session(request, response)
     if not user:
         return response
