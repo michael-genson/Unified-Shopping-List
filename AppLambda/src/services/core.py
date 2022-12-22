@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 from ..app_secrets import (
     SMTP_PASSWORD,
     SMTP_PORT,
-    SMTP_SENDER,
     SMTP_SERVER,
     SMTP_USERNAME,
     USERS_TABLENAME,
