@@ -3,16 +3,16 @@ from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, Depends, Path, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
 from ..app import app, smtp_service, templates, token_service, users_service
 from ..app_secrets import EMAIL_WHITELIST, USE_REGISTRATION_WHITELIST
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION
+from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
 from ..models.core import Token, User
-from ..models.email import RegistrationEmail
+from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth import InvalidTokenError
 from ..services.core import UserAlreadyExistsError
 
@@ -24,7 +24,7 @@ class WhitelistError(Exception):
         super().__init__("You are not whitelisted on this application")
 
 
-async def get_user_session(request: Request, response: Response) -> Optional[User]:
+async def get_user_session(request: Request) -> Optional[User]:
     """Authenticate the user using their access token cookie"""
 
     access_token = request.cookies.get("access_token")
@@ -53,7 +53,7 @@ async def redirect_if_not_logged_in(
         params = {}
 
     response = RedirectResponse(router.url_path_for("log_in"), status_code=302)
-    user = await get_user_session(request, response)
+    user = await get_user_session(request)
 
     if user:
         return user
@@ -81,6 +81,30 @@ async def clear_user_session(response: Response) -> None:
     response.delete_cookie(key="access_token")
 
 
+def send_registration_email(registration_url: str, username: str, email: str):
+    try:
+        msg = RegistrationEmail()
+        smtp_service.send(msg.message(username, email, registration_url=registration_url))
+
+    except Exception as e:
+        logging.error(
+            f"Unhandled exception when trying to send a new user ({username}) their registration email"
+        )
+        logging.error(f"{type(e).__name__}: {e}")
+
+
+def send_password_reset_email(password_reset_url: str, username: str, email: str):
+    try:
+        msg = PasswordResetEmail()
+        smtp_service.send(msg.message(username, email, password_reset_url=password_reset_url))
+
+    except Exception as e:
+        logging.error(
+            f"Unhandled exception when trying to send a user ({username}) their password reset email"
+        )
+        logging.error(f"{type(e).__name__}: {e}")
+
+
 @router.get("", response_class=HTMLResponse)
 async def home(request: Request, response: Response):
     """Render the home page"""
@@ -88,7 +112,7 @@ async def home(request: Request, response: Response):
     if app.docs_url:
         docs_url = str(request.base_url)[:-1] + app.docs_url
 
-    user = await get_user_session(request, response)
+    user = await get_user_session(request)
     return templates.TemplateResponse(
         "home.html", {"request": request, "user": user, "docs_url": docs_url}
     )
@@ -96,31 +120,30 @@ async def home(request: Request, response: Response):
 
 @router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request, response: Response):
-    user = await get_user_session(request, response)
+    user = await get_user_session(request)
     return templates.TemplateResponse(
         "privacy_policy.html", context={"request": request, "user": user}
     )
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def log_in(request: Request, error=False, redirect=None):
+async def log_in(request: Request, error=False, redirect=None, reset_password=False):
     """Render the login page"""
 
     redirect = request.cookies.get("redirect")
     response = RedirectResponse(redirect or router.url_path_for("home"), status_code=302)
     response.delete_cookie(key="redirect")
 
-    if await get_user_session(request, response):
+    if await get_user_session(request):
         return response
 
-    return templates.TemplateResponse("login.html", {"request": request, "login_error": error})
+    return templates.TemplateResponse(
+        "login.html", {"request": request, "login_error": error, "reset_password": reset_password}
+    )
 
 
 @router.post("/login", response_class=HTMLResponse)
-async def log_in_user(
-    request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-):
+async def log_in_user(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """Log the user in and store the access token in the user's cookies"""
 
     try:
@@ -142,12 +165,119 @@ async def log_in_user(
     return response
 
 
+@router.get("/login/forgot-password", response_class=HTMLResponse)
+async def forgot_password(request: Request, token_expired: bool = False):
+    """Renders the forgot password page"""
+
+    if await get_user_session(request):
+        return RedirectResponse(router.url_path_for("home"), status_code=302)
+
+    context: dict[str, Any] = {"request": request}
+    if token_expired:
+        context[
+            "password_reset_error"
+        ] = "Unable to reset password. Token has expired. Please try again"
+
+    return templates.TemplateResponse("password_reset.html", context)
+
+
+@router.post("/login/forgot-password", response_class=HTMLResponse)
+async def initiate_password_reset_email(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    username=Form(),
+):
+    """Sends a password reset email to the user"""
+
+    # if there is no user, we pretend we sent the email anyway
+    _user_in_db = users_service.get_user(username)
+    if _user_in_db:
+        user = _user_in_db.cast(User)
+
+        expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD)
+        reset_token = token_service.create_token(user.username, expires)
+
+        user.last_password_reset_token = reset_token.access_token
+        users_service.update_user(user)
+
+        password_reset_url = (
+            str(request.base_url)[:-1]
+            + router.url_path_for("reset_password")
+            + f"?reset_token={user.last_password_reset_token}"
+        )
+
+        background_tasks.add_task(
+            send_password_reset_email,
+            password_reset_url=password_reset_url,
+            username=user.username,
+            email=user.email,
+        )
+
+    return templates.TemplateResponse(
+        "password_reset.html",
+        {"request": request, "password_reset": True},
+    )
+
+
+@router.get("/login/reset-password", response_class=HTMLResponse)
+async def reset_password(request: Request, reset_token: Optional[str] = None):
+    """Renders the password reset form, if the user is authenticated"""
+
+    try:
+        if not reset_token:
+            raise InvalidTokenError()
+
+        username = token_service.get_username_from_token(reset_token)
+        _user_in_db = users_service.get_user(username)
+
+        if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
+            raise InvalidTokenError()
+
+    except InvalidTokenError:
+        return RedirectResponse(
+            router.url_path_for("forgot_password") + "?token_expired=true", status_code=302
+        )
+
+    return templates.TemplateResponse("change_password.html", {"request": request})
+
+
+@router.post("/login/reset-password", response_class=HTMLResponse)
+async def update_password(
+    request: Request, reset_token: Optional[str] = None, password: str = Form()
+):
+    """Updates the user's password"""
+    if len(password) < 8:
+        return templates.TemplateResponse("change_password.html", {"request": request})
+
+    try:
+        if not reset_token:
+            raise InvalidTokenError()
+
+        username = token_service.get_username_from_token(reset_token)
+        _user_in_db = users_service.get_user(username)
+
+        if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
+            raise InvalidTokenError()
+
+        user = _user_in_db.cast(User)
+
+    except InvalidTokenError:
+        return RedirectResponse(
+            router.url_path_for("forgot_password") + "?token_expired=true", status_code=302
+        )
+
+    users_service.change_user_password(user, password)
+    return RedirectResponse(
+        router.url_path_for("log_in") + "?reset_password=true", status_code=302
+    )
+
+
 @router.get("/register", response_class=HTMLResponse)
 async def register(request: Request, token_expired: bool = False):
     """Render the registration page"""
 
     response = RedirectResponse(router.url_path_for("home"), status_code=302)
-    if await get_user_session(request, response):
+    if await get_user_session(request):
         return response
 
     context: dict[str, Any] = {"request": request}
@@ -158,8 +288,9 @@ async def register(request: Request, token_expired: bool = False):
 
 
 @router.post("/register", response_class=HTMLResponse)
-async def send_user_registration(
+async def initiate_registration_email(
     request: Request,
+    background_tasks: BackgroundTasks,
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
     """Register the user and return them to the home page"""
@@ -182,11 +313,11 @@ async def send_user_registration(
             raise WhitelistError()
 
         new_user = users_service.create_new_user(
-            username=clean_email, email=clean_email, password=form_data.password, disabled=True
+            username=clean_email,
+            email=clean_email,
+            password=form_data.password,
+            disabled=True,
         )
-
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
-        registration_token = token_service.create_token(new_user.username, access_token_expires)
 
     except (ClientError, UserAlreadyExistsError) as e:
         return templates.TemplateResponse(
@@ -223,50 +354,36 @@ async def send_user_registration(
             },
         )
 
-    try:
-        # send registration email
-        msg = RegistrationEmail()
-        full_registration_url = str(request.base_url)[:-1] + router.url_path_for(
-            "complete_registration", registration_token=registration_token.access_token
-        )
+    registration_url = (
+        str(request.base_url)[:-1]
+        + router.url_path_for("complete_registration")
+        + f"?registration_token={new_user.last_registration_token}"
+    )
 
-        smtp_service.send(
-            msg.message(
-                form_data.username,
-                form_data.username,
-                registration_url=full_registration_url,
-            )
-        )
+    background_tasks.add_task(
+        send_registration_email,
+        registration_url=registration_url,
+        username=form_data.username,
+        email=form_data.username,
+    )
 
-        return templates.TemplateResponse(
-            "register.html",
-            {"request": request, "registration_email_sent": True},
-        )
-
-    except Exception as e:
-        logging.error(
-            f"Unhandled exception when trying to send a new user ({form_data.username}) their registration email"
-        )
-        logging.error(f"{type(e).__name__}: {e}")
-
-        return templates.TemplateResponse(
-            "register.html",
-            {
-                "request": request,
-                "registration_error": "An unknown error occurred during registration",
-                "username": form_data.username,
-            },
-        )
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "registration_email_sent": True},
+    )
 
 
-@router.get("/complete_registration/{registration_token}", response_class=HTMLResponse)
-async def complete_registration(request: Request, registration_token: str = Path(...)):
+@router.get("/complete_registration", response_class=HTMLResponse)
+async def complete_registration(request: Request, registration_token: Optional[str] = None):
     """Enables a user and logs them in"""
 
     try:
+        if not registration_token:
+            raise InvalidTokenError()
+
         username = token_service.get_username_from_token(registration_token)
         _user_in_db = users_service.get_user(username, active_only=False)
-        if not _user_in_db:
+        if not _user_in_db or _user_in_db.last_registration_token != registration_token:
             raise InvalidTokenError()
 
     except InvalidTokenError:
@@ -276,6 +393,7 @@ async def complete_registration(request: Request, registration_token: str = Path
 
     user = _user_in_db.cast(User)
     user.disabled = False
+    user.last_registration_token = None
     users_service.update_user(user, remove_expiration=True)
     token = token_service.refresh_token(registration_token)
 
@@ -298,7 +416,7 @@ async def delete_user(request: Request, response: Response):
     """Completely remove all user data"""
 
     response = RedirectResponse(router.url_path_for("home"), status_code=302)
-    user = await get_user_session(request, response)
+    user = await get_user_session(request)
     if not user:
         return response
 

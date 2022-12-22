@@ -1,9 +1,11 @@
+from datetime import timedelta
 from email.message import EmailMessage
 from smtplib import SMTP
 from typing import Optional
 
 from passlib.context import CryptContext
 
+from ..app import token_service
 from ..app_secrets import (
     SMTP_PASSWORD,
     SMTP_PORT,
@@ -73,7 +75,12 @@ class CoreUserService:
         return self.authenticate_user(user, password)
 
     def create_new_user(
-        self, username: str, email: str, password: str, disabled: bool = False
+        self,
+        username: str,
+        email: str,
+        password: str,
+        disabled: bool = False,
+        create_registration_token: bool = True,
     ) -> User:
         """Creates a new user if the username isn't in use"""
 
@@ -97,6 +104,14 @@ class CoreUserService:
         if disabled:
             new_user.set_expiration(ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
 
+        if create_registration_token:
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+            registration_token = token_service.create_token(
+                new_user.username, access_token_expires
+            )
+
+            new_user.last_registration_token = registration_token.access_token
+
         self.db.put(new_user.dict(exclude_none=True), allow_update=allow_update)
         return new_user
 
@@ -114,6 +129,22 @@ class CoreUserService:
         data = user_to_update.dict(exclude_none=True)
         if remove_expiration:
             data["user_expires"] = None
+
+        self.db.put(data)
+
+    def change_user_password(
+        self, user: User, new_password: str, clear_password_reset_token: bool = True
+    ) -> None:
+        """Changes a user's password"""
+
+        user_to_update = self.get_user(user.username)
+        if not user_to_update:
+            raise ValueError(f"User {user.username} does not exist")
+
+        user_to_update.hashed_password = pwd_context.hash(new_password)
+        data = user_to_update.dict(exclude_none=True)
+        if clear_password_reset_token:
+            data["last_password_reset_token"] = None
 
         self.db.put(data)
 

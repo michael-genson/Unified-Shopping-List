@@ -21,9 +21,21 @@
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
+    <p class="mt-3">
+      <a class="text-muted" style="text-decoration:none;" href='{{ url_for("forgot_password") }}'>
+        Forgot your password?
+      </a>
+    </p>
   </div>
 
   <div class="row">
+    {% if reset_password %}
+    <div class="text-light font-weight-bold">
+      <div class="badge bg-success text-wrap font-weight-bold" style="font-size: large;">
+        Password successfully reset! You may now log in with your new password
+      </div>
+    </div>
+    {% endif %}
     {% if login_error %}
     <div class="text-light font-weight-bold">
       <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">

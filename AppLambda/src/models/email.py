@@ -71,3 +71,23 @@ class RegistrationEmail:
             name=recipient_username,
             registration_url=registration_url,
         )
+
+
+class PasswordResetEmail:
+    def __init__(self) -> None:
+        self.template = GenericEmailTemplate("password_reset.html", is_html=True)
+
+    def message(
+        self,
+        recipient_username: str,
+        recipient_email: str,
+        password_reset_url: str,
+    ) -> EmailMessage:
+        subject = f"Reset your password for {APP_TITLE}"
+        return self.template.message(
+            subject,
+            sender=SMTP_SENDER,
+            recipients=recipient_email,
+            name=recipient_username,
+            password_reset_url=password_reset_url,
+        )
