@@ -39,12 +39,7 @@ from ..models.mealie import (
 )
 from ..services.mealie import MealieListService
 from .account_linking import alexa_list_service, unlink_alexa_account
-from .auth import (
-    create_access_token,
-    get_current_active_user,
-    refresh_access_token,
-    users_db,
-)
+from .auth import get_current_active_user, token_service, users_db
 from .core import redirect_if_not_logged_in
 
 auth_router = APIRouter(prefix="/authorization/alexa", tags=["Alexa"])
@@ -137,13 +132,13 @@ async def authorize_alexa_app(request: Request, auth: AlexaAuthRequest = Depends
 
     user = logged_in_response
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY)
-    user_access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+    user_access_token = token_service.create_token(user.username, access_token_expires)
 
     # add params to redirect uri
     req = PreparedRequest()
-    req.prepare_url(auth.redirect_uri, {"code": user_access_token, "state": auth.state})
+    req.prepare_url(
+        auth.redirect_uri, {"code": user_access_token.access_token, "state": auth.state}
+    )
     redirect_uri = cast(str, req.url)
 
     return RedirectResponse(redirect_uri, status_code=302)
@@ -163,9 +158,8 @@ def get_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    new_access_token = refresh_access_token(code, expiration_minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-
-    return Token(access_token=new_access_token, token_type="bearer")
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return token_service.refresh_token(code, access_token_expires)
 
 
 @auth_router.delete("/link")

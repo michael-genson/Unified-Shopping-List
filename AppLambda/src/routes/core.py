@@ -17,8 +17,9 @@ from ..routes.auth import (
     get_current_active_user,
     get_current_user,
     log_in_for_access_token,
-    refresh_access_token,
+    token_service,
 )
+from ..services.auth import InvalidTokenError
 from ..services.core import SMTPService, UserAlreadyExistsError
 
 frontend_router = APIRouter(prefix="/app", tags=["Application"])
@@ -169,7 +170,8 @@ async def send_user_registration(
         )
 
     try:
-        registration_token = create_new_user(form_data)
+        token = create_new_user(form_data)
+        registration_token = token.access_token
 
     except ValueError as e:
         return templates.TemplateResponse(
@@ -237,10 +239,9 @@ async def complete_registration(request: Request, registration_token: str = Path
 
     try:
         await enable_user_from_token(registration_token)
-        token_data = refresh_access_token(registration_token)
-        token = Token(access_token=token_data, token_type="bearer")
+        token = token_service.refresh_token(registration_token)
 
-    except Exception:
+    except InvalidTokenError:
         return RedirectResponse(
             frontend_router.url_path_for("register") + "?token_expired=true", status_code=302
         )
