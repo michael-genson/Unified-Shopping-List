@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from fastapi.responses import HTMLResponse, RedirectResponse
 from todoist_api_python.api import TodoistAPI
 
-from ..app import app, templates
+from ..app import app, templates, users_service
 from ..clients.mealie import MealieClient
 from ..config import (
     APP_TITLE,
@@ -32,7 +32,7 @@ from ..models.core import ListSyncMap, Source, User
 from ..models.mealie import MealieEventNotifierOptions, MealieEventNotifierUpdate
 from ..services.alexa import AlexaListService
 from ..services.mealie import MealieListService
-from .auth import get_current_active_user, users_db
+from .auth import get_current_active_user
 from .core import redirect_if_not_logged_in
 
 alexa_list_service = AlexaListService()
@@ -209,7 +209,7 @@ async def handle_sync_map_update_form(
             for mealie_shopping_list_id, external_lists in combined_list_data.items()
         }
 
-        users_db.update_user(user)
+        users_service.update_user(user)
         return await create_shopping_list_sync_map_template(
             request, user, success_message="Successfully updated shopping list maps"
         )
@@ -234,7 +234,7 @@ def link_alexa_account(
 ) -> UserAlexaConfiguration:
     user.alexa_user_id = alexa_config_input.user_id
     user.configuration.alexa = alexa_config_input.cast(UserAlexaConfiguration)
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user.configuration.alexa
 
 
@@ -243,7 +243,7 @@ def unlink_alexa_account(user: User = Depends(get_current_active_user)) -> User:
     # TODO: send unlink request to Alexa; currently this just removes the id from the database
     user.alexa_user_id = None
     user.configuration.alexa = None
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user
 
 
@@ -297,7 +297,7 @@ def link_mealie_account(
         security_hash=security_hash,
     )
 
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user.configuration.mealie
 
 
@@ -315,7 +315,7 @@ def update_mealie_account_link(
     )
     user.configuration.mealie.confidence_threshold = mealie_config.confidence_threshold
 
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user.configuration.mealie
 
 
@@ -340,7 +340,7 @@ def unlink_mealie_account(user: User = Depends(get_current_active_user)) -> User
         pass
 
     user.configuration.mealie = None
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user
 
 
@@ -381,7 +381,7 @@ def link_todoist_account(
     user.todoist_user_id = user_id
     user.configuration.todoist = UserTodoistConfiguration(access_token=config_input.access_token)
 
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user.configuration.todoist
 
 
@@ -397,7 +397,7 @@ def update_todoist_account_link(
     todoist_config.default_section_name = config_input.default_section_name
 
     user.configuration.todoist = todoist_config
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user.configuration.todoist
 
 
@@ -405,5 +405,5 @@ def update_todoist_account_link(
 def unlink_todoist_account(user: User = Depends(get_current_active_user)) -> User:
     user.todoist_user_id = None
     user.configuration.todoist = None
-    users_db.update_user(user)
+    users_service.update_user(user)
     return user

@@ -19,7 +19,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, RedirectResponse
 from requests import PreparedRequest
 
-from ..app import templates
+from ..app import templates, token_service, users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -39,7 +39,7 @@ from ..models.mealie import (
 )
 from ..services.mealie import MealieListService
 from .account_linking import alexa_list_service, unlink_alexa_account
-from .auth import get_current_active_user, token_service, users_db
+from .auth import get_current_active_user
 from .core import redirect_if_not_logged_in
 
 auth_router = APIRouter(prefix="/authorization/alexa", tags=["Alexa"])
@@ -180,12 +180,12 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
         logging.error("Alexa unlink request received with invalid hash")
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
-    usernames = users_db.get_usernames_by_secondary_index("alexa_user_id", user_id)
+    usernames = users_service.get_usernames_by_secondary_index("alexa_user_id", user_id)
     if not usernames:
         return
 
     for username in usernames:
-        _user_in_db = users_db.get_user(username, active_only=False)
+        _user_in_db = users_service.get_user(username, active_only=False)
         if not _user_in_db:
             continue
 

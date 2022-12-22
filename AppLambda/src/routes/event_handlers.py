@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Body, Query, Request
 
+from ..app import users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
 from ..config import MEALIE_INTEGRATION_ID
 from ..handlers.core import SQSSyncMessageHandler
@@ -15,7 +16,6 @@ from ..models.aws import SQSEvent
 from ..models.core import BaseSyncEvent, User
 from ..models.mealie import MealieEventNotification, MealieEventType, MealieSyncEvent
 from ..models.todoist import TodoistEventType, TodoistSyncEvent, TodoistWebhook
-from .auth import users_db
 
 router = APIRouter(prefix="/api/handlers", tags=["Handlers"])
 
@@ -39,7 +39,7 @@ async def sqs_sync_event_handler(event: SQSEvent = Body(...)) -> None:
                 logging.error("Received sync event with invalid client id & secret pair, aborting")
                 continue
 
-            _user_in_db = users_db.get_user(sync_event.username)
+            _user_in_db = users_service.get_user(sync_event.username)
             if not _user_in_db:
                 logging.error(f"Cannot find sync event user {sync_event.username}, aborting")
                 continue
@@ -76,7 +76,7 @@ async def mealie_event_notification_handler(
     if not shopping_list_id:
         return
 
-    _user_in_db = users_db.get_user(username)
+    _user_in_db = users_service.get_user(username)
     if not _user_in_db:
         return
 
@@ -132,13 +132,13 @@ async def todoist_event_notification_handler(
         return
 
     # find all users linked to this Todoist account
-    linked_usernames = users_db.get_usernames_by_secondary_index(
+    linked_usernames = users_service.get_usernames_by_secondary_index(
         "todoist_user_id", webhook.user_id
     )
 
     users: list[User] = []
     for username in linked_usernames:
-        _user_in_db = users_db.get_user(username)
+        _user_in_db = users_service.get_user(username)
         if not _user_in_db:
             continue
 

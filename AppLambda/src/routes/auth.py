@@ -3,15 +3,13 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
+from ..app import token_service, users_service
 from ..app_secrets import EMAIL_WHITELIST, USE_REGISTRATION_WHITELIST
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION
 from ..models.core import Token, User
-from ..services.auth import AuthTokenService, InvalidTokenError
-from ..services.core import CoreUserService
+from ..services.auth import InvalidTokenError
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/authorization/token")
-token_service = AuthTokenService()
-users_db = CoreUserService()
 
 
 router = APIRouter(prefix="/api/authorization", tags=["Authorization"])
@@ -29,7 +27,7 @@ def create_new_user(form_data: OAuth2PasswordRequestForm) -> Token:
     if USE_REGISTRATION_WHITELIST and clean_email not in EMAIL_WHITELIST:
         raise WhitelistError()
 
-    new_user = users_db.create_new_user(
+    new_user = users_service.create_new_user(
         username=clean_email, email=clean_email, password=form_data.password, disabled=True
     )
 
@@ -40,7 +38,7 @@ def create_new_user(form_data: OAuth2PasswordRequestForm) -> Token:
 async def enable_user_from_token(token: str) -> User:
     user = await get_current_user(token)
     user.disabled = False
-    users_db.update_user(user, remove_expiration=True)
+    users_service.update_user(user, remove_expiration=True)
     return user
 
 
@@ -49,7 +47,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
     try:
         username = token_service.get_username_from_token(token)
-        _user_in_db = users_db.get_user(username, active_only=False)
+        _user_in_db = users_service.get_user(username, active_only=False)
         if _user_in_db is None:
             raise InvalidTokenError()
 
@@ -75,7 +73,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 async def delete_existing_user(user: User = Depends(get_current_active_user)) -> None:
     """Deletes the user and all of their data"""
 
-    users_db.delete_user(user.username)
+    users_service.delete_user(user.username)
     return None
 
 
@@ -85,7 +83,7 @@ async def log_in_for_access_token(
 ) -> Token:
     """Generates a new token from a username and password"""
 
-    user = users_db.get_authenticated_user(form_data.username, form_data.password)
+    user = users_service.get_authenticated_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

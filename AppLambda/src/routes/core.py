@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from ..app import app, templates
+from ..app import app, templates, token_service
 from ..models.core import Token, User
 from ..models.email import RegistrationEmail
 from ..routes.auth import (
@@ -17,7 +17,6 @@ from ..routes.auth import (
     get_current_active_user,
     get_current_user,
     log_in_for_access_token,
-    token_service,
 )
 from ..services.auth import InvalidTokenError
 from ..services.core import SMTPService, UserAlreadyExistsError
