@@ -44,6 +44,7 @@ While the app in its current state is stable, it's missing a lot of core feature
 Due to some of the current implementation being bare-bones, registration is open to a small group of people (via a whielist). Some things to implement before I consider opening it up:
 - ~~properly supporting registrations using a JWT/confirmation email~~ Done!
 - ~~setting up an SMTP service for this domain~~ Done!
+- implement password resets
 - implement login lockouts
 - implement throttling and rate-limits
 
