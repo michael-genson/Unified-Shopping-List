@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from ..app import token_service, users_service
 from ..models.core import Token, User
-from ..services.auth import InvalidTokenError
+from ..services.auth_token import InvalidTokenError
 from ..services.user import UserIsDisabledError, UserIsNotRegisteredError
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/authorization/token")

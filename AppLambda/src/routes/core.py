@@ -13,7 +13,7 @@ from ..app_secrets import EMAIL_WHITELIST, USE_REGISTRATION_WHITELIST
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
 from ..models.core import Token, User
 from ..models.email import PasswordResetEmail, RegistrationEmail
-from ..services.auth import InvalidTokenError
+from ..services.auth_token import InvalidTokenError
 from ..services.user import (
     UserAlreadyExistsError,
     UserIsDisabledError,

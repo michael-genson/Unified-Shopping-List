@@ -14,7 +14,7 @@ templates = Jinja2Templates(directory="./src/static/templates")
 
 
 ### Service Setup ###
-from .services.auth import AuthTokenService
+from .services.auth_token import AuthTokenService
 from .services.smtp import SMTPService
 from .services.user import UserService
 

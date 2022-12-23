@@ -7,7 +7,7 @@ from ..app_secrets import USERS_TABLENAME
 from ..clients.aws import DynamoDB
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.core import User, UserInDB
-from .auth import AuthTokenService
+from .auth_token import AuthTokenService
 
 users_db = DynamoDB(USERS_TABLENAME)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
