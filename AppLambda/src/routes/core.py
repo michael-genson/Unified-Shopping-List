@@ -402,7 +402,7 @@ async def initiate_registration_email(
 
 
 @router.get("/complete_registration", response_class=HTMLResponse)
-async def complete_registration(request: Request, registration_token: Optional[str] = None):
+async def complete_registration(registration_token: Optional[str] = None):
     """Enables a user and logs them in"""
 
     try:
