@@ -42,6 +42,7 @@ class User(APIBase):
     user_expires: Optional[int] = None
     last_registration_token: Optional[str] = None
     last_password_reset_token: Optional[str] = None
+    incorrect_login_attempts: Optional[int] = 0
 
     configuration: UserConfiguration = UserConfiguration()
     list_sync_maps: dict[str, ListSyncMap] = {}

@@ -17,6 +17,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION = 15
 ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD = 15
 """Number of minutes to keep a password reset token active"""
 
+LOGIN_LOCKOUT_ATTEMPTS = 5
+"""Number of incorrect login attempts before a user is locked out"""
+
 
 ### Alexa ###
 ALEXA_SECRET_HEADER_KEY = "X-Alexa-Security-Hash"

@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from ..app import token_service, users_service
 from ..models.core import Token, User
 from ..services.auth import InvalidTokenError
+from ..services.user import UserIsDisabledError, UserIsNotRegisteredError
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/authorization/token")
 router = APIRouter(prefix="/api/authorization", tags=["Authorization"])
@@ -40,15 +41,30 @@ async def log_in_for_access_token(
 ) -> Token:
     """Generates a new token from a username and password"""
 
-    user = users_service.get_authenticated_user(form_data.username, form_data.password)
-    if not user:
+    try:
+        user = users_service.get_authenticated_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return token_service.create_token(user.username)
+
+    except UserIsNotRegisteredError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="User has not completed registration",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return token_service.create_token(user.username)
+    except UserIsDisabledError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is disabled and must request a password reset",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 @router.get("/me", response_model=User)

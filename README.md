@@ -45,7 +45,7 @@ Due to some of the current implementation being bare-bones, registration is open
 - ~~properly supporting registrations using a JWT/confirmation email~~ Done!
 - ~~setting up an SMTP service for this domain~~ Done!
 - ~~implement password resets~~ Done!
-- implement login lockouts
+- ~~implement login lockouts~~ Done!
 - implement throttling and rate-limits
 
 In addition for increasing support for other applications, some features on the (soft) roadmap:

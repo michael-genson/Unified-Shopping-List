@@ -1,20 +1,12 @@
 from datetime import timedelta
-from email.message import EmailMessage
-from smtplib import SMTP
 from typing import Optional
 
 from passlib.context import CryptContext
 
 from ..app import token_service
-from ..app_secrets import (
-    SMTP_PASSWORD,
-    SMTP_PORT,
-    SMTP_SERVER,
-    SMTP_USERNAME,
-    USERS_TABLENAME,
-)
+from ..app_secrets import USERS_TABLENAME
 from ..clients.aws import DynamoDB
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION
+from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.core import User, UserInDB
 
 users_db = DynamoDB(USERS_TABLENAME)
@@ -26,7 +18,17 @@ class UserAlreadyExistsError(Exception):
         super().__init__("User already exists")
 
 
-class CoreUserService:
+class UserIsNotRegisteredError(Exception):
+    def __init__(self):
+        super().__init__("User has not completed registration")
+
+
+class UserIsDisabledError(Exception):
+    def __init__(self):
+        super().__init__("User is disabled")
+
+
+class UserService:
     def __init__(self) -> None:
         self.db_primary_key = "username"
         self.db = users_db
@@ -61,16 +63,33 @@ class CoreUserService:
 
         # verify the provided password is correct
         if not pwd_context.verify(password, user.hashed_password):
+            self.increment_failed_login_counter(user)
             return None
+
+        if user.incorrect_login_attempts and user.incorrect_login_attempts > 0:
+            user.incorrect_login_attempts = 0
+            self.update_user(user)
 
         return user.cast(User)
 
     def get_authenticated_user(self, username: str, password: str) -> Optional[User]:
-        """Fetches a user from the database only if authenticated, if it exists"""
+        """
+        Fetches a user from the database only if authenticated, if it exists
 
-        user = self.get_user(username)
+        If the user is new and must register, raises UserIsNotRegisteredError
+        If the user has been locked out, raises UserIsDisabledError
+        """
+
+        user = self.get_user(username, active_only=False)
         if not user:
             return None
+
+        if user.disabled:
+            if user.user_expires:
+                raise UserIsNotRegisteredError()
+
+            else:
+                raise UserIsDisabledError()
 
         return self.authenticate_user(user, password)
 
@@ -133,42 +152,46 @@ class CoreUserService:
         self.db.put(data)
 
     def change_user_password(
-        self, user: User, new_password: str, clear_password_reset_token: bool = True
+        self,
+        user: User,
+        new_password: str,
+        enable_user: bool = True,
+        clear_password_reset_token: bool = True,
     ) -> None:
         """Changes a user's password"""
 
-        user_to_update = self.get_user(user.username)
+        user_to_update = self.get_user(user.username, active_only=False)
         if not user_to_update:
             raise ValueError(f"User {user.username} does not exist")
 
         user_to_update.hashed_password = pwd_context.hash(new_password)
+        if enable_user:
+            user_to_update.disabled = False
+
         data = user_to_update.dict(exclude_none=True)
         if clear_password_reset_token:
             data["last_password_reset_token"] = None
 
         self.db.put(data)
 
+    def increment_failed_login_counter(self, user: User) -> User:
+        """
+        Increments the user's failed login counter and returns the updated user
 
-class SMTPService:
-    def __init__(
-        self,
-        server: str = SMTP_SERVER,
-        port: int = SMTP_PORT,
-        username: str = SMTP_USERNAME,
-        password: str = SMTP_PASSWORD,
-        use_tls: bool = True,
-    ) -> None:
-        self.server = server
-        self.port = port
-        self.username = username
-        self.password = password
-        self.use_tls = use_tls
+        If the user fails to login too many times, they will be locked out
+        """
 
-    def send(self, msg: EmailMessage) -> None:
-        smtp = SMTP(self.server, port=self.port)
+        if user.incorrect_login_attempts is None:
+            user.incorrect_login_attempts = 0
 
-        smtp.ehlo()
-        smtp.starttls()
+        user.incorrect_login_attempts += 1
+        if user.incorrect_login_attempts < LOGIN_LOCKOUT_ATTEMPTS:
+            self.update_user(user)
+            return user
 
-        smtp.login(self.username, self.password)
-        smtp.send_message(msg)
+        # if the user has been locked out, disable them
+        user.disabled = True
+        user.incorrect_login_attempts = 0
+
+        self.update_user(user)
+        return user

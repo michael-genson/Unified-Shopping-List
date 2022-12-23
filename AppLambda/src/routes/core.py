@@ -14,7 +14,11 @@ from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
 from ..models.core import Token, User
 from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth import InvalidTokenError
-from ..services.core import UserAlreadyExistsError
+from ..services.user import (
+    UserAlreadyExistsError,
+    UserIsDisabledError,
+    UserIsNotRegisteredError,
+)
 
 router = APIRouter(prefix="/app", tags=["Application"])
 
@@ -137,8 +141,11 @@ async def log_in(request: Request, error=False, redirect=None, reset_password=Fa
     if await get_user_session(request):
         return response
 
+    login_error = "Invalid login" if error else None
+
     return templates.TemplateResponse(
-        "login.html", {"request": request, "login_error": error, "reset_password": reset_password}
+        "login.html",
+        {"request": request, "login_error": login_error, "reset_password": reset_password},
     )
 
 
@@ -149,12 +156,33 @@ async def log_in_user(request: Request, form_data: OAuth2PasswordRequestForm = D
     try:
         user = users_service.get_authenticated_user(form_data.username, form_data.password)
         if not user:
-            raise Exception("Invalid login")
+            return templates.TemplateResponse(
+                "login.html",
+                {
+                    "request": request,
+                    "login_error": "Invalid login",
+                    "username": form_data.username,
+                },
+            )
 
-    except Exception:
+    except UserIsNotRegisteredError:
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "login_error": True, "username": form_data.username},
+            {
+                "request": request,
+                "login_error": "You must complete registration before logging in. Check your email, or re-register",
+                "username": form_data.username,
+            },
+        )
+
+    except UserIsDisabledError:
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "login_error": "You have been locked out. Please reset your password",
+                "username": form_data.username,
+            },
         )
 
     token = token_service.create_token(user.username)
@@ -190,7 +218,7 @@ async def initiate_password_reset_email(
     """Sends a password reset email to the user"""
 
     # if there is no user, we pretend we sent the email anyway
-    _user_in_db = users_service.get_user(username)
+    _user_in_db = users_service.get_user(username, active_only=False)
     if _user_in_db:
         user = _user_in_db.cast(User)
 
@@ -228,7 +256,7 @@ async def reset_password(request: Request, reset_token: Optional[str] = None):
             raise InvalidTokenError()
 
         username = token_service.get_username_from_token(reset_token)
-        _user_in_db = users_service.get_user(username)
+        _user_in_db = users_service.get_user(username, active_only=False)
 
         if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
             raise InvalidTokenError()
@@ -254,7 +282,7 @@ async def update_password(
             raise InvalidTokenError()
 
         username = token_service.get_username_from_token(reset_token)
-        _user_in_db = users_service.get_user(username)
+        _user_in_db = users_service.get_user(username, active_only=False)
 
         if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
             raise InvalidTokenError()

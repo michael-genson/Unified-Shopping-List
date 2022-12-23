@@ -39,7 +39,7 @@
     {% if login_error %}
     <div class="text-light font-weight-bold">
       <div class="badge bg-danger text-wrap font-weight-bold" style="font-size: large;">
-        Invalid Login!
+        {{ login_error }}
       </div>
     </div>
     {% endif %}
