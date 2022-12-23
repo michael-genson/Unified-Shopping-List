@@ -14,9 +14,6 @@ class InvalidTokenError(Exception):
 
 
 class AuthTokenService:
-    def __init__(self) -> None:
-        pass
-
     def create_token(self, username: str, expires: Optional[timedelta] = None) -> Token:
         """Creates a new access token for a user"""
 
