@@ -3,11 +3,11 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from ..app import token_service
 from ..app_secrets import USERS_TABLENAME
 from ..clients.aws import DynamoDB
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.core import User, UserInDB
+from .auth import AuthTokenService
 
 users_db = DynamoDB(USERS_TABLENAME)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -29,8 +29,9 @@ class UserIsDisabledError(Exception):
 
 
 class UserService:
-    def __init__(self) -> None:
-        self.db_primary_key = "username"
+    def __init__(self, token_service: AuthTokenService, db_primary_key: str = "username") -> None:
+        self._token_service = token_service
+        self.db_primary_key = db_primary_key
         self.db = users_db
 
     def get_user(self, username: str, active_only=True) -> Optional[UserInDB]:
@@ -125,7 +126,7 @@ class UserService:
 
         if create_registration_token:
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
-            registration_token = token_service.create_token(
+            registration_token = self._token_service.create_token(
                 new_user.username, access_token_expires
             )
 

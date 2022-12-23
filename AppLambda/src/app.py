@@ -13,16 +13,14 @@ app.mount("/static", StaticFiles(directory="./src/static"), name="static")
 templates = Jinja2Templates(directory="./src/static/templates")
 
 
-### Service Setup (must be loaded in order) ###
+### Service Setup ###
 from .services.auth import AuthTokenService
-
-token_service = AuthTokenService()
-
 from .services.smtp import SMTPService
 from .services.user import UserService
 
 smtp_service = SMTPService()
-users_service = UserService()
+token_service = AuthTokenService()
+users_service = UserService(token_service)
 
 
 ### Route Setup ###
