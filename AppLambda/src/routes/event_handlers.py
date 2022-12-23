@@ -5,15 +5,15 @@ import logging
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Body, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 
-from ..app import users_service
+from ..app import rate_limit_service, users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
 from ..config import MEALIE_INTEGRATION_ID
 from ..handlers.core import SQSSyncMessageHandler
 from ..models.account_linking import NotLinkedError
 from ..models.aws import SQSEvent
-from ..models.core import BaseSyncEvent, User
+from ..models.core import BaseSyncEvent, RateLimitCategory, User
 from ..models.mealie import MealieEventNotification, MealieEventType, MealieSyncEvent
 from ..models.todoist import TodoistEventType, TodoistSyncEvent, TodoistWebhook
 
@@ -92,6 +92,21 @@ async def mealie_event_notification_handler(
     if shopping_list_id not in user.list_sync_maps:
         return
 
+    try:
+        # verify user rate limit; raises 429 error if the rate limit is violated
+        rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
+
+    except HTTPException as e:
+        # don't respond to the notification server that there's an error
+        if e.status_code != 429:
+            raise
+
+        logging.info(
+            f"[429 RATE LIMIT] Received too many Mealie sync notifications from {user.username}"
+        )
+
+        return
+
     # initiate a sync event
     sync_event = MealieSyncEvent(
         event_id=notification.event_id,
@@ -161,6 +176,21 @@ async def todoist_event_notification_handler(
         users.append(user)
 
     if not users:
+        return
+
+    try:
+        # verify user rate limit; raises 429 error if the rate limit is violated
+        rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
+
+    except HTTPException as e:
+        # don't respond to the notification server that there's an error
+        if e.status_code != 429:
+            raise
+
+        logging.info(
+            f"[429 RATE LIMIT] Received too many Todoist sync notifications from {user.username}"
+        )
+
         return
 
     # initiate a sync event for each linked user (there should only be one)

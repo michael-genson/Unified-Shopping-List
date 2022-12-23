@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from fastapi.responses import HTMLResponse, RedirectResponse
 from todoist_api_python.api import TodoistAPI
 
-from ..app import app, templates, users_service
+from ..app import app, rate_limit_service, templates, users_service
 from ..clients.mealie import MealieClient
 from ..config import (
     APP_TITLE,
@@ -28,7 +28,7 @@ from ..models.account_linking import (
     UserTodoistConfigurationCreate,
     UserTodoistConfigurationUpdate,
 )
-from ..models.core import ListSyncMap, Source, User
+from ..models.core import ListSyncMap, RateLimitCategory, Source, User
 from ..models.mealie import MealieEventNotifierOptions, MealieEventNotifierUpdate
 from ..services.alexa import AlexaListService
 from ..services.mealie import MealieListService
@@ -228,6 +228,7 @@ async def handle_sync_map_update_form(
 @api_router.post(
     "/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False
 )
+@rate_limit_service.limit(RateLimitCategory.modify)
 def link_alexa_account(
     user: User = Depends(get_current_user),
     alexa_config_input: UserAlexaConfigurationCreate = Depends(),
@@ -239,6 +240,7 @@ def link_alexa_account(
 
 
 @api_router.delete("/alexa", tags=["Alexa"])
+@rate_limit_service.limit(RateLimitCategory.modify)
 def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
     # TODO: send unlink request to Alexa; currently this just removes the id from the database
     user.alexa_user_id = None
@@ -248,6 +250,7 @@ def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
 
 
 @api_router.post("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
+@rate_limit_service.limit(RateLimitCategory.modify)
 def link_mealie_account(
     request: Request,
     user: User = Depends(get_current_user),
@@ -302,6 +305,7 @@ def link_mealie_account(
 
 
 @api_router.put("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
+@rate_limit_service.limit(RateLimitCategory.modify)
 def update_mealie_account_link(
     user: User = Depends(get_current_user),
     mealie_config: UserMealieConfigurationUpdate = Depends(),
@@ -320,6 +324,7 @@ def update_mealie_account_link(
 
 
 @api_router.delete("/mealie", tags=["Mealie"])
+@rate_limit_service.limit(RateLimitCategory.modify)
 def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     mealie_config = user.configuration.mealie
     if not mealie_config:
@@ -347,6 +352,7 @@ def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
 @api_router.post(
     "/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False
 )
+@rate_limit_service.limit(RateLimitCategory.modify)
 def link_todoist_account(
     user: User = Depends(get_current_user),
     config_input: UserTodoistConfigurationCreate = Depends(),
@@ -401,6 +407,7 @@ def update_todoist_account_link(
 
 
 @api_router.delete("/todoist", tags=["Todoist"])
+@rate_limit_service.limit(RateLimitCategory.modify)
 def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
     user.todoist_user_id = None
     user.configuration.todoist = None

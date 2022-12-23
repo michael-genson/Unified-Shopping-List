@@ -41,12 +41,7 @@ Roadmap
 ---
 While the app in its current state is stable, it's missing a lot of core features that I'd like to get implemented (e.g. an actual API for adding/removing items, although you can always use the Mealie API). It could also use quite a bit of refactoring, particularly around the Alexa integration. It also has no automated testing.
 
-Due to some of the current implementation being bare-bones, registration is open to a small group of people (via a whielist). Some things to implement before I consider opening it up:
-- ~~properly supporting registrations using a JWT/confirmation email~~ Done!
-- ~~setting up an SMTP service for this domain~~ Done!
-- ~~implement password resets~~ Done!
-- ~~implement login lockouts~~ Done!
-- implement throttling and rate-limits
+Currently the app is in whitelist-only mode; once the Alexa skill is approved by Amazon, and some additional tests are run, this will probably get lifted. In the meantime, if you're interested in trying it out, please contact me to get added to the whitelist.
 
 In addition for increasing support for other applications, some features on the (soft) roadmap:
 - improve the Alexa integration to be bi-directional

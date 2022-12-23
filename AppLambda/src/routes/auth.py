@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-from ..app import token_service, users_service
-from ..models.core import Token, User
+from ..app import rate_limit_service, token_service, users_service
+from ..models.core import RateLimitCategory, Token, User
 from ..services.auth_token import InvalidTokenError
 from ..services.user import UserIsDisabledError, UserIsNotRegisteredError
 
@@ -68,6 +68,7 @@ async def log_in_for_access_token(
 
 
 @router.get("/me", response_model=User)
+@rate_limit_service.limit(RateLimitCategory.read)
 async def get_logged_in_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

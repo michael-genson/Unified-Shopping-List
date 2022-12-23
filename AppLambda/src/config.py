@@ -29,7 +29,7 @@ RATE_LIMIT_MINUTELY_MODIFY = 30
 """Number of times per minute a "modify" API can be called"""
 
 RATE_LIMIT_MINUTELY_SYNC = 60
-"""Number of times per minute a sync event can be processed"""
+"""Number of times per minute a sync event can be initiated"""
 
 
 ### Alexa ###

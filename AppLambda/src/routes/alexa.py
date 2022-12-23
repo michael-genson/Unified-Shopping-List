@@ -19,7 +19,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, RedirectResponse
 from requests import PreparedRequest
 
-from ..app import templates, token_service, users_service
+from ..app import rate_limit_service, templates, token_service, users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -31,7 +31,7 @@ from ..models.alexa import (
     AlexaReadListCollection,
     AlexaReadListItemCollection,
 )
-from ..models.core import Source, Token, User
+from ..models.core import RateLimitCategory, Source, Token, User
 from ..models.mealie import (
     MealieShoppingListItemCreate,
     MealieShoppingListItemExtras,
@@ -197,6 +197,7 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
 
 
 @list_router.get("", response_model=AlexaReadListCollection)
+@rate_limit_service.limit(RateLimitCategory.read)
 def get_all_lists(
     user: User = Depends(get_current_user),
     source: str = "API",
@@ -251,6 +252,9 @@ def create_alexa_list_items(
 
     if not mealie_list_items:
         return AlexaReadListItemCollection(list_items=[])
+
+    # verify user rate limit; raises 429 error if the rate limit is violated
+    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
 
     mealie_service = MealieListService(user)
     created_alexa_item_ids: list[str] = []
