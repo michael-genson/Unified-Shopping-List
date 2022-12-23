@@ -1,10 +1,12 @@
 import json
-from typing import Any, Optional, Union
+import logging
+from typing import Any, Optional, Union, cast
 
 import boto3
 from dynamodb_json import json_util as ddb_json  # type: ignore
 
 from ..app_secrets import AWS_REGION
+from ..models.aws import DynamoDBAtomicOp
 
 session = boto3.Session(region_name=AWS_REGION)
 
@@ -58,6 +60,54 @@ class DynamoDB:
                 Item=ddb_json.dumps(item, as_dict=True),
                 ConditionExpression="attribute_not_exists(username)",
             )
+
+    def atomic_op(
+        self,
+        key: str,
+        value: str,
+        attribute: str,
+        attribute_change_value: int,
+        op: DynamoDBAtomicOp,
+    ) -> int:
+        """Performs an atomic operation"""
+
+        # nested attributes are separated by dots, so we need to break them out and parameterize them
+        attr_components = attribute.split(".")
+        ex_attribute_names = {f"#attribute{i}": attr for i, attr in enumerate(attr_components)}
+        ex_attribute_values = {":dif": {"N": str(attribute_change_value)}}
+
+        # ex: "counters.likes = 0"
+        if op == DynamoDBAtomicOp.overwrite:
+            ex_equals = ":dif"
+
+        # ex: "counters.likes = counters.likes + 1"
+        else:
+            ex_equals = f"{'.'.join(ex_attribute_names)} {op.value} :dif"
+
+        expression = f"SET {'.'.join(ex_attribute_names)} = {ex_equals}"
+
+        response_data = ddb.update_item(
+            TableName=self.tablename,
+            Key={key: {"S": value}},
+            ExpressionAttributeNames=ex_attribute_names,
+            ExpressionAttributeValues=ex_attribute_values,
+            UpdateExpression=expression,
+            ReturnValues="UPDATED_NEW",
+        )
+
+        data: Union[dict, int] = ddb_json.loads(response_data["Attributes"])
+        data = cast(dict, data)
+
+        # we need to unpack the data to get the final nested key, so we recursively drill-down into the data
+        for attr_component in attr_components:
+            data = data.pop(attr_component)
+            if isinstance(data, int):
+                return data
+
+        logging.error("Reached end of nested atmoic op; this should never happen!")
+        logging.error(f"Looking for value of: {attribute}")
+        logging.error(f"Response: {response_data}")
+        raise Exception("Invalid response from DynamoDB")
 
     def delete(self, key: str, value: str) -> None:
         """Deletes one item by primary key"""

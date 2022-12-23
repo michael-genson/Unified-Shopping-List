@@ -6,7 +6,8 @@ from passlib.context import CryptContext
 from ..app_secrets import USERS_TABLENAME
 from ..clients.aws import DynamoDB
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
-from ..models.core import User, UserInDB
+from ..models.aws import DynamoDBAtomicOp
+from ..models.core import RateLimitCategory, User, UserInDB
 from .auth_token import AuthTokenService
 
 users_db = DynamoDB(USERS_TABLENAME)
@@ -152,6 +153,28 @@ class UserService:
 
         self.db.put(data)
 
+    def update_atomic_user_field(
+        self,
+        user: User,
+        field: str,
+        value: int = 1,
+        operation: DynamoDBAtomicOp = DynamoDBAtomicOp.increment,
+    ) -> int:
+        """
+        Increments or decrements a field by a given amount and returns the new value. Should not be used if precision is critical
+
+        For nested fields, use dot notation for the field name (e.g. "stats.counters.likes")
+        Raises <botocore.exceptions.ClientError> if the field doesn't exist or the field value isn't an int
+        """
+
+        return self.db.atomic_op(
+            key=self.db_primary_key,
+            value=user.username.strip().lower(),
+            attribute=field,
+            attribute_change_value=value,
+            op=operation,
+        )
+
     def change_user_password(
         self,
         user: User,
@@ -183,11 +206,16 @@ class UserService:
         """
 
         if user.incorrect_login_attempts is None:
-            user.incorrect_login_attempts = 0
+            user.incorrect_login_attempts = 1
+            self.update_user(user)
+            return user
 
         user.incorrect_login_attempts += 1
         if user.incorrect_login_attempts < LOGIN_LOCKOUT_ATTEMPTS:
-            self.update_user(user)
+            user.incorrect_login_attempts = self.update_atomic_user_field(
+                user, "incorrect_login_attempts"
+            )
+
             return user
 
         # if the user has been locked out, disable them
@@ -196,3 +224,30 @@ class UserService:
 
         self.update_user(user)
         return user
+
+    def update_rate_limit(
+        self,
+        user: User,
+        category: RateLimitCategory,
+        operation: DynamoDBAtomicOp,
+        value: int = 1,
+        new_expires: Optional[int] = None,
+    ) -> None:
+        """
+        Updates a user's rate limit and returns the updates user. Optionall provide a new expires value
+
+        Raises <botocore.exceptions.ClientError> if the user doesn't already have a rate limit set for this category
+        """
+
+        field_root = f"rate_limit_map.{category.value}"
+        self.update_atomic_user_field(
+            user=user, field=f"{field_root}.value", value=value, operation=operation
+        )
+
+        if new_expires:
+            self.update_atomic_user_field(
+                user=user,
+                field=f"{field_root}.expires",
+                value=new_expires,
+                operation=DynamoDBAtomicOp.overwrite,
+            )

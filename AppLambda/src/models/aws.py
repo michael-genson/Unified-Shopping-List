@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Type, TypeVar
 
 from humps.main import camelize
@@ -25,3 +26,9 @@ class SQSMessage(BaseModel):
 
 class SQSEvent(BaseModel):
     records: list[SQSMessage] = Field(..., alias="Records")
+
+
+class DynamoDBAtomicOp(Enum):
+    increment = "+"
+    decrement = "-"
+    overwrite = "="

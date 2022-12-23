@@ -20,6 +20,16 @@ class Token(BaseModel):
     token_type: str
 
 
+class RateLimitCategory(Enum):
+    read = "read"
+    modify = "modify"
+    sync = "sync"
+
+
+class RateLimitInterval(Enum):
+    minutely = "minutely"
+
+
 class ListSyncMap(APIBase):
     """A collection of shopping lists to keep in sync"""
 
@@ -34,6 +44,11 @@ class UserConfiguration(APIBase):
     todoist: Optional[UserTodoistConfiguration]
 
 
+class UserRateLimit(APIBase):
+    value: int
+    expires: int
+
+
 class User(APIBase):
     username: str
     email: str
@@ -44,8 +59,13 @@ class User(APIBase):
     last_password_reset_token: Optional[str] = None
     incorrect_login_attempts: Optional[int] = 0
 
+    is_rate_limit_exempt: Optional[bool] = False
+    rate_limit_map: Optional[dict[str, UserRateLimit]] = {}
+    """Key is the rate limit category"""
+
     configuration: UserConfiguration = UserConfiguration()
     list_sync_maps: dict[str, ListSyncMap] = {}
+    """Key is the Mealie shopping list id"""
 
     alexa_user_id: Optional[str] = None
     todoist_user_id: Optional[str] = None
