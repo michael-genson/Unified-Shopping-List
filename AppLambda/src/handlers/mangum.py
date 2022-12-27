@@ -57,9 +57,7 @@ class SQS:
 
     def __call__(self, response: Response) -> dict:
         finalized_headers, multi_value_headers = handle_multi_value_headers(response["headers"])
-        finalized_body, is_base64_encoded = handle_base64_response_body(
-            response["body"], finalized_headers
-        )
+        finalized_body, is_base64_encoded = handle_base64_response_body(response["body"], finalized_headers)
 
         return {
             "statusCode": response["status"],

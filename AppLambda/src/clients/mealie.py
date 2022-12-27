@@ -102,14 +102,10 @@ class MealieBaseClient:
                 time.sleep(self.rate_limit_throttle)
                 continue
 
-    def get(
-        self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None
-    ) -> Response:
+    def get(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Response:
         return self._request("GET", endpoint, headers, params)
 
-    def get_all(
-        self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None
-    ) -> Iterable[dict]:
+    def get_all(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Iterable[dict]:
         """Paginate through all records, making additional API calls as needed"""
 
         if params is None:
@@ -136,9 +132,7 @@ class MealieBaseClient:
 
             yield records.pop()
 
-    def head(
-        self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None
-    ) -> Response:
+    def head(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Response:
         return self._request("HEAD", endpoint, headers, params)
 
     def patch(
@@ -202,9 +196,7 @@ class MealieClient:
         return {food.name.lower(): food for food in self.get_all_foods()}
 
     def create_auth_token(self, name: str, integration_id: Optional[str] = None) -> AuthToken:
-        response = self.client.post(
-            "/api/users/api-tokens", payload={"name": name, "integrationId": integration_id}
-        )
+        response = self.client.post("/api/users/api-tokens", payload={"name": name, "integrationId": integration_id})
         return AuthToken.parse_obj(response.json())
 
     def delete_auth_token(self, token_id: str) -> None:
@@ -240,9 +232,7 @@ class MealieClient:
         response = self.client.get(f"/api/groups/shopping/lists/{shopping_list_id}")
         return MealieShoppingListOut.parse_response(response)
 
-    def create_shopping_list_item(
-        self, item: MealieShoppingListItemCreate
-    ) -> MealieShoppingListItemOut:
+    def create_shopping_list_item(self, item: MealieShoppingListItemCreate) -> MealieShoppingListItemOut:
         response = self.client.post("/api/groups/shopping/items", payload=item.dict())
         return MealieShoppingListItemOut.parse_response(response)
 

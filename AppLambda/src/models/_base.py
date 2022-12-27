@@ -53,9 +53,7 @@ class APIBase(BaseModel):
         Cast the current model to another with additional arguments. Useful for
         transforming DTOs into models that are saved to a database
         """
-        create_data = {
-            field: getattr(self, field) for field in self.__fields__ if field in cls.__fields__
-        }
+        create_data = {field: getattr(self, field) for field in self.__fields__ if field in cls.__fields__}
         create_data.update(kwargs or {})
         return cls(**create_data)
 

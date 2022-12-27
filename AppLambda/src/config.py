@@ -38,9 +38,7 @@ ALEXA_SECRET_HEADER_KEY = "X-Alexa-Security-Hash"
 
 ### Mealie ###
 MEALIE_INTEGRATION_ID = "shopping_list_api"
-MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE = (
-    "jsons://{full_path}?-username={username}&-security_hash={security_hash}"
-)
+MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE = "jsons://{full_path}?-username={username}&-security_hash={security_hash}"
 
 MEALIE_UNIT_DECIMAL_PRECISION = 3
 MEALIE_UNIT_FRACTION_MAX_DENOMINATOR = 16

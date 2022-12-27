@@ -95,9 +95,7 @@ class UserTodoistConfigurationUpdate(APIBase):
     default_section_name: str = "Uncategorized"
 
 
-class UserTodoistConfiguration(
-    UserTodoistConfigurationCreate, UserTodoistConfigurationUpdate, UserConfigurationBase
-):
+class UserTodoistConfiguration(UserTodoistConfigurationCreate, UserTodoistConfigurationUpdate, UserConfigurationBase):
     @property
     def is_valid(self):
         return bool(self.access_token)

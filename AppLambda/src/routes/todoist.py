@@ -138,9 +138,7 @@ async def redirect_to_todoist_auth_request(request: Request):
         return logged_in_response
 
     state = str(uuid4())
-    request_params = TodoistAuthRequest(
-        client_id=TODOIST_CLIENT_ID, scope=TODOIST_SCOPE, state=state
-    )
+    request_params = TodoistAuthRequest(client_id=TODOIST_CLIENT_ID, scope=TODOIST_SCOPE, state=state)
 
     req = PreparedRequest()
     req.prepare_url(TODOIST_AUTH_REQUEST_URL, request_params.dict())
@@ -159,9 +157,7 @@ async def authorize_todoist(request: Request, auth: TodoistRedirect = Depends())
     """The authorization URI for Todoist account linking"""
 
     logged_in_response = await redirect_if_not_logged_in(
-        request,
-        redirect_path=auth_router.url_path_for("authorize_todoist"),
-        params=auth.dict(exclude_none=True),
+        request, redirect_path=auth_router.url_path_for("authorize_todoist"), params=auth.dict(exclude_none=True)
     )
 
     if isinstance(logged_in_response, Response):
@@ -170,11 +166,7 @@ async def authorize_todoist(request: Request, auth: TodoistRedirect = Depends())
     user = logged_in_response
 
     if auth.error or request.cookies.get(TODOIST_STATE_COOKIE) != auth.state:
-        return create_todoist_config_template(
-            request,
-            user,
-            auth_error="Unable to link to your Todoist account",
-        )
+        return create_todoist_config_template(request, user, auth_error="Unable to link to your Todoist account")
 
     try:
         params = TodoistTokenExchangeRequest(
@@ -189,22 +181,12 @@ async def authorize_todoist(request: Request, auth: TodoistRedirect = Depends())
             user, UserTodoistConfigurationCreate(access_token=token_response.access_token)
         )
 
-        return create_todoist_config_template(
-            request,
-            user,
-            success_message="Successfully linked your Todoist account",
-        )
+        return create_todoist_config_template(request, user, success_message="Successfully linked your Todoist account")
 
     except (HTTPError, JSONDecodeError, ValidationError):
-        return create_todoist_config_template(
-            request,
-            user,
-            auth_error="Unable to link to your Todoist account",
-        )
+        return create_todoist_config_template(request, user, auth_error="Unable to link to your Todoist account")
 
     except Exception:
         return create_todoist_config_template(
-            request,
-            user,
-            auth_error="Unknown error when trying to link your Todoist account",
+            request, user, auth_error="Unknown error when trying to link your Todoist account"
         )

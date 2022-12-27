@@ -51,9 +51,7 @@ async def configure_mealie(request: Request):
 @router.post("/create-link")
 async def create_mealie_configuration(
     request: Request,
-    mealie_config_input: UserMealieConfigurationCreate = Depends(
-        UserMealieConfigurationCreate.as_form
-    ),
+    mealie_config_input: UserMealieConfigurationCreate = Depends(UserMealieConfigurationCreate.as_form),
 ):
     logged_in_response = await redirect_if_not_logged_in(
         request,

@@ -36,9 +36,7 @@ class AlexaListService:
             list_collection = AlexaReadListCollection.parse_obj(response)
             if active_lists_only:
                 list_collection.lists = [
-                    alexa_list
-                    for alexa_list in list_collection.lists
-                    if alexa_list.state == ListState.active
+                    alexa_list for alexa_list in list_collection.lists if alexa_list.state == ListState.active
                 ]
 
             return list_collection

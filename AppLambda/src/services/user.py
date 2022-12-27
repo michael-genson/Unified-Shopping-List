@@ -127,9 +127,7 @@ class UserService:
 
         if create_registration_token:
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
-            registration_token = self._token_service.create_token(
-                new_user.username, access_token_expires
-            )
+            registration_token = self._token_service.create_token(new_user.username, access_token_expires)
 
             new_user.last_registration_token = registration_token.access_token
 
@@ -212,9 +210,7 @@ class UserService:
 
         user.incorrect_login_attempts += 1
         if user.incorrect_login_attempts < LOGIN_LOCKOUT_ATTEMPTS:
-            user.incorrect_login_attempts = self.update_atomic_user_field(
-                user, "incorrect_login_attempts"
-            )
+            user.incorrect_login_attempts = self.update_atomic_user_field(user, "incorrect_login_attempts")
 
             return user
 
@@ -240,9 +236,7 @@ class UserService:
         """
 
         field_root = f"rate_limit_map.{category.value}"
-        self.update_atomic_user_field(
-            user=user, field=f"{field_root}.value", value=value, operation=operation
-        )
+        self.update_atomic_user_field(user=user, field=f"{field_root}.value", value=value, operation=operation)
 
         if new_expires:
             self.update_atomic_user_field(

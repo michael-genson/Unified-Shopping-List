@@ -60,11 +60,7 @@ class MealieListService:
         threshold: int  # score from 0 - 100
         nearest_match, threshold = process.extractOne(user_food, self._client.food_store.keys())
 
-        return (
-            self._client.food_store[nearest_match]
-            if threshold >= self.config.confidence_threshold * 100
-            else None
-        )
+        return self._client.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
 
     @cache
     def get_label(self, label: str) -> Optional[Label]:
@@ -193,6 +189,4 @@ class MealieListService:
     def delete_item(self, list_item: MealieShoppingListItemOut) -> None:
         self._client.delete_shopping_list_item(list_item.id)
         shopping_list = self.get_list(list_item.shopping_list_id)
-        shopping_list.list_items[:] = [
-            item for item in shopping_list.list_items if item.id != list_item.id
-        ]
+        shopping_list.list_items[:] = [item for item in shopping_list.list_items if item.id != list_item.id]

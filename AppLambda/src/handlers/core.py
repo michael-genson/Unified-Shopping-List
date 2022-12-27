@@ -44,9 +44,7 @@ class SQSSyncMessageHandler:
             base_sync_event = message.parse_body(BaseSyncEvent)
 
         except ValidationError:
-            raise Exception(
-                "Unable to process SQS sync event message. Are you sure this is a sync event?"
-            )
+            raise Exception("Unable to process SQS sync event message. Are you sure this is a sync event?")
 
         list_sync_map: Optional[ListSyncMap] = None
 

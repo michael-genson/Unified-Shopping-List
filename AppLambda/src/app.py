@@ -53,9 +53,7 @@ app.include_router(alexa.list_item_router)
 # default route
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
 def home():
-    return RedirectResponse(
-        core.router.url_path_for("home"), status_code=status.HTTP_301_MOVED_PERMANENTLY
-    )
+    return RedirectResponse(core.router.url_path_for("home"), status_code=status.HTTP_301_MOVED_PERMANENTLY)
 
 
 ### Lambda Handlers ###

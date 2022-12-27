@@ -52,9 +52,7 @@ class TodoistSyncHandler(BaseSyncHandler):
             if list_sync_map.todoist_project_id == project_id:
                 return list_sync_map
 
-    def get_mealie_item_by_task_id(
-        self, mealie_list_id: str, task_id: str
-    ) -> Optional[MealieShoppingListItemOut]:
+    def get_mealie_item_by_task_id(self, mealie_list_id: str, task_id: str) -> Optional[MealieShoppingListItemOut]:
         return self.mealie_service.get_item_by_extra(mealie_list_id, self.extras_key, task_id)
 
     def get_mealie_label_by_task(self, task: Task) -> Optional[Label]:
@@ -84,9 +82,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     if task.content == mealie_item.display:
                         # compare the Mealie label to the Todoist section
                         mealie_label = self.mealie_service.get_label_from_item(mealie_item)
-                        if self.todoist_service.is_task_section(
-                            str(mealie_label) if mealie_label else None, task
-                        ):
+                        if self.todoist_service.is_task_section(str(mealie_label) if mealie_label else None, task):
                             continue
 
                         new_label = self.get_mealie_label_by_task(task)
@@ -145,9 +141,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     continue
 
                 # check off Mealie item
-                if not self.todoist_service.get_task(
-                    mealie_item.extras.todoist_task_id, project_id
-                ):
+                if not self.todoist_service.get_task(mealie_item.extras.todoist_task_id, project_id):
                     mealie_item.checked = True
                     mealie_item.extras.todoist_task_id = None
                     self.mealie_service.update_item(mealie_item)
@@ -173,9 +167,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     mealie_label = self.mealie_service.get_label_from_item(mealie_item)
                     if (
                         mealie_item.display == task.content
-                        and self.todoist_service.is_task_section(
-                            str(mealie_label) if mealie_label else None, task
-                        )
+                        and self.todoist_service.is_task_section(str(mealie_label) if mealie_label else None, task)
                         and TODOIST_MEALIE_LABEL in task.labels
                     ):
                         continue
@@ -202,9 +194,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     self.todoist_service.close_task(task)
 
             except Exception as e:
-                logging.error(
-                    "Unhandled exception when trying to receive Mealie change in Todoist"
-                )
+                logging.error("Unhandled exception when trying to receive Mealie change in Todoist")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(task)
 
@@ -233,8 +223,6 @@ class TodoistSyncHandler(BaseSyncHandler):
                 self.mealie_service.update_item(mealie_item)
 
             except Exception as e:
-                logging.error(
-                    "Unhandled exception when trying to receive Mealie change in Todoist"
-                )
+                logging.error("Unhandled exception when trying to receive Mealie change in Todoist")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)

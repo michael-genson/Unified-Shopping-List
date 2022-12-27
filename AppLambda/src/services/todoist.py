@@ -71,12 +71,7 @@ class TodoistTaskService:
         return None
 
     def add_task(
-        self,
-        content: str,
-        project_id: str,
-        section: Optional[str] = None,
-        labels: Optional[list[str]] = None,
-        **kwargs
+        self, content: str, project_id: str, section: Optional[str] = None, labels: Optional[list[str]] = None, **kwargs
     ) -> Task:
         if self.config.map_labels_to_sections:
             section_name = section or self.config.default_section_name
@@ -92,12 +87,7 @@ class TodoistTaskService:
         return new_task
 
     def update_task(
-        self,
-        task_id: str,
-        project_id: str,
-        section: Optional[str] = None,
-        labels: Optional[list[str]] = None,
-        **kwargs
+        self, task_id: str, project_id: str, section: Optional[str] = None, labels: Optional[list[str]] = None, **kwargs
     ) -> Task:
         """
         Updates an existing task
@@ -152,6 +142,4 @@ class TodoistTaskService:
             raise Exception("Unable to close task; rejected by Todoist")
 
         tasks = self.get_tasks(task.project_id)
-        self.get_tasks(task.project_id)[:] = [
-            local_task for local_task in tasks if local_task.id != task.id
-        ]
+        self.get_tasks(task.project_id)[:] = [local_task for local_task in tasks if local_task.id != task.id]

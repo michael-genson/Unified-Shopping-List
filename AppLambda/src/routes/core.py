@@ -91,9 +91,7 @@ def send_registration_email(registration_url: str, username: str, email: str):
         smtp_service.send(msg.message(username, email, registration_url=registration_url))
 
     except Exception as e:
-        logging.error(
-            f"Unhandled exception when trying to send a new user ({username}) their registration email"
-        )
+        logging.error(f"Unhandled exception when trying to send a new user ({username}) their registration email")
         logging.error(f"{type(e).__name__}: {e}")
 
 
@@ -103,9 +101,7 @@ def send_password_reset_email(password_reset_url: str, username: str, email: str
         smtp_service.send(msg.message(username, email, password_reset_url=password_reset_url))
 
     except Exception as e:
-        logging.error(
-            f"Unhandled exception when trying to send a user ({username}) their password reset email"
-        )
+        logging.error(f"Unhandled exception when trying to send a user ({username}) their password reset email")
         logging.error(f"{type(e).__name__}: {e}")
 
 
@@ -117,17 +113,13 @@ async def home(request: Request, response: Response):
         docs_url = str(request.base_url)[:-1] + app.docs_url
 
     user = await get_user_session(request)
-    return templates.TemplateResponse(
-        "home.html", {"request": request, "user": user, "docs_url": docs_url}
-    )
+    return templates.TemplateResponse("home.html", {"request": request, "user": user, "docs_url": docs_url})
 
 
 @router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request, response: Response):
     user = await get_user_session(request)
-    return templates.TemplateResponse(
-        "privacy_policy.html", context={"request": request, "user": user}
-    )
+    return templates.TemplateResponse("privacy_policy.html", context={"request": request, "user": user})
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -202,9 +194,7 @@ async def forgot_password(request: Request, token_expired: bool = False):
 
     context: dict[str, Any] = {"request": request}
     if token_expired:
-        context[
-            "password_reset_error"
-        ] = "Unable to reset password. Token has expired. Please try again"
+        context["password_reset_error"] = "Unable to reset password. Token has expired. Please try again"
 
     return templates.TemplateResponse("password_reset.html", context)
 
@@ -263,16 +253,15 @@ async def reset_password(request: Request, reset_token: Optional[str] = None):
 
     except InvalidTokenError:
         return RedirectResponse(
-            router.url_path_for("forgot_password") + "?token_expired=true", status_code=302
+            router.url_path_for("forgot_password") + "?token_expired=true",
+            status_code=302,
         )
 
     return templates.TemplateResponse("change_password.html", {"request": request})
 
 
 @router.post("/login/reset-password", response_class=HTMLResponse)
-async def update_password(
-    request: Request, reset_token: Optional[str] = None, password: str = Form()
-):
+async def update_password(request: Request, reset_token: Optional[str] = None, password: str = Form()):
     """Updates the user's password"""
     if len(password) < 8:
         return templates.TemplateResponse("change_password.html", {"request": request})
@@ -291,13 +280,12 @@ async def update_password(
 
     except InvalidTokenError:
         return RedirectResponse(
-            router.url_path_for("forgot_password") + "?token_expired=true", status_code=302
+            router.url_path_for("forgot_password") + "?token_expired=true",
+            status_code=302,
         )
 
     users_service.change_user_password(user, password)
-    return RedirectResponse(
-        router.url_path_for("log_in") + "?reset_password=true", status_code=302
-    )
+    return RedirectResponse(router.url_path_for("log_in") + "?reset_password=true", status_code=302)
 
 
 @router.get("/register", response_class=HTMLResponse)
@@ -368,9 +356,7 @@ async def initiate_registration_email(
         )
 
     except Exception as e:
-        logging.error(
-            f"Unhandled exception when trying to register a new user ({form_data.username})"
-        )
+        logging.error(f"Unhandled exception when trying to register a new user ({form_data.username})")
         logging.error(f"{type(e).__name__}: {e}")
 
         return templates.TemplateResponse(
@@ -415,9 +401,7 @@ async def complete_registration(registration_token: Optional[str] = None):
             raise InvalidTokenError()
 
     except InvalidTokenError:
-        return RedirectResponse(
-            router.url_path_for("register") + "?token_expired=true", status_code=302
-        )
+        return RedirectResponse(router.url_path_for("register") + "?token_expired=true", status_code=302)
 
     user = _user_in_db.cast(User)
     user.disabled = False

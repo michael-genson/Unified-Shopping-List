@@ -32,10 +32,7 @@ async def sqs_sync_event_handler(event: SQSEvent = Body(...)) -> None:
             if str(sync_event.source) in processed_event_sources:
                 continue
 
-            if (
-                sync_event.client_id != APP_CLIENT_ID
-                or sync_event.client_secret != APP_CLIENT_SECRET
-            ):
+            if sync_event.client_id != APP_CLIENT_ID or sync_event.client_secret != APP_CLIENT_SECRET:
                 logging.error("Received sync event with invalid client id & secret pair, aborting")
                 continue
 
@@ -101,9 +98,7 @@ async def mealie_event_notification_handler(
         if e.status_code != 429:
             raise
 
-        logging.info(
-            f"[429 RATE LIMIT] Received too many Mealie sync notifications from {user.username}"
-        )
+        logging.info(f"[429 RATE LIMIT] Received too many Mealie sync notifications from {user.username}")
 
         return
 
@@ -118,9 +113,7 @@ async def mealie_event_notification_handler(
 
 
 @router.post("/todoist")
-async def todoist_event_notification_handler(
-    request: Request, webhook: TodoistWebhook = Body(...)
-) -> None:
+async def todoist_event_notification_handler(request: Request, webhook: TodoistWebhook = Body(...)) -> None:
     if webhook.event_name == TodoistEventType.invalid:
         return
 
@@ -147,9 +140,7 @@ async def todoist_event_notification_handler(
         return
 
     # find all users linked to this Todoist account
-    linked_usernames = users_service.get_usernames_by_secondary_index(
-        "todoist_user_id", webhook.user_id
-    )
+    linked_usernames = users_service.get_usernames_by_secondary_index("todoist_user_id", webhook.user_id)
 
     users: list[User] = []
     for username in linked_usernames:
@@ -187,9 +178,7 @@ async def todoist_event_notification_handler(
         if e.status_code != 429:
             raise
 
-        logging.info(
-            f"[429 RATE LIMIT] Received too many Todoist sync notifications from {user.username}"
-        )
+        logging.info(f"[429 RATE LIMIT] Received too many Todoist sync notifications from {user.username}")
 
         return
 

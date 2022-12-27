@@ -66,9 +66,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
     if user.is_linked_to_alexa:
         try:
             alexa_user_id = cast(str, user.alexa_user_id)
-            alexa_list_collection = alexa_list_service.get_all_lists(
-                alexa_user_id, INTERNAL_APP_NAME
-            )
+            alexa_list_collection = alexa_list_service.get_all_lists(alexa_user_id, INTERNAL_APP_NAME)
 
             existing_links = {
                 list_sync_map.alexa_list_id: mealie_list_id
@@ -90,9 +88,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
             )
 
         except Exception as e:
-            logging.error(
-                f"Unhandled exception when trying to pull alexa lists for {user.username}"
-            )
+            logging.error(f"Unhandled exception when trying to pull alexa lists for {user.username}")
             logging.error(f"{type(e).__name__}: {e}")
             link_errors.append("Something went wrong when trying to connect to Alexa")
 
@@ -121,9 +117,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
             )
 
         except Exception as e:
-            logging.error(
-                f"Unhandled exception when trying to pull todoist projects for {user.username}"
-            )
+            logging.error(f"Unhandled exception when trying to pull todoist projects for {user.username}")
             logging.error(f"{type(e).__name__}: {e}")
             link_errors.append("Something went wrong when trying to connect to Todoist")
 
@@ -156,9 +150,7 @@ async def configure_shopping_list_sync_maps(request: Request):
 
 
 @frontend_router.post("", response_class=HTMLResponse)
-async def handle_sync_map_update_form(
-    request: Request, list_map_data: list[str] = Form(..., alias="listMapData")
-):
+async def handle_sync_map_update_form(request: Request, list_map_data: list[str] = Form(..., alias="listMapData")):
     logged_in_response = await redirect_if_not_logged_in(
         request,
         redirect_path=frontend_router.url_path_for("configure_shopping_list_sync_maps"),
@@ -174,9 +166,7 @@ async def handle_sync_map_update_form(
         # we parse the strings into dictionaries, then combine the dictionaries using the mealie list id
 
         # ["{mealie_list_id: {Source.value: external_list.id}}"]
-        parsed_list_data: list[dict[str, dict[str, str]]] = [
-            json.loads(data) for data in list_map_data if data
-        ]
+        parsed_list_data: list[dict[str, dict[str, str]]] = [json.loads(data) for data in list_map_data if data]
 
         seen_list_links: set[str] = set()
         combined_list_data: dict[str, dict[Source, str]] = {}
@@ -196,9 +186,7 @@ async def handle_sync_map_update_form(
 
                 # {Source.value: external_list.id}
                 for source_value, external_list_id in external_list_data.items():
-                    combined_list_data.setdefault(mealie_list_id, {})[
-                        Source(source_value)
-                    ] = external_list_id
+                    combined_list_data.setdefault(mealie_list_id, {})[Source(source_value)] = external_list_id
 
         user.list_sync_maps = {
             mealie_shopping_list_id: ListSyncMap(
@@ -225,9 +213,7 @@ async def handle_sync_map_update_form(
 ### API ###
 
 
-@api_router.post(
-    "/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False
-)
+@api_router.post("/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False)
 @rate_limit_service.limit(RateLimitCategory.modify)
 def link_alexa_account(
     user: User = Depends(get_current_user),
@@ -263,9 +249,7 @@ def link_mealie_account(
             "Invalid Mealie configuration. Please check your base URL and auth token",
         )
 
-    new_mealie_token = client.create_auth_token(
-        f"{app.title} | {user.username}", MEALIE_INTEGRATION_ID
-    )
+    new_mealie_token = client.create_auth_token(f"{app.title} | {user.username}", MEALIE_INTEGRATION_ID)
 
     # create a new notifier
     base_url = str(request.base_url).replace("https://", "").replace("http://", "")[:-1]
@@ -314,9 +298,7 @@ def update_mealie_account_link(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Mealie")
 
     user.configuration.mealie.use_foods = mealie_config.use_foods
-    user.configuration.mealie.overwrite_original_item_names = (
-        mealie_config.overwrite_original_item_names
-    )
+    user.configuration.mealie.overwrite_original_item_names = mealie_config.overwrite_original_item_names
     user.configuration.mealie.confidence_threshold = mealie_config.confidence_threshold
 
     users_service.update_user(user)
@@ -349,9 +331,7 @@ def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     return user
 
 
-@api_router.post(
-    "/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False
-)
+@api_router.post("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False)
 @rate_limit_service.limit(RateLimitCategory.modify)
 def link_todoist_account(
     user: User = Depends(get_current_user),
@@ -391,9 +371,7 @@ def link_todoist_account(
     return user.configuration.todoist
 
 
-def update_todoist_account_link(
-    user: User, config_input: UserTodoistConfigurationUpdate
-) -> UserTodoistConfiguration:
+def update_todoist_account_link(user: User, config_input: UserTodoistConfigurationUpdate) -> UserTodoistConfiguration:
     if not user.is_linked_to_todoist:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Todoist")
 

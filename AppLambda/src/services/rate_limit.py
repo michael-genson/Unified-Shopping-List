@@ -20,9 +20,7 @@ class RateLimitService:
         self.users_service = users_service
 
     @classmethod
-    def get_limit(
-        cls, category: RateLimitCategory, interval: RateLimitInterval = RateLimitInterval.minutely
-    ) -> int:
+    def get_limit(cls, category: RateLimitCategory, interval: RateLimitInterval = RateLimitInterval.minutely) -> int:
         """Returns the rate limit for a particular category + interval"""
 
         if interval != RateLimitInterval.minutely:

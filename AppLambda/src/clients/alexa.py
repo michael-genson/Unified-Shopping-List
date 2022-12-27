@@ -50,9 +50,7 @@ class ListManagerBaseClient:
 
         except JSONDecodeError:
             print(r.content)
-            raise Exception(
-                f"Unable to obtain Alexa Skill Messaging API Token; invalid JSON response"
-            )
+            raise Exception(f"Unable to obtain Alexa Skill Messaging API Token; invalid JSON response")
 
         if "access_token" not in response_json:
             print(response_json)
@@ -91,9 +89,7 @@ class ListManagerBaseClient:
                 time.sleep(self.rate_limit_throttle)
                 continue
 
-    def _poll_for_event_response(
-        self, event_id: str, poll_frequency=0.5, timeout=20
-    ) -> dict[str, Any]:
+    def _poll_for_event_response(self, event_id: str, poll_frequency=0.5, timeout=20) -> dict[str, Any]:
         """Poll DynamoDB for a particular event response and returns the full JSON"""
 
         start_time = time.time()
