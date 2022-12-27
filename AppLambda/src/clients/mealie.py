@@ -13,6 +13,7 @@ from ..models.mealie import (
     MealieEventNotifierCreate,
     MealieEventNotifierOut,
     MealieEventNotifierUpdate,
+    MealieRecipe,
     MealieShoppingListItemCreate,
     MealieShoppingListItemOut,
     MealieShoppingListItemUpdate,
@@ -243,6 +244,11 @@ class MealieClient:
     def delete_shopping_list_item(self, item_id: str) -> MealieShoppingListItemOut:
         response = self.client.delete(f"/api/groups/shopping/items/{item_id}")
         return MealieShoppingListItemOut.parse_response(response)
+
+    def get_all_recipes(self) -> Iterable[MealieRecipe]:
+        recipes_data = self.client.get_all("/api/recipes")
+        for recipe_data in recipes_data:
+            yield MealieRecipe.parse_obj(recipe_data)
 
     def get_all_foods(self) -> Iterable[Food]:
         foods_data = self.client.get_all("/api/foods")

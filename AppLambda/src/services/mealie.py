@@ -9,6 +9,7 @@ from ..models.core import User
 from ..models.mealie import (
     Food,
     Label,
+    MealieRecipe,
     MealieShoppingListItemCreate,
     MealieShoppingListItemExtras,
     MealieShoppingListItemOut,
@@ -31,6 +32,12 @@ class MealieListService:
 
         self.shopping_lists: dict[str, MealieShoppingListOut] = {}
         """map of {shopping_list_id: shopping_list}"""
+
+    @cached_property
+    def recipe_store(self) -> dict[str, MealieRecipe]:
+        """Dictionary of {recipe.id: MealieRecipe }"""
+
+        return {recipe.id: recipe for recipe in self._client.get_all_recipes()}
 
     @cached_property
     def food_store(self) -> dict[str, Food]:

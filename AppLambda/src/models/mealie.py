@@ -56,6 +56,14 @@ class Pagination(MealieBase):
     previous: Optional[str]
 
 
+class MealieRecipe(MealieBase):
+    """Subset of the Mealie Recipe schema"""
+
+    id: str
+    slug: str
+    name: Optional[str] = None
+
+
 class Label(MealieBase):
     id: str
     name: str
@@ -89,6 +97,13 @@ class Food(UnitFoodBase):
         return self.name
 
 
+class MealieShoppingListItemRecipeRef(MealieBase):
+    id: str
+    shopping_list_item_id: str
+    recipe_id: str
+    recipe_quantity: Optional[float] = 0
+
+
 class MealieShoppingListItemExtras(MealieBase):
     original_value: Optional[str]
     alexa_item_id: Optional[str]
@@ -109,7 +124,7 @@ class MealieShoppingListItemCreate(MealieBase):
     food_id: Optional[str] = None
     label_id: Optional[str] = None
 
-    recipe_references: list[dict] = []
+    recipe_references: list[MealieShoppingListItemRecipeRef] = []
     extras: Optional[MealieShoppingListItemExtras]
 
 
