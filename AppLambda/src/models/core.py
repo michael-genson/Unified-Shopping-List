@@ -59,13 +59,13 @@ class User(APIBase):
     last_password_reset_token: Optional[str] = None
     incorrect_login_attempts: Optional[int] = 0
 
-    is_rate_limit_exempt: Optional[bool] = False
-    rate_limit_map: Optional[dict[str, UserRateLimit]] = {}
-    """Key is the rate limit category"""
+    is_rate_limit_exempt: Optional[bool] = False  # TODO: migrate and make this required
+    rate_limit_map: Optional[dict[str, UserRateLimit]] = {}  # TODO: migrate and make this required
+    """Map of `RateLimitCategory` to `UserRateLimit`"""
 
     configuration: UserConfiguration = UserConfiguration()
     list_sync_maps: dict[str, ListSyncMap] = {}
-    """Key is the Mealie shopping list id"""
+    """Map of `mealie_shopping_list_id` to `ListSyncMap`"""
 
     alexa_user_id: Optional[str] = None
     todoist_user_id: Optional[str] = None
