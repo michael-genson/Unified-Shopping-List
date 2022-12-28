@@ -37,14 +37,17 @@ Partially supported applications:
 - [Alexa](https://alexa.amazon.com/) (unidirectional only)
 
 
-Roadmap
+(Soft) Roadmap
 ---
-While the app in its current state is stable, it's missing a lot of core features that I'd like to get implemented (e.g. an actual API for adding/removing items, although you can always use the Mealie API). It could also use quite a bit of refactoring, particularly around the Alexa integration. It also has no automated testing.
+Features
+- improve/refactor the Alexa integration to be bi-directional
+- add support for more applications
+- explore weekly item scheduling
+- expand API for end-user custom integrations
 
-Currently the app is in whitelist-only mode; once the Alexa skill is approved by Amazon, and some additional tests are run, this will probably get lifted. In the meantime, if you're interested in trying it out, please contact me to get added to the whitelist.
+Quality of Life
+- improve mobile frontend experience
 
-In addition for increasing support for other applications, some features on the (soft) roadmap:
-- improve the Alexa integration to be bi-directional
-- add scheduling for items that are automatically added to your shopping list weekly (or otherwise)
-- implement rich features for applications that support them (such as tagging)
-- make the frontend a little more mobile friendly
+Development / DevOps
+- automated testing
+- proper dev environment for testing changes

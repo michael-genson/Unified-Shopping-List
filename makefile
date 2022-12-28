@@ -16,5 +16,5 @@ deployment:
 		--stack-name $(STACK_NAME) \
 		--region $(REGION) \
 		--s3-bucket $(S3_BUCKET) \
-		--capabilities CAPABILITY_IAM
-	
+		--capabilities CAPABILITY_IAM \
+		--tags "Project=unifiedShoppingList" \
