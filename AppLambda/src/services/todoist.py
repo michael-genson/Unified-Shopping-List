@@ -71,7 +71,13 @@ class TodoistTaskService:
         return None
 
     def add_task(
-        self, content: str, project_id: str, section: Optional[str] = None, labels: Optional[list[str]] = None, **kwargs
+        self,
+        content: str,
+        project_id: str,
+        section: Optional[str] = None,
+        labels: Optional[list[str]] = None,
+        description: Optional[str] = None,
+        **kwargs,
     ) -> Task:
         if self.config.map_labels_to_sections:
             section_name = section or self.config.default_section_name
@@ -82,12 +88,21 @@ class TodoistTaskService:
         if labels:
             kwargs["labels"] = labels
 
+        if description and self.config.add_recipes_to_task_description:
+            kwargs["description"] = description
+
         new_task = self._client.add_task(content=content, project_id=project_id, **kwargs)
         self.get_tasks(project_id).append(new_task)
         return new_task
 
     def update_task(
-        self, task_id: str, project_id: str, section: Optional[str] = None, labels: Optional[list[str]] = None, **kwargs
+        self,
+        task_id: str,
+        project_id: str,
+        section: Optional[str] = None,
+        labels: Optional[list[str]] = None,
+        description: Optional[str] = None,
+        **kwargs,
     ) -> Task:
         """
         Updates an existing task
@@ -108,6 +123,12 @@ class TodoistTaskService:
         if not labels:
             labels = task.labels
 
+        if labels:
+            kwargs["labels"] = labels
+
+        if description and self.config.add_recipes_to_task_description:
+            kwargs["description"] = description
+
         if self.config.map_labels_to_sections:
             section_name = section or self.config.default_section_name
             api_section = self.get_section(section_name, project_id)
@@ -121,12 +142,8 @@ class TodoistTaskService:
                     content=kwargs.pop("content", None) or task.content,
                     project_id=project_id,
                     section=section_name,
-                    labels=labels,
-                    **kwargs
+                    **kwargs,
                 )
-
-        if labels:
-            kwargs["labels"] = labels
 
         is_success = self._client.update_task(task_id=task.id, project_id=project_id, **kwargs)
         if not is_success:

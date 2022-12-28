@@ -63,6 +63,9 @@ class MealieRecipe(MealieBase):
     slug: str
     name: Optional[str] = None
 
+    def __str__(self) -> str:
+        return self.name or ""
+
 
 class Label(MealieBase):
     id: str
@@ -98,9 +101,10 @@ class Food(UnitFoodBase):
 
 
 class MealieShoppingListItemRecipeRef(MealieBase):
-    id: str
-    shopping_list_item_id: str
     recipe_id: str
+
+    id: Optional[str]
+    shopping_list_item_id: Optional[str]
     recipe_quantity: Optional[float] = 0
 
 

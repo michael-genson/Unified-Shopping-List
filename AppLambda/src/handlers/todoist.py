@@ -65,6 +65,26 @@ class TodoistSyncHandler(BaseSyncHandler):
         section = self.todoist_service.get_section_by_id(task.section_id)
         return self.mealie_service.get_label(section.name)
 
+    def build_task_description_from_mealie_item(self, mealie_item: MealieShoppingListItemOut) -> str:
+        # TODO: implement a fetch-recipe-by-id method in Mealie so we don't need to fetch the entire recipe store
+        recipe_ids = set(ref.recipe_id for ref in mealie_item.recipe_references)
+        recipes = [self.mealie_service.recipe_store.get(recipe_id) for recipe_id in recipe_ids]
+
+        if not recipes:
+            return ""
+
+        # [My Recipe](https://url-to-my-recipe.com) | ...
+        recipes_string = " | ".join(
+            sorted(
+                [
+                    f"[{recipe}]({self.mealie_service.get_recipe_url(recipe.id)})"
+                    for recipe in recipes
+                    if recipe and str(recipe)
+                ]
+            )
+        )
+        return f"From: {recipes_string}"
+
     def sync_changes_to_mealie(self, list_sync_map: ListSyncMap):
         if not list_sync_map.todoist_project_id:
             raise CannotHandleListMapError()
@@ -173,12 +193,14 @@ class TodoistSyncHandler(BaseSyncHandler):
                         continue
 
                     # if the items don't match, update Todoist to match Mealie
+
                     updated_task = self.todoist_service.update_task(
                         task_id=task.id,
                         project_id=project_id,
                         content=mealie_item.display,
                         section=str(mealie_label) if mealie_label else None,
                         labels=task.labels + [TODOIST_MEALIE_LABEL],
+                        description=self.build_task_description_from_mealie_item(mealie_item),
                     )
 
                     # if the updated task has a new id, write it back to Mealie
@@ -213,6 +235,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     project_id=project_id,
                     section=str(mealie_label) if mealie_label else None,
                     labels=[TODOIST_MEALIE_LABEL],
+                    description=self.build_task_description_from_mealie_item(mealie_item),
                 )
 
                 # write new id back to Mealie

@@ -94,6 +94,8 @@ class UserTodoistConfigurationUpdate(APIBase):
     map_labels_to_sections: Optional[bool] = False
     default_section_name: str = "Uncategorized"
 
+    add_recipes_to_task_description: Optional[bool] = False
+
 
 class UserTodoistConfiguration(UserTodoistConfigurationCreate, UserTodoistConfigurationUpdate, UserConfigurationBase):
     @property

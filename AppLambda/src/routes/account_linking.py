@@ -378,6 +378,7 @@ def update_todoist_account_link(user: User, config_input: UserTodoistConfigurati
     todoist_config = cast(UserTodoistConfiguration, user.configuration.todoist)
     todoist_config.map_labels_to_sections = config_input.map_labels_to_sections
     todoist_config.default_section_name = config_input.default_section_name
+    todoist_config.add_recipes_to_task_description = config_input.add_recipes_to_task_description
 
     user.configuration.todoist = todoist_config
     users_service.update_user(user)

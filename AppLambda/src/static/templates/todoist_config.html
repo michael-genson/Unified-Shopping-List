@@ -68,6 +68,17 @@
         If mapping Mealie labels to sections, this will be the default section if the item has no label
       </small>
     </div>
+    <div class="mb-3">
+      <div class="custom-control custom-checkbox">
+        <input
+          type="checkbox"
+          name="addRecipesToTaskDescription"
+          class="custom-control-input" {% if user.is_linked_to_todoist and user.configuration.todoist.add_recipes_to_task_description %} checked {% endif %}
+        >
+        <label class="custom-control-label" for="addRecipesToTaskDescription">Add Recipes to Task Description</label>
+      </div>
+      <small class="form-text text-muted">Check this if you want ingredients from recipes to display the source recipe in the task description</small>
+    </div>
     <div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </div>

@@ -35,7 +35,7 @@ class MealieListService:
 
     @cached_property
     def recipe_store(self) -> dict[str, MealieRecipe]:
-        """Dictionary of {recipe.id: MealieRecipe }"""
+        """Dictionary of { recipe.id: MealieRecipe }"""
 
         return {recipe.id: recipe for recipe in self._client.get_all_recipes()}
 
@@ -50,6 +50,15 @@ class MealieListService:
         """Dictionary of { label.name.lower(): Label }"""
 
         return {label.name.lower(): label for label in self._client.get_all_labels()}
+
+    def get_recipe_url(self, recipe_id: str) -> Optional[str]:
+        """Constructs a recipe's frontend URL using its id"""
+
+        recipe = self.recipe_store.get(recipe_id)
+        if not recipe:
+            return None
+
+        return f"{self.config.base_url}/recipe/{recipe.slug}"
 
     @cache
     def get_food(self, food: str) -> Optional[Food]:
