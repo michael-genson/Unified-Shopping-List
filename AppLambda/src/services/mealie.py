@@ -206,3 +206,20 @@ class MealieListService:
         self._client.delete_shopping_list_item(list_item.id)
         shopping_list = self.get_list(list_item.shopping_list_id)
         shopping_list.list_items[:] = [item for item in shopping_list.list_items if item.id != list_item.id]
+
+    def remove_recipe_ingredients_from_list(self, list: MealieShoppingListOut, recipe_id: str, qty: int = 1) -> None:
+        for _ in range(qty):
+            self._client.remove_recipe_ingredients_from_shopping_list(list.id, recipe_id)
+
+        shopping_list = self.get_list(list.id)
+        for ref in shopping_list.recipe_references:
+            if ref.recipe_id == recipe_id:
+                if ref.recipe_quantity:
+                    ref.recipe_quantity -= qty
+
+                break
+
+            if not ref.recipe_quantity or ref.recipe_quantity < 0:
+                shopping_list.recipe_references[:] = [
+                    ref for ref in shopping_list.recipe_references if ref.recipe_id != recipe_id
+                ]

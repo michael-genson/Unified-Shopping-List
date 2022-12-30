@@ -108,6 +108,15 @@ class MealieShoppingListItemRecipeRef(MealieBase):
     recipe_quantity: Optional[float] = 0
 
 
+class MealieShoppingListRecipeRef(MealieBase):
+    recipe_id: str
+
+    id: Optional[str]
+    shopping_list_id: Optional[str]
+    recipe_quantity: Optional[float] = 0
+    recipe: Optional[MealieRecipe]
+
+
 class MealieShoppingListItemExtras(MealieBase):
     original_value: Optional[str]
     alexa_item_id: Optional[str]
@@ -203,6 +212,7 @@ class MealieShoppingListOut(MealieBase):
     name: str
     extras: Optional[dict]
     list_items: list[MealieShoppingListItemOut] = []
+    recipe_references: list[MealieShoppingListRecipeRef] = []
 
     created_at: Optional[datetime]
     update_at: Optional[datetime]

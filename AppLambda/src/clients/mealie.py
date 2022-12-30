@@ -245,6 +245,12 @@ class MealieClient:
         response = self.client.delete(f"/api/groups/shopping/items/{item_id}")
         return MealieShoppingListItemOut.parse_response(response)
 
+    def remove_recipe_ingredients_from_shopping_list(
+        self, shopping_list_id: str, recipe_id: str
+    ) -> MealieShoppingListOut:
+        response = self.client.delete(f"/api/groups/shopping/lists/{shopping_list_id}/recipe/{recipe_id}")
+        return MealieShoppingListOut.parse_response(response)
+
     def get_all_recipes(self) -> Iterable[MealieRecipe]:
         recipes_data = self.client.get_all("/api/recipes")
         for recipe_data in recipes_data:

@@ -33,9 +33,20 @@ class SQSSyncMessageHandler:
 
         # delete checked items from Mealie
         # TODO: submit PR to Mealie to allow only querying/pulling unchecked items so we don't have to do this
-        for list_item in self.mealie.get_list(list_sync_map.mealie_shopping_list_id).list_items:
+        recipe_ref_ids_to_keep = set()
+        shopping_list = self.mealie.get_list(list_sync_map.mealie_shopping_list_id)
+        for list_item in shopping_list.list_items:
+            if not list_item.checked and list_item.recipe_references:
+                recipe_ref_ids_to_keep.update([ref.recipe_id for ref in list_item.recipe_references])
+
             if list_item.checked:
                 self.mealie.delete_item(list_item)
+
+        # delete empty recipe refs from Mealie
+        # TODO: submit PR to Mealie so this is done automatically when items are checked off or deleted
+        for recipe_ref in shopping_list.recipe_references:
+            if recipe_ref.recipe_id not in recipe_ref_ids_to_keep:
+                self.mealie.remove_recipe_ingredients_from_list(shopping_list, recipe_ref.recipe_id)
 
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
         """
