@@ -48,7 +48,8 @@
                 "ms-python.vscode-pylance",
                 "matangover.mypy",
                 "ms-python.black-formatter",
-                "samuelcolvin.jinjahtml"
+                "samuelcolvin.jinjahtml",
+                "streetsidesoftware.code-spell-checker"
             ]
         }
     },

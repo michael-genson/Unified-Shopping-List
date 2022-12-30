@@ -38,5 +38,9 @@
   "emmet.includeLanguages": {
     "jinja-html": "html"
   },
-  "python.analysis.typeCheckingMode": "off"
+  "python.analysis.typeCheckingMode": "off",
+  "cSpell.words": [
+    "Alexa",
+    "todoist"
+  ]
 }
