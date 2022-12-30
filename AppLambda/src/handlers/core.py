@@ -38,7 +38,11 @@ class SQSSyncMessageHandler:
                 self.mealie.delete_item(list_item)
 
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
-        """Parse SQS message and handle its sync event"""
+        """
+        Parse SQS message and handle its sync event
+
+        Returns the event source only if the message was processed and the handler skips additional events
+        """
 
         try:
             base_sync_event = message.parse_body(BaseSyncEvent)
@@ -58,9 +62,10 @@ class SQSSyncMessageHandler:
                 return None
 
             self.sync_to_external_systems(list_sync_map)
-            return base_sync_event.source
+            return base_sync_event.source  # mealie always skips additional events if a sync is successful
 
         # sync the event's source system to Mealie
+        response: Optional[Source] = None
         for registered_handler in self.registered_handlers:
             if not registered_handler.can_handle_message(message):
                 continue
@@ -71,6 +76,9 @@ class SQSSyncMessageHandler:
                 continue
 
             handler.sync_changes_to_mealie(list_sync_map)
+            if handler.suppress_additional_messages:
+                response = base_sync_event.source
+
             break
 
         if not list_sync_map:
@@ -78,4 +86,4 @@ class SQSSyncMessageHandler:
 
         # propagate changes made to Mealie to all systems
         self.sync_to_external_systems(list_sync_map)
-        return base_sync_event.source
+        return response

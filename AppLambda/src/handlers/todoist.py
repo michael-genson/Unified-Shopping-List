@@ -31,6 +31,10 @@ class TodoistSyncHandler(BaseSyncHandler):
         self.todoist_service = TodoistTaskService(user)
         self.extras_key = "todoist_task_id"
 
+    @property
+    def suppress_additional_messages(self) -> bool:
+        return True
+
     @classmethod
     def can_handle_message(cls, message: SQSMessage):
         try:

@@ -16,6 +16,12 @@ class BaseSyncHandler(ABC):
         self.user = user
         self.mealie_service = mealie_service
 
+    @property
+    @abstractmethod
+    def suppress_additional_messages(self) -> bool:
+        """whether additional messages from this source should be suppressed after a message is successfully processed"""
+        pass
+
     @classmethod
     @abstractmethod
     def can_handle_message(cls, message: SQSMessage) -> bool:
