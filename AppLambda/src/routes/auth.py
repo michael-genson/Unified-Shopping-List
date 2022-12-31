@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from ..app import rate_limit_service, token_service, users_service
-from ..models.core import RateLimitCategory, Token, User
+from ..models.core import RateLimitCategory, Token, User, WhitelistError
 from ..services.auth_token import InvalidTokenError
 from ..services.user import UserIsDisabledError, UserIsNotRegisteredError
 
@@ -63,6 +63,13 @@ async def log_in_for_access_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User is disabled and must request a password reset",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    except WhitelistError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not whitelisted on this server",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

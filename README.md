@@ -50,4 +50,3 @@ Quality of Life
 
 Development / DevOps
 - automated testing
-- proper dev environment for testing changes

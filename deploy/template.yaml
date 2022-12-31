@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Unified Shopping List Application Stack
+
+Parameters:
+  ApiLambdaName:
+    Type: String
+
+  UsersDDBTableName:
+    Type: String
+
+  AlexaCallbackDDBTableName:
+    Type: String
+
+  SyncEventSQSQueueName:
+    Type: String
+
+  Whitelist:
+    Type: String
+    Default: "disabled"
+    AllowedValues:
+      - "enabled"
+      - "disabled"
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Ref ApiLambdaName
+      CodeUri: ../AppLambda
+      Handler: src.app.handler
+      Timeout: 60  # <= SQS VisibilityTimeout / Lambda Event BatchSize
+      Environment:
+        Variables:
+          whitelist: !Ref Whitelist
+
+      Policies:
+        # DDB resources not deployed via SAM
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersDDBTableName
+
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AlexaCallbackDDBTableName
+
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SyncEventQueue.QueueName
+
+
+      Runtime: python3.9
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+
+        SyncEventQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SyncEventQueue.Arn
+            BatchSize: 10  # <= SQS VisibilityTimeout / Lambda Timeout
+
+  Api:
+    Type: AWS::Serverless::HttpApi
+
+  SyncEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref SyncEventSQSQueueName
+      ContentBasedDeduplication: false
+      DeduplicationScope: messageGroup
+      DelaySeconds: 5
+      FifoQueue: true
+      FifoThroughputLimit: perMessageGroupId
+      MessageRetentionPeriod: 600
+      ReceiveMessageWaitTimeSeconds: 5
+      VisibilityTimeout: 600  # >= Lambda Timeout * Lambda Event BatchSize
+
+Outputs:
+  ApiUrl:
+    Description: URL of your API
+    Value:
+      Fn::Sub: 'https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/'
+
+  SyncEventQueueURL:
+    Description: URL of the SyncEvent FIFO Queue
+    Value:
+      Fn::GetAtt: SyncEventQueue.QueueUrl

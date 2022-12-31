@@ -132,5 +132,4 @@ dmypy.json
 
 # AWS
 .aws-sam
-template.yaml
-tmp
+deploy/samconfig*

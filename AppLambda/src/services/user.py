@@ -3,11 +3,12 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from ..app_secrets import USERS_TABLENAME
+from ..app import USE_WHITELIST
+from ..app_secrets import EMAIL_WHITELIST, USERS_TABLENAME
 from ..clients.aws import DynamoDB
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.aws import DynamoDBAtomicOp
-from ..models.core import RateLimitCategory, User, UserInDB
+from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
 from .auth_token import AuthTokenService
 
 users_db = DynamoDB(USERS_TABLENAME)
@@ -92,6 +93,9 @@ class UserService:
 
             else:
                 raise UserIsDisabledError()
+
+        if USE_WHITELIST and user.email not in EMAIL_WHITELIST:
+            raise WhitelistError()
 
         return self.authenticate_user(user, password)
 

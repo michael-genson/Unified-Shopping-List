@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
@@ -8,10 +9,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from ..app import app, smtp_service, templates, token_service, users_service
-from ..app_secrets import EMAIL_WHITELIST, USE_REGISTRATION_WHITELIST
+from ..app import (
+    USE_WHITELIST,
+    app,
+    smtp_service,
+    templates,
+    token_service,
+    users_service,
+)
+from ..app_secrets import EMAIL_WHITELIST
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
-from ..models.core import Token, User
+from ..models.core import Token, User, WhitelistError
 from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth_token import InvalidTokenError
 from ..services.user import (
@@ -21,11 +29,6 @@ from ..services.user import (
 )
 
 router = APIRouter(prefix="/app", tags=["Application"])
-
-
-class WhitelistError(Exception):
-    def __init__(self):
-        super().__init__("You are not whitelisted on this application")
 
 
 async def get_user_session(request: Request) -> Optional[User]:
@@ -173,6 +176,16 @@ async def log_in_user(request: Request, form_data: OAuth2PasswordRequestForm = D
             {
                 "request": request,
                 "login_error": "You have been locked out. Please reset your password",
+                "username": form_data.username,
+            },
+        )
+
+    except WhitelistError:
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "login_error": "You are not whitelisted on this server",
                 "username": form_data.username,
             },
         )
@@ -325,7 +338,7 @@ async def initiate_registration_email(
     # create disabled user and generate a temporary registration token for them
     try:
         clean_email = form_data.username.strip().lower()
-        if USE_REGISTRATION_WHITELIST and clean_email not in EMAIL_WHITELIST:
+        if USE_WHITELIST and clean_email not in EMAIL_WHITELIST:
             raise WhitelistError()
 
         new_user = users_service.create_new_user(

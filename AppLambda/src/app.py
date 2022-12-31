@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, status
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +13,7 @@ from .handlers.mangum import SQS
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
 app.mount("/static", StaticFiles(directory="./src/static"), name="static")
 templates = Jinja2Templates(directory="./src/static/templates")
+USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 
 ### Service Setup ###

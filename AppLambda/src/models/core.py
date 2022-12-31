@@ -15,6 +15,11 @@ from .account_linking import (
 )
 
 
+class WhitelistError(Exception):
+    def __init__(self):
+        super().__init__("You are not whitelisted on this application")
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
