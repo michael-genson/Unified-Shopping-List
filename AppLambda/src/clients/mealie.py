@@ -248,7 +248,7 @@ class MealieClient:
     def remove_recipe_ingredients_from_shopping_list(
         self, shopping_list_id: str, recipe_id: str
     ) -> MealieShoppingListOut:
-        response = self.client.delete(f"/api/groups/shopping/lists/{shopping_list_id}/recipe/{recipe_id}")
+        response = self.client.post(f"/api/groups/shopping/lists/{shopping_list_id}/recipe/{recipe_id}/delete")
         return MealieShoppingListOut.parse_response(response)
 
     def get_all_recipes(self) -> Iterable[MealieRecipe]:

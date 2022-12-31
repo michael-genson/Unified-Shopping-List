@@ -43,10 +43,15 @@ class SQSSyncMessageHandler:
                 self.mealie.delete_item(list_item)
 
         # delete empty recipe refs from Mealie
+        # we wrap this in a blanket try-except block because the endpoint just changed (https://github.com/hay-kot/mealie/pull/1954)
         # TODO: submit PR to Mealie so this is done automatically when items are checked off or deleted
-        for recipe_ref in shopping_list.recipe_references:
-            if recipe_ref.recipe_id not in recipe_ref_ids_to_keep:
-                self.mealie.remove_recipe_ingredients_from_list(shopping_list, recipe_ref.recipe_id)
+        try:
+            for recipe_ref in shopping_list.recipe_references:
+                if recipe_ref.recipe_id not in recipe_ref_ids_to_keep:
+                    self.mealie.remove_recipe_ingredients_from_list(shopping_list, recipe_ref.recipe_id)
+
+        except Exception:
+            pass
 
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
         """
