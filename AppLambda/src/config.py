@@ -34,6 +34,8 @@ RATE_LIMIT_MINUTELY_SYNC = 60
 
 ### Alexa ###
 ALEXA_SECRET_HEADER_KEY = "X-Alexa-Security-Hash"
+ALEXA_INTERNAL_SOURCE_ID = "shopping_list_api"
+ALEXA_API_SOURCE_ID = "user_api"
 
 
 ### Mealie ###

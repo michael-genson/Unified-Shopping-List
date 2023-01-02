@@ -64,7 +64,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
     if user.is_linked_to_alexa:
         try:
             alexa_service = AlexaListService(user)
-            alexa_list_collection = alexa_service.get_all_lists(INTERNAL_APP_NAME)
+            alexa_list_collection = alexa_service.get_all_lists()
 
             existing_links = {
                 list_sync_map.alexa_list_id: mealie_list_id

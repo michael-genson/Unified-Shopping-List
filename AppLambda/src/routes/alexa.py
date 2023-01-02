@@ -24,12 +24,15 @@ from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY,
+    ALEXA_API_SOURCE_ID,
     ALEXA_SECRET_HEADER_KEY,
 )
 from ..models.alexa import (
     AlexaAuthRequest,
-    AlexaReadListCollection,
-    AlexaReadListItemCollection,
+    AlexaListCollectionOut,
+    AlexaListItemCollectionOut,
+    AlexaListOut,
+    AlexaReadList,
 )
 from ..models.core import RateLimitCategory, Source, Token, User
 from ..models.mealie import (
@@ -195,63 +198,71 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
 ### List Management ###
 
 
-@list_router.get("", response_model=AlexaReadListCollection)
+@list_router.get("", response_model=AlexaListCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.read)
 def get_all_lists(
-    user: User = Depends(get_current_user),
-    source: str = "API",
-    active_lists_only: bool = True,
-) -> AlexaReadListCollection:
+    user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID, active_lists_only: bool = True
+) -> AlexaListCollectionOut:
     """Fetch all lists from Alexa"""
 
     if not user.is_linked_to_alexa:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    return list_service.get_all_lists(user.alexa_user_id, source, active_lists_only)  # type: ignore
+    return list_service.get_all_lists(source, active_lists_only)
 
 
-@list_item_router.post("", response_model=AlexaReadListItemCollection, include_in_schema=False)
+@list_router.get("/{list_id}", response_model=AlexaListOut)
+@rate_limit_service.limit(RateLimitCategory.read)
+def get_list(list_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID) -> AlexaListOut:
+    """Fetch one list from Alexa"""
+
+    if not user.is_linked_to_alexa:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
+
+    list_service = AlexaListService(user)
+    alexa_list = AlexaReadList(list_id=list_id)
+    return list_service.get_list(alexa_list, source)
+
+
+@list_item_router.post("", response_model=AlexaListItemCollectionOut, include_in_schema=False)
 def create_alexa_list_items(
-    user: User = Depends(get_current_user), items: AlexaReadListItemCollection = Body(...)
-) -> AlexaReadListItemCollection:
+    user: User = Depends(get_current_user), items: AlexaListItemCollectionOut = Body(...)
+) -> AlexaListItemCollectionOut:
     """Receive new list items from Alexa"""
     if not user.is_linked_to_mealie:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Mealie")
 
     alexa_list_items_collection = items
-    mealie_list_items: list[MealieShoppingListItemCreate] = []
-    mealie_list_ids: set[str] = set()
-    for alexa_item in alexa_list_items_collection.list_items:
-        # find matching Mealie shopping list
-        shopping_list_id = ""
-        for list_sync_map in user.list_sync_maps.values():
-            if list_sync_map.alexa_list_id == alexa_item.list_id:
-                shopping_list_id = list_sync_map.mealie_shopping_list_id
-                break
 
-        # if there is no matching list, we don't need to do anything
-        if not shopping_list_id:
-            continue
+    # find matching Mealie shopping list
+    shopping_list_id = ""
+    for list_sync_map in user.list_sync_maps.values():
+        if list_sync_map.alexa_list_id == alexa_list_items_collection.list_id:
+            shopping_list_id = list_sync_map.mealie_shopping_list_id
+            break
 
-        mealie_list_items.append(
-            MealieShoppingListItemCreate(
-                shopping_list_id=shopping_list_id,
-                checked=False,
-                quantity=0,  # Alexa does not track quantities, so we explicitly set them to zero
-                is_food=False,
-                note=alexa_item.value,
-                extras=MealieShoppingListItemExtras(
-                    original_value=alexa_item.value,
-                    alexa_item_id=alexa_item.item_id,
-                ),
-            )
+    # if there is no matching list, we don't need to do anything
+    if not shopping_list_id:
+        return AlexaListItemCollectionOut(list_id=alexa_list_items_collection.list_id, list_items=[])
+
+    mealie_list_items = [
+        MealieShoppingListItemCreate(
+            shopping_list_id=shopping_list_id,
+            checked=False,
+            quantity=0,  # Alexa does not track quantities, so we explicitly set them to zero
+            is_food=False,
+            note=alexa_item.value,
+            extras=MealieShoppingListItemExtras(
+                original_value=alexa_item.value,
+                alexa_item_id=alexa_item.id,
+            ),
         )
-
-        mealie_list_ids.add(shopping_list_id)
+        for alexa_item in alexa_list_items_collection.list_items
+    ]
 
     if not mealie_list_items:
-        return AlexaReadListItemCollection(list_items=[])
+        return AlexaListItemCollectionOut(list_id=alexa_list_items_collection.list_id, list_items=[])
 
     # verify user rate limit; raises 429 error if the rate limit is violated
     rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
@@ -270,11 +281,10 @@ def create_alexa_list_items(
             logging.error(new_item)
 
     # we ignore callbacks for Mealie events generated by our app, so we need to manually queue up Mealie sync events
-    for list_id in mealie_list_ids:
-        sync_event = MealieSyncEvent(username=user.username, source=Source.mealie, shopping_list_id=list_id)
+    sync_event = MealieSyncEvent(username=user.username, source=Source.mealie, shopping_list_id=shopping_list_id)
+    sync_event.send_to_queue()
 
-        sync_event.send_to_queue()
-
-    return AlexaReadListItemCollection(
-        list_items=[item for item in alexa_list_items_collection.list_items if item.item_id in created_alexa_item_ids]
+    return AlexaListItemCollectionOut(
+        list_id=alexa_list_items_collection.list_id,
+        list_items=[item for item in alexa_list_items_collection.list_items if item.id in created_alexa_item_ids],
     )

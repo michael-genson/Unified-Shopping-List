@@ -87,9 +87,8 @@ class CallbackData(APIBase):
 
 
 ### List Item ###
-class AlexaReadListItem(APIBase):
-    list_id: str
-    item_id: str
+class AlexaListItemOut(APIBase):
+    id: str
     value: str
     status: ListItemState
 
@@ -97,20 +96,27 @@ class AlexaReadListItem(APIBase):
         use_enum_values = True
 
 
-class AlexaReadListItemCollection(APIBase):
-    list_items: list[AlexaReadListItem]
+class AlexaListItemCollectionOut(APIBase):
+    list_id: str
+    list_items: list[AlexaListItemOut]
 
 
 ### List ###
 class AlexaReadList(APIBase):
     list_id: str
-    name: str
     state: ListState = ListState.active
+
+    class Config:
+        use_enum_values = True
+
+
+class AlexaListOut(AlexaReadList):
+    name: str
     version: int
 
-    items: Optional[list[AlexaReadListItem]]
+    items: Optional[list[AlexaListItemOut]]
     """Only populated when a single list is fetched"""
 
 
-class AlexaReadListCollection(APIBase):
-    lists: list[AlexaReadList]
+class AlexaListCollectionOut(APIBase):
+    lists: list[AlexaListOut]
