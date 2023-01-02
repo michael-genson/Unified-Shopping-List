@@ -1,4 +1,6 @@
-from cachetools.func import ttl_cache
+from functools import cache
+from typing import cast
+
 from pydantic import ValidationError
 
 from ..clients.alexa import (
@@ -6,7 +8,9 @@ from ..clients.alexa import (
     NO_RESPONSE_EXCEPTION,
     ListManagerClient,
 )
+from ..models.account_linking import NotLinkedError, UserAlexaConfiguration
 from ..models.alexa import (
+    AlexaReadList,
     AlexaReadListCollection,
     ListState,
     MessageIn,
@@ -14,18 +18,26 @@ from ..models.alexa import (
     ObjectType,
     Operation,
 )
+from ..models.core import User
 
 client = ListManagerClient()
 
 
 class AlexaListService:
-    @ttl_cache(ttl=60 * 5)
-    def get_all_lists(
-        self,
-        user_id: str,
-        source: str,
-        active_lists_only: bool = True,
-    ) -> AlexaReadListCollection:
+    def __init__(self, user: User) -> None:
+        if not user.is_linked_to_alexa:
+            raise NotLinkedError(user.username, "alexa")
+
+        self.user_id: str = cast(str, user.alexa_user_id)
+        self.config = cast(UserAlexaConfiguration, user.configuration.alexa)
+
+        self.lists: dict[str, AlexaReadList] = {}
+        """map of {list_id: list}"""
+
+    @cache
+    def get_all_lists(self, source: str, active_lists_only: bool = True) -> AlexaReadListCollection:
+        """Fetch all lists from the user's Alexa account"""
+
         request = MessageRequest(
             operation=Operation.read_all,
             object_type=ObjectType.list,
@@ -37,7 +49,7 @@ class AlexaListService:
             send_callback_response=True,
         )
 
-        response = client.call_api(user_id, message)
+        response = client.call_api(self.user_id, message)
         if not response:
             raise Exception(NO_RESPONSE_EXCEPTION)
 
@@ -49,6 +61,7 @@ class AlexaListService:
                     alexa_list for alexa_list in list_collection.lists if alexa_list.state == ListState.active
                 ]
 
+            # we don't update self.lists because we don't receive item data from this request
             return list_collection
 
         except IndexError:

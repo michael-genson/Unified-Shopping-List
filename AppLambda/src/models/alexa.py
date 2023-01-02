@@ -86,17 +86,6 @@ class CallbackData(APIBase):
         raise Exception(f"Callback Exception from Alexa: {self.detail or 'Unknown Error'}")
 
 
-### List ###
-class ReadList(APIBase):
-    list_id: str
-    name: str
-    state: ListState = ListState.active
-
-
-class AlexaReadListCollection(APIBase):
-    lists: list[ReadList]
-
-
 ### List Item ###
 class AlexaReadListItem(APIBase):
     list_id: str
@@ -110,3 +99,18 @@ class AlexaReadListItem(APIBase):
 
 class AlexaReadListItemCollection(APIBase):
     list_items: list[AlexaReadListItem]
+
+
+### List ###
+class AlexaReadList(APIBase):
+    list_id: str
+    name: str
+    state: ListState = ListState.active
+    version: int
+
+    items: Optional[list[AlexaReadListItem]]
+    """Only populated when a single list is fetched"""
+
+
+class AlexaReadListCollection(APIBase):
+    lists: list[AlexaReadList]

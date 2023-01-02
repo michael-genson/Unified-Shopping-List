@@ -35,8 +35,6 @@ from ..services.mealie import MealieListService
 from .auth import get_current_user
 from .core import redirect_if_not_logged_in
 
-alexa_list_service = AlexaListService()
-
 frontend_router = APIRouter(prefix="/app/map-shopping-lists", tags=["Account Linking"])
 api_router = APIRouter(prefix="/api/account-linking", tags=["Account Linking"])
 
@@ -65,8 +63,8 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
     link_errors: list[str] = []
     if user.is_linked_to_alexa:
         try:
-            alexa_user_id = cast(str, user.alexa_user_id)
-            alexa_list_collection = alexa_list_service.get_all_lists(alexa_user_id, INTERNAL_APP_NAME)
+            alexa_service = AlexaListService(user)
+            alexa_list_collection = alexa_service.get_all_lists(INTERNAL_APP_NAME)
 
             existing_links = {
                 list_sync_map.alexa_list_id: mealie_list_id

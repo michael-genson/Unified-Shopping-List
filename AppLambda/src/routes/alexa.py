@@ -37,8 +37,9 @@ from ..models.mealie import (
     MealieShoppingListItemExtras,
     MealieSyncEvent,
 )
+from ..services.alexa import AlexaListService
 from ..services.mealie import MealieListService
-from .account_linking import alexa_list_service, unlink_alexa_account
+from .account_linking import unlink_alexa_account
 from .auth import get_current_user
 from .core import redirect_if_not_logged_in
 
@@ -206,7 +207,8 @@ def get_all_lists(
     if not user.is_linked_to_alexa:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
-    return alexa_list_service.get_all_lists(user.alexa_user_id, source, active_lists_only)  # type: ignore
+    list_service = AlexaListService(user)
+    return list_service.get_all_lists(user.alexa_user_id, source, active_lists_only)  # type: ignore
 
 
 @list_item_router.post("", response_model=AlexaReadListItemCollection, include_in_schema=False)
