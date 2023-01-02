@@ -132,4 +132,5 @@ dmypy.json
 
 # AWS
 .aws-sam
+deploy/credentials/
 deploy/samconfig*

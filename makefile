@@ -1,7 +1,7 @@
 ENV ?= dev
 SAM_ROOT = deploy
 
-build:
+local-build:
 	cd AppLambda; \
 	uvicorn src.app:app --reload --port 9000
 

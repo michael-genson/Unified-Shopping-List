@@ -17,6 +17,10 @@
     "runArgs": [
         "--network=host"
     ],
+    "mounts": [
+        // mount AWS credentials to workspace
+        "source=${localWorkspaceFolder}/deploy/credentials/aws_credentials,target=/root/.aws/credentials,type=bind,consistency=cached"
+    ],
     // Configure tool-specific properties.
     "customizations": {
         // Configure properties specific to VS Code.
