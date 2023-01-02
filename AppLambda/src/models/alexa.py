@@ -42,19 +42,24 @@ class ObjectType(Enum):
     list_item = "list_item"
 
 
-class MessageIn(APIBase):
-    source: str
-    event_id: Optional[str]
-
+class MessageRequest(BaseModel):
     operation: Operation
     object_type: ObjectType
     object_data: Optional[dict[str, Any]]
 
     metadata: Optional[dict[str, Any]]
-    send_callback_response: Optional[bool]
 
     class Config:
         use_enum_values = True
+
+
+class MessageIn(APIBase):
+    source: str
+    event_id: Optional[str]
+    requests: list[MessageRequest]
+
+    metadata: Optional[dict[str, Any]]
+    send_callback_response: Optional[bool]
 
 
 class Message(MessageIn):
@@ -71,7 +76,7 @@ class CallbackEvent(APIBase):
 class CallbackData(APIBase):
     success: bool
     detail: Optional[str]
-    data: Optional[dict[str, Any]]
+    data: Optional[list[dict[str, Any]]]
 
     def raise_for_status(self):
         """Raise an exception if the API call was unsuccessful"""

@@ -17,9 +17,10 @@ LWA_URL = "https://api.amazon.com/auth/o2/token"
 ALEXA_MESSAGE_API_URL = "https://api.amazonalexa.com/v1/skillmessages/users/{user_id}"
 
 NO_RESPONSE_EXCEPTION = "Could not find a response from Alexa"
+NO_RESPONSE_DATA_EXCEPTION = "Alexa returned a response, but there was no response data"
 
 
-class ListManagerBaseClient:
+class ListManagerClient:
     """Manages low-level Alexa Skills API interaction"""
 
     def __init__(self, max_attempts: int = 3, rate_limit_throttle: int = 5) -> None:
@@ -43,8 +44,6 @@ class ListManagerBaseClient:
         r = requests.post(LWA_URL, json=payload)
         r.raise_for_status()
 
-        # we don't bother with token expiration since we don't keep it for longer than 15 minutes (max Lambda timeout)
-        # TODO: implement caching so we don't have to make this request for every Lambda invocation
         try:
             response_json = r.json()
 
@@ -105,7 +104,7 @@ class ListManagerBaseClient:
             time.sleep(poll_frequency)
             continue
 
-    def call_api(self, user_id: str, message: MessageIn) -> Optional[dict[str, Any]]:
+    def call_api(self, user_id: str, message: MessageIn) -> Optional[list[dict[str, Any]]]:
         """Call the Alexa API and optionally wait for a response"""
 
         if not message.event_id:
