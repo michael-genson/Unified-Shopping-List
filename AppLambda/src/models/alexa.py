@@ -87,6 +87,11 @@ class CallbackData(APIBase):
 
 
 ### List Item ###
+class AlexaReadListItem(APIBase):
+    list_id: str
+    item_id: str
+
+
 class AlexaListItemOut(APIBase):
     id: str
     value: str

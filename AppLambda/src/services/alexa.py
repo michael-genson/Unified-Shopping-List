@@ -13,8 +13,10 @@ from ..config import ALEXA_INTERNAL_SOURCE_ID
 from ..models.account_linking import NotLinkedError, UserAlexaConfiguration
 from ..models.alexa import (
     AlexaListCollectionOut,
+    AlexaListItemOut,
     AlexaListOut,
     AlexaReadList,
+    AlexaReadListItem,
     ListState,
     MessageIn,
     MessageRequest,
@@ -92,3 +94,13 @@ class AlexaListService:
 
         except ValidationError:
             raise Exception("Response from Alexa is not a valid list")
+
+    def get_list_item(self, item: AlexaReadListItem, source: str = ALEXA_INTERNAL_SOURCE_ID) -> AlexaListItemOut:
+        """Fetch a single list item from Alexa"""
+
+        alexa_list = self.get_list(AlexaReadList(list_id=item.list_id))
+        for list_item in alexa_list.items or []:
+            if list_item.id == item.item_id:
+                return list_item
+
+        raise Exception(f"Cannot find list item {item}")

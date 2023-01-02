@@ -31,8 +31,10 @@ from ..models.alexa import (
     AlexaAuthRequest,
     AlexaListCollectionOut,
     AlexaListItemCollectionOut,
+    AlexaListItemOut,
     AlexaListOut,
     AlexaReadList,
+    AlexaReadListItem,
 )
 from ..models.core import RateLimitCategory, Source, Token, User
 from ..models.mealie import (
@@ -49,6 +51,8 @@ from .core import redirect_if_not_logged_in
 auth_router = APIRouter(prefix="/authorization/alexa", tags=["Alexa"])
 frontend_router = APIRouter(prefix="/app/alexa", tags=["Alexa"])
 list_router = APIRouter(prefix="/api/alexa/lists", tags=["Alexa"])
+
+# TODO: deprecate this and use the list router (/lists/{list_id}/items})
 list_item_router = APIRouter(prefix="/api/alexa/lists/items", tags=["Alexa"])
 
 
@@ -195,7 +199,7 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
         unlink_alexa_account(user)
 
 
-### List Management ###
+### Lists ###
 
 
 @list_router.get("", response_model=AlexaListCollectionOut)
@@ -225,6 +229,25 @@ def get_list(list_id: str, user: User = Depends(get_current_user), source: str =
     return list_service.get_list(alexa_list, source)
 
 
+### List Items ###
+
+
+@list_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
+@rate_limit_service.limit(RateLimitCategory.read)
+def get_list_item(
+    list_id: str, item_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
+) -> AlexaListItemOut:
+    """Fetch one list item from Alexa"""
+
+    if not user.is_linked_to_alexa:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
+
+    list_service = AlexaListService(user)
+    item = AlexaReadListItem(list_id=list_id, item_id=item_id)
+    return list_service.get_list_item(item, source)
+
+
+# TODO: move this to the list router (/lists/{list_id}/items) and remove list_id from the model
 @list_item_router.post("", response_model=AlexaListItemCollectionOut, include_in_schema=False)
 def create_alexa_list_items(
     user: User = Depends(get_current_user), items: AlexaListItemCollectionOut = Body(...)
