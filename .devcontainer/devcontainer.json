@@ -44,6 +44,7 @@
             },
             // Add the IDs of extensions you want installed when the container is created.
             "extensions": [
+                "bungcip.better-toml",
                 "ms-python.python",
                 "ms-python.vscode-pylance",
                 "matangover.mypy",

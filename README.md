@@ -4,7 +4,7 @@ This project was born out of a frustration with existing integration tools, for 
 
 The USL relies heavily on [Mealie](https://github.com/hay-kot/mealie), the open source, self-hosted recipe manager developed by hay-kot. This app *does not work* without an instance of Mealie to back it up, so [be sure to check it out](https://nightly.mealie.io/) if you haven't already! The app piggybacks heavily on the Mealie API, and much of the dev environment was pulled directly from the work done over there. ***As this application is still in development, we only officially support the nightly 1.0.0b build***.
 
-To get started, head over to https://shopping-lists.genson.dev/. For now we are only allowing whitelisted users to register, so please reach out if you're interested.
+To get started, head over to https://shopping-lists.genson.dev and register.
 
 
 Architecture
@@ -20,7 +20,7 @@ I am a huge supporter of self-hosted applications; this app is built entirely ar
 
 That said, one of the major roadblocks with integrations comes down to the exposed APIs and authentication schemes. The goal of this app at its inception was to integrate Mealie with [Todoist](https://todoist.com/) and [Amazon's Alexa](https://alexa.amazon.com/) (and, at this time, those are the only supported apps).
 
-The only way to use the [Alexa List Management API](https://developer.amazon.com/en-US/docs/alexa/list-skills/list-management-api-reference.html) is to request an access token from an authorized Alexa skill. To connect to an Alexa skill you need to [build an Alexa skill and connect using OAuth](https://developer.amazon.com/en-US/docs/alexa/custom-skills/access-the-alexa-shopping-and-to-do-lists.html#alexa-lists-access), which requires a central authentication server that connects to an Alexa skill. If you wanted to do this yourself, you would need to [build your own Alexa skill](https://www.amazon.com/dp/B0BR8KW2WL).
+The only way to use the [Alexa List Management API](https://developer.amazon.com/en-US/docs/alexa/list-skills/list-management-api-reference.html) is to request an access token from an authorized Alexa skill. To connect to an Alexa skill you need to [build an Alexa skill and connect using OAuth](https://developer.amazon.com/en-US/docs/alexa/custom-skills/access-the-alexa-shopping-and-to-do-lists.html#alexa-lists-access), which requires a central authentication server that connects to an Alexa skill. If you wanted to do this yourself, you would need to [build your own Alexa skill](https://github.com/michael-genson/Unified-Shopping-List-Helper).
 
 While Todoist has a [REST API](https://developer.todoist.com/rest/v2/#overview), their webhook subscriptions (which this app uses to initiate a sync) [require an app using OAuth](https://developer.todoist.com/sync/v9/#webhooks), which (you guessed it) requires a central authentication server. You *can* get it working without one, but it's not particularly easy if you're not experienced with OAuth.
 

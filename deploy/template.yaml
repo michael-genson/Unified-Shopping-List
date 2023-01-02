@@ -45,7 +45,6 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !GetAtt SyncEventQueue.QueueName
 
-
       Runtime: python3.9
       Events:
         Api:
