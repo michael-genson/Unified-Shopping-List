@@ -31,7 +31,10 @@ from ..models.alexa import (
     AlexaAuthRequest,
     AlexaListCollectionOut,
     AlexaListItemCollectionOut,
+    AlexaListItemCreateIn,
     AlexaListItemOut,
+    AlexaListItemUpdateBulkIn,
+    AlexaListItemUpdateIn,
     AlexaListOut,
     AlexaReadList,
     AlexaReadListItem,
@@ -232,6 +235,37 @@ def get_list(list_id: str, user: User = Depends(get_current_user), source: str =
 ### List Items ###
 
 
+@list_router.post("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
+@rate_limit_service.limit(RateLimitCategory.modify)
+def create_list_items(
+    list_id: str,
+    items: list[AlexaListItemCreateIn],
+    user: User = Depends(get_current_user),
+    source: str = ALEXA_API_SOURCE_ID,
+) -> AlexaListItemCollectionOut:
+    """Create one or more list items on a particular Alexa list. Items order is preserved"""
+
+    if not user.is_linked_to_alexa:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
+
+    list_service = AlexaListService(user)
+    return list_service.create_list_items(list_id, items, source)
+
+
+@list_router.post("/{list_id}/items", response_model=AlexaListItemOut)
+@rate_limit_service.limit(RateLimitCategory.modify)
+def create_list_item(
+    list_id: str,
+    item: AlexaListItemCreateIn,
+    user: User = Depends(get_current_user),
+    source: str = ALEXA_API_SOURCE_ID,
+) -> AlexaListItemOut:
+    """Create one list item on an Alexa list"""
+
+    item_collection: AlexaListItemCollectionOut = create_list_items(list_id, [item], user, source)
+    return item_collection.list_items[0]
+
+
 @list_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.read)
 def get_list_item(
@@ -247,7 +281,41 @@ def get_list_item(
     return list_service.get_list_item(item, source)
 
 
-# TODO: move this to the list router (/lists/{list_id}/items) and remove list_id from the model
+@list_router.put("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
+@rate_limit_service.limit(RateLimitCategory.modify)
+async def update_list_items(
+    list_id: str,
+    items: list[AlexaListItemUpdateBulkIn],
+    user: User = Depends(get_current_user),
+    source: str = ALEXA_API_SOURCE_ID,
+) -> AlexaListItemCollectionOut:
+    """Update one ore more list items on a particular Alexa list"""
+
+    if not user.is_linked_to_alexa:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
+
+    list_service = AlexaListService(user)
+    return list_service.update_list_items(list_id, items, source)
+
+
+@list_router.put("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
+@rate_limit_service.limit(RateLimitCategory.modify)
+async def update_list_item(
+    list_id: str,
+    item_id: str,
+    item: AlexaListItemUpdateIn,
+    user: User = Depends(get_current_user),
+    source: str = ALEXA_API_SOURCE_ID,
+) -> AlexaListItemOut:
+    """Update one list item in Alexa"""
+
+    item_collection: AlexaListItemCollectionOut = await update_list_items(
+        list_id, [item.cast(AlexaListItemUpdateBulkIn, id=item_id)], user, source
+    )
+    return item_collection.list_items[0]
+
+
+# TODO: move this to a proper service / handler
 @list_item_router.post("", response_model=AlexaListItemCollectionOut, include_in_schema=False)
 def create_alexa_list_items(
     user: User = Depends(get_current_user), items: AlexaListItemCollectionOut = Body(...)

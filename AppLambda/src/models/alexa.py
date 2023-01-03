@@ -92,10 +92,41 @@ class AlexaReadListItem(APIBase):
     item_id: str
 
 
+class AlexaListItemCreateIn(APIBase):
+    value: str
+    status: ListItemState = ListItemState.active
+
+    class Config:
+        use_enum_values = True
+
+
+class AlexaListItemCreate(AlexaListItemCreateIn):
+    list_id: str
+
+
+class AlexaListItemUpdateIn(APIBase):
+    value: str
+    status: Optional[ListItemState] = None
+    """If null, the state will read from Alexa"""
+
+
+class AlexaListItemUpdateBulkIn(AlexaListItemUpdateIn):
+    id: str
+
+
+class AlexaListItemUpdate(AlexaListItemCreate):
+    item_id: str
+    status: ListItemState
+    version: int
+    """This is incremented every time the item is updated. When created, it is set to 1"""
+
+
 class AlexaListItemOut(APIBase):
     id: str
     value: str
     status: ListItemState
+    version: int
+    """This is incremented every time the item is updated. When created, it is set to 1"""
 
     class Config:
         use_enum_values = True
@@ -118,6 +149,7 @@ class AlexaReadList(APIBase):
 class AlexaListOut(AlexaReadList):
     name: str
     version: int
+    """This is incremented every time the item is updated. When created, it is set to 1"""
 
     items: Optional[list[AlexaListItemOut]]
     """Only populated when a single list is fetched"""
