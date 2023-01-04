@@ -5,23 +5,25 @@ import logging
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Request
 
 from ..app import rate_limit_service, users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
 from ..config import MEALIE_INTEGRATION_ID
 from ..handlers.core import SQSSyncMessageHandler
 from ..models.account_linking import NotLinkedError
+from ..models.alexa import AlexaListEvent, AlexaSyncEvent
 from ..models.aws import SQSEvent
 from ..models.core import BaseSyncEvent, RateLimitCategory, User
 from ..models.mealie import MealieEventNotification, MealieEventType, MealieSyncEvent
 from ..models.todoist import TodoistEventType, TodoistSyncEvent, TodoistWebhook
+from .auth import get_current_user
 
 router = APIRouter(prefix="/api/handlers", tags=["Handlers"])
 
 
 @router.post("/sqs/sync-events")
-async def sqs_sync_event_handler(event: SQSEvent = Body(...)) -> None:
+async def sqs_sync_event_handler(event: SQSEvent) -> None:
     """Process all sync events from SQS"""
 
     processed_event_sources: set[str] = set()
@@ -59,9 +61,7 @@ async def sqs_sync_event_handler(event: SQSEvent = Body(...)) -> None:
 
 @router.post("/mealie")
 async def mealie_event_notification_handler(
-    username: str = Query(...),
-    security_hash: Optional[str] = Query(None),
-    notification: MealieEventNotification = Body(...),
+    notification: MealieEventNotification, username: str, security_hash: Optional[str] = None
 ) -> None:
     if notification.event_type == MealieEventType.invalid:
         return
@@ -89,18 +89,8 @@ async def mealie_event_notification_handler(
     if shopping_list_id not in user.list_sync_maps:
         return
 
-    try:
-        # verify user rate limit; raises 429 error if the rate limit is violated
-        rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
-
-    except HTTPException as e:
-        # don't respond to the notification server that there's an error
-        if e.status_code != 429:
-            raise
-
-        logging.info(f"[429 RATE LIMIT] Received too many Mealie sync notifications from {user.username}")
-
-        return
+    # verify user rate limit; raises 429 error if the rate limit is violated
+    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
 
     # initiate a sync event
     sync_event = MealieSyncEvent(
@@ -113,7 +103,7 @@ async def mealie_event_notification_handler(
 
 
 @router.post("/todoist")
-async def todoist_event_notification_handler(request: Request, webhook: TodoistWebhook = Body(...)) -> None:
+async def todoist_event_notification_handler(request: Request, webhook: TodoistWebhook) -> None:
     if webhook.event_name == TodoistEventType.invalid:
         return
 
@@ -125,7 +115,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
     # https://developer.todoist.com/sync/v9#request-format
     security_header = request.headers.get("X-Todoist-Hmac-SHA256")
     if not security_header:
-        logging.error("Recieved Todoist webhook with missing security header")
+        logging.error("Received Todoist webhook with missing security header")
         return
 
     hmac_signature = hmac.new(
@@ -136,7 +126,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
 
     target_header = base64.b64encode(hmac_signature.digest()).decode()
     if security_header != target_header:
-        logging.error("Recieved Todoist webhook with invalild security header")
+        logging.error("Received Todoist webhook with invalid security header")
         return
 
     # find all users linked to this Todoist account
@@ -169,18 +159,8 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
     if not users:
         return
 
-    try:
-        # verify user rate limit; raises 429 error if the rate limit is violated
-        rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
-
-    except HTTPException as e:
-        # don't respond to the notification server that there's an error
-        if e.status_code != 429:
-            raise
-
-        logging.info(f"[429 RATE LIMIT] Received too many Todoist sync notifications from {user.username}")
-
-        return
+    # verify user rate limit; raises 429 error if the rate limit is violated
+    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
 
     # initiate a sync event for each linked user (there should only be one)
     event_id_base = request.headers.get("X-Todoist-Delivery-ID") or str(uuid4())
@@ -192,3 +172,15 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
         )
 
         sync_event.send_to_queue()
+
+
+@router.post("/alexa")
+@rate_limit_service.limit(RateLimitCategory.sync)
+async def alexa_event_notification_handler(event: AlexaListEvent, user: User = Depends(get_current_user)) -> None:
+    sync_event = AlexaSyncEvent(
+        event_id=event.request_id,
+        username=user.username,
+        list_event=event,
+    )
+
+    sync_event.send_to_queue()

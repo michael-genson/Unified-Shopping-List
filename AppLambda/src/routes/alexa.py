@@ -154,7 +154,7 @@ async def authorize_alexa_app(request: Request, auth: AlexaAuthRequest = Depends
 
 
 @auth_router.post("/token", response_model=Token)
-def get_access_token(
+async def get_access_token(
     grant_type: str = Form(),
     code: str = Form(),
     client_id: str = Form(),
@@ -172,7 +172,7 @@ def get_access_token(
 
 
 @auth_router.delete("/link")
-def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias="userId")):
+async def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias="userId")):
     secret_hash = request.headers.get(ALEXA_SECRET_HEADER_KEY)
     if not secret_hash:
         logging.error("Alexa unlink request received without security hash")
@@ -207,7 +207,7 @@ def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias
 
 @list_router.get("", response_model=AlexaListCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.read)
-def get_all_lists(
+async def get_all_lists(
     user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID, active_lists_only: bool = True
 ) -> AlexaListCollectionOut:
     """Fetch all lists from Alexa"""
@@ -221,7 +221,9 @@ def get_all_lists(
 
 @list_router.get("/{list_id}", response_model=AlexaListOut)
 @rate_limit_service.limit(RateLimitCategory.read)
-def get_list(list_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID) -> AlexaListOut:
+async def get_list(
+    list_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
+) -> AlexaListOut:
     """Fetch one list from Alexa"""
 
     if not user.is_linked_to_alexa:
@@ -237,7 +239,7 @@ def get_list(list_id: str, user: User = Depends(get_current_user), source: str =
 
 @list_router.post("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
-def create_list_items(
+async def create_list_items(
     list_id: str,
     items: list[AlexaListItemCreateIn],
     user: User = Depends(get_current_user),
@@ -254,7 +256,7 @@ def create_list_items(
 
 @list_router.post("/{list_id}/items", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
-def create_list_item(
+async def create_list_item(
     list_id: str,
     item: AlexaListItemCreateIn,
     user: User = Depends(get_current_user),
@@ -262,13 +264,13 @@ def create_list_item(
 ) -> AlexaListItemOut:
     """Create one item on an Alexa list"""
 
-    item_collection: AlexaListItemCollectionOut = create_list_items(list_id, [item], user, source)
+    item_collection: AlexaListItemCollectionOut = await create_list_items(list_id, [item], user, source)
     return item_collection.list_items[0]
 
 
 @list_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.read)
-def get_list_item(
+async def get_list_item(
     list_id: str, item_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
 ) -> AlexaListItemOut:
     """Fetch one list item from Alexa"""

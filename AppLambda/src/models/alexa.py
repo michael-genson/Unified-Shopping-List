@@ -1,9 +1,11 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel
 
 from ._base import APIBase
+from .core import BaseSyncEvent, Source
 
 ### Auth ###
 
@@ -157,3 +159,22 @@ class AlexaListOut(AlexaReadList):
 
 class AlexaListCollectionOut(APIBase):
     lists: list[AlexaListOut]
+
+
+### Sync ###
+class AlexaListEvent(BaseModel):
+    request_id: str
+    timestamp: datetime
+    user_id: str
+
+    operation: Operation
+    object_type: ObjectType
+
+    list_id: str
+    list_item_ids: Optional[list[str]] = []
+    """only populated in list item events"""
+
+
+class AlexaSyncEvent(BaseSyncEvent):
+    source: Source = Source.alexa
+    list_event: AlexaListEvent
