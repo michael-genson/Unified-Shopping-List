@@ -243,7 +243,7 @@ def create_list_items(
     user: User = Depends(get_current_user),
     source: str = ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemCollectionOut:
-    """Create one or more list items on a particular Alexa list. Items order is preserved"""
+    """Create one or more items on an Alexa list. Item order is preserved"""
 
     if not user.is_linked_to_alexa:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
@@ -260,7 +260,7 @@ def create_list_item(
     user: User = Depends(get_current_user),
     source: str = ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemOut:
-    """Create one list item on an Alexa list"""
+    """Create one item on an Alexa list"""
 
     item_collection: AlexaListItemCollectionOut = create_list_items(list_id, [item], user, source)
     return item_collection.list_items[0]
@@ -289,7 +289,7 @@ async def update_list_items(
     user: User = Depends(get_current_user),
     source: str = ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemCollectionOut:
-    """Update one ore more list items on a particular Alexa list"""
+    """Update one or more items on an Alexa list"""
 
     if not user.is_linked_to_alexa:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
@@ -307,7 +307,7 @@ async def update_list_item(
     user: User = Depends(get_current_user),
     source: str = ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemOut:
-    """Update one list item in Alexa"""
+    """Update one item on an Alexa list"""
 
     item_collection: AlexaListItemCollectionOut = await update_list_items(
         list_id, [item.cast(AlexaListItemUpdateBulkIn, id=item_id)], user, source
