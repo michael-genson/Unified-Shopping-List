@@ -119,8 +119,11 @@ class MealieShoppingListRecipeRef(MealieBase):
 
 class MealieShoppingListItemExtras(MealieBase):
     original_value: Optional[str]
-    alexa_item_id: Optional[str]
     todoist_task_id: Optional[str]
+
+    alexa_item_id: Optional[str]
+    alexa_item_version: Optional[str]
+    """string representation of the Alexa list item's version number (int)"""
 
 
 class MealieShoppingListItemCreate(MealieBase):

@@ -131,9 +131,9 @@ class SQSFIFO:
     def __init__(self, queue_url: str) -> None:
         self.queue = sqs.Queue(queue_url)
 
-    def send_message(self, content: Union[dict, list], de_dupe_id: str, group_id: str) -> None:
+    def send_message(self, content: str, de_dupe_id: str, group_id: str) -> None:
         self.queue.send_message(
-            MessageBody=json.dumps(content),
+            MessageBody=content,
             MessageDeduplicationId=de_dupe_id,
             MessageGroupId=group_id,
         )

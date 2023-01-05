@@ -180,8 +180,20 @@ class MealieListService:
         if not allow_duplicate_item_value:
             item_value = item.note.lower() if item.note else ""
             for existing_item in self.get_list(item.shopping_list_id).list_items:
-                if existing_item.display.lower() == item_value:
+                if existing_item.display.lower() != item_value:
+                    continue
+
+                if (not item.extras) or existing_item.extras == item.extras:
                     return None
+
+                # if the items are the same, but the new item has extras, merge them and update the existing item
+                if not existing_item.extras:
+                    existing_item.extras = item.extras
+
+                else:
+                    existing_item.extras.merge(item.extras)
+
+                return self.update_item(existing_item)
 
         new_item = self._client.create_shopping_list_item(item)
         self.get_list(new_item.shopping_list_id).list_items.append(new_item)

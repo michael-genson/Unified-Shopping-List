@@ -51,9 +51,7 @@ app.include_router(todoist.auth_router, include_in_schema=False)
 # api routes
 app.include_router(account_linking.api_router)
 app.include_router(auth.router)
-
-app.include_router(alexa.list_router)
-app.include_router(alexa.list_item_router)
+app.include_router(alexa.api_router)
 
 
 # default route

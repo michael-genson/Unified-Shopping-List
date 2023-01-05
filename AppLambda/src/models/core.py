@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
@@ -113,7 +114,9 @@ class BaseSyncEvent(APIBase):
 
     client_id = APP_CLIENT_ID
     client_secret = APP_CLIENT_SECRET
+
     event_id: str = Field(default_factory=lambda: str(uuid4()))
+    timestamp: datetime = datetime.now()
 
     class Config:
         use_enum_values = True
@@ -126,4 +129,4 @@ class BaseSyncEvent(APIBase):
         """Queue this event to be processed asynchronously"""
 
         sqs = SQSFIFO(SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else SYNC_EVENT_SQS_QUEUE_NAME)
-        sqs.send_message(self.dict(), self.event_id, self.group_id)
+        sqs.send_message(self.json(), self.event_id, self.group_id)

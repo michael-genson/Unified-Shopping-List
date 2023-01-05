@@ -89,7 +89,7 @@ class TodoistSyncHandler(BaseSyncHandler):
         )
         return f"From: {recipes_string}"
 
-    def sync_changes_to_mealie(self, list_sync_map: ListSyncMap):
+    def sync_changes_to_mealie(self, message: SQSMessage, list_sync_map: ListSyncMap):
         if not list_sync_map.todoist_project_id:
             raise CannotHandleListMapError()
 
@@ -175,7 +175,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)
 
-    def receive_changes_from_mealie(self, list_sync_map: ListSyncMap):
+    def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.todoist_project_id:
             raise CannotHandleListMapError()
 
@@ -197,7 +197,6 @@ class TodoistSyncHandler(BaseSyncHandler):
                         continue
 
                     # if the items don't match, update Todoist to match Mealie
-
                     updated_task = self.todoist_service.update_task(
                         task_id=task.id,
                         project_id=project_id,

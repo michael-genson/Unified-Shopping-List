@@ -106,12 +106,14 @@
     </div>
     <div>
       <button type="submit" class="btn btn-primary">Submit</button>
+      {% if show_unidirectional_sync_footnote %}
       <p class="mt-2">
         <small class="text-muted">
           *lists marked as unidirectional will sync <em><strong>one way</strong></em> to your other lists.
           Items will be automatically sent to your bi-directional lists and checked-off on your source list
         </small>
       </p>
+      {% endif %}
     </div>
   </form>
   {% endif %}

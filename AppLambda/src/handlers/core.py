@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Type
 
 from pydantic import ValidationError
 
@@ -7,11 +7,13 @@ from ..models.aws import SQSMessage
 from ..models.core import BaseSyncEvent, ListSyncMap, Source, User
 from ..models.mealie import MealieSyncEvent
 from ..services.mealie import MealieListService
+from ._base import BaseSyncHandler
+from .alexa import AlexaSyncHandler
 from .todoist import TodoistSyncHandler
 
 
 class SQSSyncMessageHandler:
-    registered_handlers = [TodoistSyncHandler]
+    registered_handlers: list[Type[BaseSyncHandler]] = [AlexaSyncHandler, TodoistSyncHandler]
 
     def __init__(self, user: User):
         if not user.is_linked_to_mealie:
@@ -20,7 +22,7 @@ class SQSSyncMessageHandler:
         self.user = user
         self.mealie = MealieListService(user)
 
-    def sync_to_external_systems(self, list_sync_map: ListSyncMap):
+    def sync_to_external_systems(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         """Sync all mealie items to external systems"""
 
         # handle items in each linked system
@@ -29,7 +31,7 @@ class SQSSyncMessageHandler:
                 continue
 
             handler = registered_handler(self.user, self.mealie)
-            handler.receive_changes_from_mealie(list_sync_map)
+            handler.receive_changes_from_mealie(sync_event, list_sync_map)
 
         # delete checked items from Mealie
         # TODO: submit PR to Mealie to allow only querying/pulling unchecked items so we don't have to do this
@@ -77,7 +79,7 @@ class SQSSyncMessageHandler:
             else:
                 return None
 
-            self.sync_to_external_systems(list_sync_map)
+            self.sync_to_external_systems(base_sync_event, list_sync_map)
             return base_sync_event.source  # mealie always skips additional events if a sync is successful
 
         # sync the event's source system to Mealie
@@ -91,7 +93,7 @@ class SQSSyncMessageHandler:
             if not list_sync_map:
                 continue
 
-            handler.sync_changes_to_mealie(list_sync_map)
+            handler.sync_changes_to_mealie(message, list_sync_map)
             if handler.suppress_additional_messages:
                 response = base_sync_event.source
 
@@ -101,5 +103,5 @@ class SQSSyncMessageHandler:
             return None
 
         # propagate changes made to Mealie to all systems
-        self.sync_to_external_systems(list_sync_map)
+        self.sync_to_external_systems(base_sync_event, list_sync_map)
         return response
