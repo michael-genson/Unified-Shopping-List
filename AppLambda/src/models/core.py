@@ -5,7 +5,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, SYNC_FIFO_QUEUE_NAME
+from ..app import SYNC_EVENT_DEV_SQS_QUEUE_NAME, SYNC_EVENT_SQS_QUEUE_NAME
+from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..clients.aws import SQSFIFO
 from ._base import APIBase
 from .account_linking import (
@@ -75,6 +76,8 @@ class User(APIBase):
     alexa_user_id: Optional[str] = None
     todoist_user_id: Optional[str] = None
 
+    use_developer_routes: bool = False
+
     @property
     def is_linked_to_mealie(self):
         return self.configuration.mealie and self.configuration.mealie.is_valid
@@ -119,8 +122,8 @@ class BaseSyncEvent(APIBase):
     def group_id(self):
         return self.username  # preserves order of events per-user
 
-    def send_to_queue(self) -> None:
+    def send_to_queue(self, use_dev_route=False) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = SQSFIFO(SYNC_FIFO_QUEUE_NAME)
+        sqs = SQSFIFO(SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else SYNC_EVENT_SQS_QUEUE_NAME)
         sqs.send_message(self.dict(), self.event_id, self.group_id)
