@@ -37,24 +37,15 @@ from ..models.alexa import (
     AlexaListItemUpdateIn,
     AlexaListOut,
 )
-from ..models.core import RateLimitCategory, Source, Token, User
-from ..models.mealie import (
-    MealieShoppingListItemCreate,
-    MealieShoppingListItemExtras,
-    MealieSyncEvent,
-)
+from ..models.core import RateLimitCategory, Token, User
 from ..services.alexa import AlexaListService
-from ..services.mealie import MealieListService
 from .account_linking import unlink_alexa_account
 from .auth import get_current_user
 from .core import redirect_if_not_logged_in
 
 auth_router = APIRouter(prefix="/authorization/alexa", tags=["Alexa"])
 frontend_router = APIRouter(prefix="/app/alexa", tags=["Alexa"])
-list_router = APIRouter(prefix="/api/alexa/lists", tags=["Alexa"])
-
-# TODO: deprecate this and use the list router (/lists/{list_id}/items})
-list_item_router = APIRouter(prefix="/api/alexa/lists/items", tags=["Alexa"])
+api_router = APIRouter(prefix="/api/alexa/lists", tags=["Alexa"])
 
 
 ### Frontend ###
@@ -203,7 +194,7 @@ async def unlink_user_from_alexa_app(request: Request, user_id: str = Query(...,
 ### Lists ###
 
 
-@list_router.get("", response_model=AlexaListCollectionOut)
+@api_router.get("", response_model=AlexaListCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.read)
 async def get_all_lists(
     user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID, active_lists_only: bool = True
@@ -217,7 +208,7 @@ async def get_all_lists(
     return list_service.get_all_lists(source, active_lists_only)
 
 
-@list_router.get("/{list_id}", response_model=AlexaListOut)
+@api_router.get("/{list_id}", response_model=AlexaListOut)
 @rate_limit_service.limit(RateLimitCategory.read)
 async def get_list(
     list_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
@@ -234,7 +225,7 @@ async def get_list(
 ### List Items ###
 
 
-@list_router.post("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
+@api_router.post("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
 async def create_list_items(
     list_id: str,
@@ -251,7 +242,7 @@ async def create_list_items(
     return list_service.create_list_items(list_id, items, source)
 
 
-@list_router.post("/{list_id}/items", response_model=AlexaListItemOut)
+@api_router.post("/{list_id}/items", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
 async def create_list_item(
     list_id: str,
@@ -265,7 +256,7 @@ async def create_list_item(
     return item_collection.list_items[0]
 
 
-@list_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
+@api_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.read)
 async def get_list_item(
     list_id: str, item_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
@@ -284,7 +275,7 @@ async def get_list_item(
     return item
 
 
-@list_router.put("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
+@api_router.put("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
 async def update_list_items(
     list_id: str,
@@ -301,7 +292,7 @@ async def update_list_items(
     return list_service.update_list_items(list_id, items, source)
 
 
-@list_router.put("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
+@api_router.put("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
 @rate_limit_service.limit(RateLimitCategory.modify)
 async def update_list_item(
     list_id: str,
@@ -316,69 +307,3 @@ async def update_list_item(
         list_id, [item.cast(AlexaListItemUpdateBulkIn, id=item_id)], user, source
     )
     return item_collection.list_items[0]
-
-
-# TODO: move this to a proper service / handler
-@list_item_router.post("", response_model=AlexaListItemCollectionOut, include_in_schema=False)
-def create_alexa_list_items(
-    user: User = Depends(get_current_user), items: AlexaListItemCollectionOut = Body(...)
-) -> AlexaListItemCollectionOut:
-    """Receive new list items from Alexa"""
-    if not user.is_linked_to_mealie:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Mealie")
-
-    alexa_list_items_collection = items
-
-    # find matching Mealie shopping list
-    shopping_list_id = ""
-    for list_sync_map in user.list_sync_maps.values():
-        if list_sync_map.alexa_list_id == alexa_list_items_collection.list_id:
-            shopping_list_id = list_sync_map.mealie_shopping_list_id
-            break
-
-    # if there is no matching list, we don't need to do anything
-    if not shopping_list_id:
-        return AlexaListItemCollectionOut(list_id=alexa_list_items_collection.list_id, list_items=[])
-
-    mealie_list_items = [
-        MealieShoppingListItemCreate(
-            shopping_list_id=shopping_list_id,
-            checked=False,
-            quantity=0,  # Alexa does not track quantities, so we explicitly set them to zero
-            is_food=False,
-            note=alexa_item.value,
-            extras=MealieShoppingListItemExtras(
-                original_value=alexa_item.value,
-                alexa_item_id=alexa_item.id,
-            ),
-        )
-        for alexa_item in alexa_list_items_collection.list_items
-    ]
-
-    if not mealie_list_items:
-        return AlexaListItemCollectionOut(list_id=alexa_list_items_collection.list_id, list_items=[])
-
-    # verify user rate limit; raises 429 error if the rate limit is violated
-    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
-
-    mealie_service = MealieListService(user)
-    created_alexa_item_ids: list[str] = []
-
-    for new_item in mealie_list_items:
-        try:
-            mealie_service.create_item(new_item)
-            created_alexa_item_ids.append(new_item.extras.alexa_item_id)  # type: ignore
-
-        except Exception as e:
-            logging.error("Unhandled exception when trying to create Alexa item in Mealie")
-            logging.error(f"{type(e).__name__}: {e}")
-            logging.error(new_item)
-
-    # we ignore callbacks for Mealie events generated by our app, so we need to manually queue up Mealie sync events
-    sync_event = MealieSyncEvent(username=user.username, source=Source.mealie, shopping_list_id=shopping_list_id)
-    sync_event.send_to_queue(use_dev_route=user.use_developer_routes)
-
-    return AlexaListItemCollectionOut(
-        list_id=alexa_list_items_collection.list_id,
-        list_items=[item for item in alexa_list_items_collection.list_items if item.id in created_alexa_item_ids],
-    )

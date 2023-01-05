@@ -2,7 +2,6 @@ import logging
 from functools import cache
 from typing import Any, Optional, cast
 
-from fastapi import Depends
 from pydantic import ValidationError
 
 from ..clients.alexa import (
