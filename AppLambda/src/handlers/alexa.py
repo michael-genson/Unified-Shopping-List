@@ -1,7 +1,9 @@
+import contextlib
 import logging
 from typing import Optional
 
 from pydantic import ValidationError
+from pytz import UTC
 
 from ..models.alexa import (
     AlexaListItemCreateIn,
@@ -64,7 +66,11 @@ class AlexaSyncHandler(BaseSyncHandler):
         return self.mealie_service.get_item_by_extra(mealie_list_id, self.extras_item_id_key, item_id)
 
     def get_mealie_item_version_number(self, mealie_item: MealieShoppingListItemOut) -> int:
-        """read the mealie item and get its alexa item version (returns 0 if there is no version information)"""
+        """
+        read the mealie item and get its alexa item version
+
+        returns 0 if there is no version information
+        """
 
         if not (mealie_item.extras and mealie_item.extras.alexa_item_version):
             return 0
@@ -76,9 +82,6 @@ class AlexaSyncHandler(BaseSyncHandler):
 
     def can_update_mealie_item(self, mealie_item: MealieShoppingListItemOut, alexa_item: AlexaListItemOut):
         """compare the alexa item versions and return if the item should be updated in Mealie"""
-
-        if not mealie_item.extras or mealie_item.extras.alexa_item_id:
-            return True
 
         mealie_item_version = self.get_mealie_item_version_number(mealie_item)
         return mealie_item_version < alexa_item.version
@@ -97,9 +100,20 @@ class AlexaSyncHandler(BaseSyncHandler):
         compare the timestamps of the sync event and the Alexa item and return if the Alexa item can be checked off
 
         should only be used as a fallback if we don't know if the Alexa item has synced over to Mealie or not
+        TODO: find a more deterministic way to handle these scenarios
         """
 
-        return sync_event.timestamp > alexa_item.created_time
+        sync_event_timestamp = sync_event.timestamp
+        alexa_create_timestamp = alexa_item.created_time
+
+        # some timestamps are missing tzinfo, so we assume it's UTC
+        with contextlib.suppress(ValueError):
+            sync_event_timestamp = UTC.localize(sync_event_timestamp)
+
+        with contextlib.suppress(ValueError):
+            alexa_create_timestamp = UTC.localize(alexa_create_timestamp)
+
+        return sync_event_timestamp >= alexa_create_timestamp
 
     def sync_changes_to_mealie(self, message: SQSMessage, list_sync_map: ListSyncMap):
         sync_event = message.parse_body(AlexaSyncEvent)
@@ -112,51 +126,59 @@ class AlexaSyncHandler(BaseSyncHandler):
 
         mealie_list_id = list_sync_map.mealie_shopping_list_id
         alexa_list_id = list_sync_map.alexa_list_id
+        alexa_item_ids = list_event.list_item_ids
 
-        if list_event.operation == Operation.delete.value:
-            deleted_alexa_list_item_ids = list_event.list_item_ids
-            for alexa_item_id in deleted_alexa_list_item_ids:
-                mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item_id)
-                if not mealie_item:
-                    continue
-
-                mealie_item.checked = True
-                if mealie_item.extras:
-                    mealie_item.extras.alexa_item_id = None
-                    mealie_item.extras.alexa_item_version = None
-
-                self.mealie_service.update_item(mealie_item)
-                continue
-
-        # check all items for changes
-        alexa_item: Optional[AlexaListItemOut]
-        for alexa_item in self.alexa_service.get_list(alexa_list_id).items or []:
+        for alexa_item_id in alexa_item_ids:
             try:
-                # don't do anything with checked items
-                if alexa_item.status == ListItemState.completed:
+                mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item_id)
+                if list_event.operation == Operation.delete.value:
+                    if not mealie_item:
+                        continue
+
+                    mealie_item.checked = True
+                    if mealie_item.extras:
+                        mealie_item.extras.alexa_item_id = None
+                        mealie_item.extras.alexa_item_version = None
+
+                    self.mealie_service.update_item(mealie_item)
                     continue
 
-                mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item.id)
+                elif list_event.operation == Operation.create.value:
+                    if mealie_item:
+                        continue
 
-                # item does not exist in Mealie yet
-                if not mealie_item:
+                    alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
+                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                        continue
+
                     self.mealie_service.create_item(
                         MealieShoppingListItemCreate(
                             shopping_list_id=mealie_list_id,
                             note=alexa_item.value,
                             quantity=0,
                             extras=MealieShoppingListItemExtras(
-                                alexa_item_id=alexa_item.id, alexa_item_version=str(alexa_item.version)
+                                alexa_item_id=alexa_item_id, alexa_item_version=str(alexa_item.version)
                             ),
                         )
                     )
 
-                # item already exists in Mealie
-                else:
+                elif list_event.operation == Operation.update.value:
+                    if not mealie_item:
+                        continue
+
+                    alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
+                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                        mealie_item.checked = True
+                        if mealie_item.extras:
+                            mealie_item.extras.alexa_item_id = None
+                            mealie_item.extras.alexa_item_version = None
+
+                        self.mealie_service.update_item(mealie_item)
+                        continue
+
                     if not self.can_update_mealie_item(mealie_item, alexa_item):
                         continue
 
-                    # compare item values
                     if alexa_item.value != mealie_item.display:
                         # the content does not match, and we don't have structured item data
                         # in Alexa, so we need to completely replace the item in Mealie
@@ -191,30 +213,9 @@ class AlexaSyncHandler(BaseSyncHandler):
                     self.mealie_service.update_item(mealie_item)
 
             except Exception as e:
-                logging.error("Unhandled exception when trying to sync Alexa item to Mealie")
+                logging.error(f"Unhandled exception when trying to {list_event.operation.value} Alexa item in Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
-                logging.error(alexa_item)
-
-        for mealie_item in self.mealie_service.get_list(mealie_list_id).list_items:
-            try:
-                if mealie_item.checked:
-                    continue
-
-                if not (mealie_item.extras and mealie_item.extras.alexa_item_id):
-                    continue
-
-                # check off Mealie item
-                alexa_item = self.alexa_service.get_list_item(alexa_list_id, mealie_item.extras.alexa_item_id)
-                if not alexa_item or alexa_item.status == ListItemState.completed:
-                    mealie_item.checked = True
-                    mealie_item.extras.alexa_item_id = None
-                    mealie_item.extras.alexa_item_version = None
-                    self.mealie_service.update_item(mealie_item)
-
-            except Exception as e:
-                logging.error("Unhandled exception when trying to sync Alexa item to Mealie")
-                logging.error(f"{type(e).__name__}: {e}")
-                logging.error(mealie_item)
+                logging.error(alexa_item_id)
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.alexa_list_id:
@@ -253,7 +254,6 @@ class AlexaSyncHandler(BaseSyncHandler):
             mealie_items_to_callback.append(mealie_item)
 
         for mealie_item in self.mealie_service.get_list(mealie_list_id).list_items:
-            print(mealie_item)
             if mealie_item.checked:
                 continue
 
@@ -264,7 +264,6 @@ class AlexaSyncHandler(BaseSyncHandler):
             mealie_items_to_callback.append(mealie_item)
 
         try:
-            print(alexa_items_to_create)
             new_alexa_items = self.alexa_service.create_list_items(alexa_list_id, alexa_items_to_create)
             updated_alexa_items = self.alexa_service.update_list_items(alexa_list_id, alexa_items_to_update)
 

@@ -1579,6 +1579,18 @@ files = [
 six = ">=1.4.0"
 
 [[package]]
+name = "pytz"
+version = "2022.7"
+description = "World timezone definitions, modern and historical"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pytz-2022.7-py2.py3-none-any.whl", hash = "sha256:93007def75ae22f7cd991c84e02d434876818661f8df9ad5df9e950ff4e52cfd"},
+    {file = "pytz-2022.7.tar.gz", hash = "sha256:7ccfae7b4b2c067464a6733c6261673fdb8fd1be905460396b97a073e9fa683a"},
+]
+
+[[package]]
 name = "rapidfuzz"
 version = "2.13.2"
 description = "rapid fuzzy string matching"
@@ -1965,6 +1977,18 @@ files = [
 ]
 
 [[package]]
+name = "types-pytz"
+version = "2022.7.0.0"
+description = "Typing stubs for pytz"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-pytz-2022.7.0.0.tar.gz", hash = "sha256:4f20c2953b3a3a0587e94489ec4c9e02c3d3aedb9ba5cd7e796e12f4cfa7027e"},
+    {file = "types_pytz-2022.7.0.0-py3-none-any.whl", hash = "sha256:1509f182f686ab76e9a8234f22b00b8f50d239974db0cf924b7ae8674bb31a6f"},
+]
+
+[[package]]
 name = "types-requests"
 version = "2.28.11.5"
 description = "Typing stubs for requests"
@@ -2128,4 +2152,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "779fc92fbd13bcb6001dd532dddd9859fc22309870a1883bbafce47684276805"
+content-hash = "d7919178b134a4f87c1561704404d0fc63716aef2fed7ae5e90cfd4aca6ec1bb"
