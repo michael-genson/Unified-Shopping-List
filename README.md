@@ -29,18 +29,15 @@ Which applications are supported?
 ---
 Since we are *just* releasing the Unified Shopping List, we don't support too many applications yet. Feel free to explore GitHub discussions and suggest new apps to support.
 
-Fully supported applications:
+Supported applications:
+- [Alexa](https://alexa.amazon.com/)
 - [Mealie](https://github.com/hay-kot/mealie) (required, only the *official nightly build* is supported)
 - [Todoist](https://todoist.com/)
-
-Partially supported applications:
-- [Alexa](https://alexa.amazon.com/) (unidirectional only)
 
 
 (Soft) Roadmap
 ---
 Features
-- improve/refactor the Alexa integration to be bi-directional
 - add support for more applications
 - explore weekly item scheduling
 - expand API for end-user custom integrations

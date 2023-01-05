@@ -74,7 +74,6 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
 
             linked_accounts[Source.alexa] = SyncMapRenderList(
                 column_header="Alexa List",
-                is_unidirectional=True,
                 lists=[
                     SyncMapRender(
                         list_id=alexa_list.list_id,
@@ -120,6 +119,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
             link_errors.append("Something went wrong when trying to connect to Todoist")
 
     context["linked_accounts"] = linked_accounts
+    context["show_unidirectional_sync_footnote"] = any([link.is_unidirectional for link in linked_accounts.values()])
     context["errors"] = link_errors
     return templates.TemplateResponse(
         "list_sync_mapping.html",
