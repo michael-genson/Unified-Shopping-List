@@ -33,6 +33,7 @@ Resources:
       Environment:
         Variables:
           whitelist: !Ref Whitelist
+          syncEventSQSQueueName: !GetAtt SyncEventQueue.QueueName
 
       Policies:
         # DDB resources not deployed via SAM

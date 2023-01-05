@@ -2,7 +2,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from dateutil.parser import parse as parse_date
+from pydantic import BaseModel, validator
 
 from ._base import APIBase
 from .core import BaseSyncEvent, Source
@@ -130,8 +131,18 @@ class AlexaListItemOut(APIBase):
     version: int
     """This is incremented every time the item is updated. When created, it is set to 1"""
 
+    created_time: datetime
+    updated_time: datetime
+
     class Config:
         use_enum_values = True
+
+    @validator("created_time", "updated_time", pre=True)
+    def parse_timestamp(cls, v) -> datetime:
+        if isinstance(v, str):
+            return parse_date(v)
+
+        return v
 
 
 class AlexaListItemCollectionOut(APIBase):
@@ -162,10 +173,9 @@ class AlexaListCollectionOut(APIBase):
 
 
 ### Sync ###
-class AlexaListEvent(BaseModel):
+class AlexaListEvent(APIBase):
     request_id: str
     timestamp: datetime
-    user_id: str
 
     operation: Operation
     object_type: ObjectType
@@ -173,6 +183,9 @@ class AlexaListEvent(BaseModel):
     list_id: str
     list_item_ids: Optional[list[str]] = []
     """only populated in list item events"""
+
+    class Config:
+        use_enum_values = True
 
 
 class AlexaSyncEvent(BaseSyncEvent):

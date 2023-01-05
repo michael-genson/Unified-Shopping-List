@@ -21,6 +21,7 @@ cachetools = "^5.2.0"
 fuzzywuzzy = {extras = ["speedup"], version = "^0.18.0"}
 requests = "^2.28.1"
 todoist-api-python = "^2.0.2"
+python-dateutil = "^2.8.2"
 
 [tool.poetry.group.dev.dependencies]
 boto3-stubs = {extras = ["essential", "secretsmanager"], version = "^1.24.65"}
@@ -35,6 +36,7 @@ black = "^22.6.0"
 pylint = "^2.14.5"
 mypy = "^0.991"
 bumpversion = "^0.6.0"
+types-python-dateutil = "^2.8.19.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

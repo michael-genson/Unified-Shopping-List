@@ -1,5 +1,6 @@
+import logging
 from functools import cache
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from fastapi import Depends
 from pydantic import ValidationError
@@ -21,7 +22,6 @@ from ..models.alexa import (
     AlexaListItemUpdateBulkIn,
     AlexaListOut,
     AlexaReadList,
-    AlexaReadListItem,
     ListState,
     MessageIn,
     MessageRequest,
@@ -74,13 +74,19 @@ class AlexaListService:
         except ValidationError:
             raise Exception("Response from Alexa is not a valid list collection")
 
-    def get_list(self, alexa_list: AlexaReadList, source: str = ALEXA_INTERNAL_SOURCE_ID) -> AlexaListOut:
+    def get_list(
+        self, list_id: str, state: ListState = ListState.active, source: str = ALEXA_INTERNAL_SOURCE_ID
+    ) -> AlexaListOut:
         """Fetch a single list from Alexa"""
 
-        if alexa_list.list_id in self.lists:
-            return self.lists[alexa_list.list_id]
+        if list_id in self.lists:
+            return self.lists[list_id]
 
-        request = MessageRequest(operation=Operation.read, object_type=ObjectType.list, object_data=alexa_list.dict())
+        request = MessageRequest(
+            operation=Operation.read,
+            object_type=ObjectType.list,
+            object_data=AlexaReadList(list_id=list_id, state=state),
+        )
         message = MessageIn(source=source, requests=[request], send_callback_response=True)
 
         response = client.call_api(self.user_id, message)
@@ -97,25 +103,33 @@ class AlexaListService:
         except IndexError:
             raise Exception(NO_RESPONSE_DATA_EXCEPTION)
 
-        except ValidationError:
+        except ValidationError as e:
+            logging.error("Response from Alexa is not a valid list")
+            logging.error(e)
+            logging.error(response)
             raise Exception("Response from Alexa is not a valid list")
 
-    def get_list_item(self, item: AlexaReadListItem, source: str = ALEXA_INTERNAL_SOURCE_ID) -> AlexaListItemOut:
+    def get_list_item(
+        self, list_id: str, item_id: str, source: str = ALEXA_INTERNAL_SOURCE_ID
+    ) -> Optional[AlexaListItemOut]:
         """Fetch a single list item from Alexa"""
 
-        alexa_list = self.get_list(AlexaReadList(list_id=item.list_id), source)
+        alexa_list = self.get_list(list_id, source=source)
         for list_item in alexa_list.items or []:
-            if list_item.id == item.item_id:
+            if list_item.id == item_id:
                 return list_item
 
-        raise Exception(f"Cannot find list item {item}")
+        return None
 
     def create_list_items(
         self, list_id: str, items: list[AlexaListItemCreateIn], source: str = ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListItemCollectionOut:
         """Create one or more items in Alexa. Items order is preserved"""
 
-        alexa_list = self.get_list(AlexaReadList(list_id=list_id))
+        if not items:
+            return AlexaListItemCollectionOut(list_id=list_id, list_items=[])
+
+        alexa_list = self.get_list(list_id, source=source)
         requests = [
             MessageRequest(
                 operation=Operation.create,
@@ -158,33 +172,33 @@ class AlexaListService:
     ) -> AlexaListItemCollectionOut:
         """Update one or more items in Alexa"""
 
-        alexa_list = self.get_list(AlexaReadList(list_id=list_id))
+        alexa_list = self.get_list(list_id, source=source)
 
         requests: list[MessageRequest] = []
         updated_items: list[AlexaListItemOut] = []
         for item in items:
-            merged_item = False
             for current_item in alexa_list.items or []:
-                if item.id == current_item.id:
-                    # update the item in place
-                    current_item.merge(item)
-                    updated_items.append(current_item)
+                if item.id != current_item.id:
+                    continue
 
-                    requests.append(
-                        MessageRequest(
-                            operation=Operation.update,
-                            object_type=ObjectType.list_item,
-                            object_data=current_item.cast(
-                                AlexaListItemUpdate, list_id=list_id, item_id=current_item.id
-                            ).dict(),
-                        )
+                # update the item in place
+                current_item.merge(item)
+                updated_items.append(current_item)
+
+                requests.append(
+                    MessageRequest(
+                        operation=Operation.update,
+                        object_type=ObjectType.list_item,
+                        object_data=current_item.cast(
+                            AlexaListItemUpdate, list_id=list_id, item_id=current_item.id
+                        ).dict(),
                     )
+                )
 
-                    merged_item = True
-                    break
+                break
 
-            if not merged_item:
-                raise Exception(f"Cannot find list item {item.id}")
+        if not requests:
+            return AlexaListItemCollectionOut(list_id=list_id, list_items=[])
 
         message = MessageIn(source=source, requests=requests, send_callback_response=True)
         client.call_api(self.user_id, message)

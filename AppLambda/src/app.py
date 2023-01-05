@@ -13,6 +13,8 @@ from .handlers.mangum import SQS
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
 app.mount("/static", StaticFiles(directory="./src/static"), name="static")
 templates = Jinja2Templates(directory="./src/static/templates")
+
+SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
 USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 

@@ -36,8 +36,6 @@ from ..models.alexa import (
     AlexaListItemUpdateBulkIn,
     AlexaListItemUpdateIn,
     AlexaListOut,
-    AlexaReadList,
-    AlexaReadListItem,
 )
 from ..models.core import RateLimitCategory, Source, Token, User
 from ..models.mealie import (
@@ -230,8 +228,7 @@ async def get_list(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    alexa_list = AlexaReadList(list_id=list_id)
-    return list_service.get_list(alexa_list, source)
+    return list_service.get_list(list_id, source=source)
 
 
 ### List Items ###
@@ -279,8 +276,12 @@ async def get_list_item(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    item = AlexaReadListItem(list_id=list_id, item_id=item_id)
-    return list_service.get_list_item(item, source)
+    item = list_service.get_list_item(list_id, item_id, source)
+
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    return item
 
 
 @list_router.put("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)

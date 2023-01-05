@@ -97,6 +97,7 @@ async def mealie_event_notification_handler(
         event_id=notification.event_id,
         username=user.username,
         shopping_list_id=shopping_list_id,
+        timestamp=notification.timestamp,
     )
 
     sync_event.send_to_queue()
@@ -178,9 +179,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
 @rate_limit_service.limit(RateLimitCategory.sync)
 async def alexa_event_notification_handler(event: AlexaListEvent, user: User = Depends(get_current_user)) -> None:
     sync_event = AlexaSyncEvent(
-        event_id=event.request_id,
-        username=user.username,
-        list_event=event,
+        event_id=event.request_id, username=user.username, list_event=event, timestamp=event.timestamp
     )
 
     sync_event.send_to_queue()

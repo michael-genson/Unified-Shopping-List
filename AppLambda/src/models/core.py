@@ -1,11 +1,13 @@
 import time
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, SYNC_FIFO_QUEUE_NAME
+from ..app import SYNC_EVENT_SQS_QUEUE_NAME
+from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..clients.aws import SQSFIFO
 from ._base import APIBase
 from .account_linking import (
@@ -110,7 +112,9 @@ class BaseSyncEvent(APIBase):
 
     client_id = APP_CLIENT_ID
     client_secret = APP_CLIENT_SECRET
+
     event_id: str = Field(default_factory=lambda: str(uuid4()))
+    timestamp: datetime = datetime.now()
 
     class Config:
         use_enum_values = True
@@ -122,5 +126,5 @@ class BaseSyncEvent(APIBase):
     def send_to_queue(self) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = SQSFIFO(SYNC_FIFO_QUEUE_NAME)
-        sqs.send_message(self.dict(), self.event_id, self.group_id)
+        sqs = SQSFIFO(SYNC_EVENT_SQS_QUEUE_NAME)
+        sqs.send_message(self.json(), self.event_id, self.group_id)

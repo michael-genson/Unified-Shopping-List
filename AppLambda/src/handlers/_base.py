@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from ..models.aws import SQSMessage
-from ..models.core import ListSyncMap, User
+from ..models.core import BaseSyncEvent, ListSyncMap, User
 from ..services.mealie import MealieListService
 
 
@@ -40,11 +40,11 @@ class BaseSyncHandler(ABC):
         pass
 
     @abstractmethod
-    def sync_changes_to_mealie(self, list_sync_map: ListSyncMap):
+    def sync_changes_to_mealie(self, message: SQSMessage, list_sync_map: ListSyncMap):
         """handle sync from this handler's system to Mealie"""
         pass
 
     @abstractmethod
-    def receive_changes_from_mealie(self, list_sync_map: ListSyncMap):
+    def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         """receive changes from Mealie and make changes in this handler's system"""
         pass
