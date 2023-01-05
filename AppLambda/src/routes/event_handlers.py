@@ -100,7 +100,7 @@ async def mealie_event_notification_handler(
         timestamp=notification.timestamp,
     )
 
-    sync_event.send_to_queue()
+    sync_event.send_to_queue(use_dev_route=user.use_developer_routes)
 
 
 @router.post("/todoist")
@@ -172,7 +172,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
             project_id=project_id,
         )
 
-        sync_event.send_to_queue()
+        sync_event.send_to_queue(use_dev_route=user.use_developer_routes)
 
 
 @router.post("/alexa")
@@ -182,4 +182,4 @@ async def alexa_event_notification_handler(event: AlexaListEvent, user: User = D
         event_id=event.request_id, username=user.username, list_event=event, timestamp=event.timestamp
     )
 
-    sync_event.send_to_queue()
+    sync_event.send_to_queue(use_dev_route=user.use_developer_routes)

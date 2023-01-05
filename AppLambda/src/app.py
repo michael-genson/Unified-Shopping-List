@@ -15,6 +15,7 @@ app.mount("/static", StaticFiles(directory="./src/static"), name="static")
 templates = Jinja2Templates(directory="./src/static/templates")
 
 SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
+SYNC_EVENT_DEV_SQS_QUEUE_NAME = os.getenv("syncEventDevSQSQueueName", "")
 USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 

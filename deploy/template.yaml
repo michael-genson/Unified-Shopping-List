@@ -15,6 +15,9 @@ Parameters:
   SyncEventSQSQueueName:
     Type: String
 
+  SyncEventDevSQSQueueName:
+    Type: String
+
   Whitelist:
     Type: String
     Default: "disabled"
@@ -34,6 +37,7 @@ Resources:
         Variables:
           whitelist: !Ref Whitelist
           syncEventSQSQueueName: !GetAtt SyncEventQueue.QueueName
+          syncEventDevSQSQueueName: !Ref SyncEventDevSQSQueueName
 
       Policies:
         # DDB resources not deployed via SAM
@@ -45,6 +49,9 @@ Resources:
 
         - SQSSendMessagePolicy:
             QueueName: !GetAtt SyncEventQueue.QueueName
+
+        - SQSSendMessagePolicy:
+            QueueName: !Ref SyncEventDevSQSQueueName
 
       Runtime: python3.9
       Events:
