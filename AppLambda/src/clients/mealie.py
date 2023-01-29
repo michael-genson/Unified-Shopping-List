@@ -1,7 +1,7 @@
 import time
 from collections import deque
 from functools import cached_property
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional, Union
 
 import requests
 from requests import HTTPError, Response
@@ -15,8 +15,8 @@ from ..models.mealie import (
     MealieEventNotifierUpdate,
     MealieRecipe,
     MealieShoppingListItemCreate,
-    MealieShoppingListItemOut,
-    MealieShoppingListItemUpdate,
+    MealieShoppingListItemsCollectionOut,
+    MealieShoppingListItemUpdateBulk,
     MealieShoppingListOut,
     Pagination,
 )
@@ -67,7 +67,7 @@ class MealieBaseClient:
         endpoint: str,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
-        payload: Optional[dict] = None,
+        payload: Optional[Union[list, dict]] = None,
     ) -> Response:
         if not endpoint or endpoint == "/":
             raise ValueError("endpoint must not be empty")
@@ -139,7 +139,7 @@ class MealieBaseClient:
     def patch(
         self,
         endpoint: str,
-        payload: Optional[dict] = None,
+        payload: Optional[Union[list, dict]] = None,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
     ) -> Response:
@@ -148,7 +148,7 @@ class MealieBaseClient:
     def post(
         self,
         endpoint: str,
-        payload: Optional[dict] = None,
+        payload: Optional[Union[list, dict]] = None,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
     ) -> Response:
@@ -157,7 +157,7 @@ class MealieBaseClient:
     def put(
         self,
         endpoint: str,
-        payload: Optional[dict] = None,
+        payload: Optional[Union[list, dict]] = None,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
     ) -> Response:
@@ -166,7 +166,7 @@ class MealieBaseClient:
     def delete(
         self,
         endpoint: str,
-        payload: Optional[dict] = None,
+        payload: Optional[Union[list, dict]] = None,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
     ) -> Response:
@@ -233,17 +233,24 @@ class MealieClient:
         response = self.client.get(f"/api/groups/shopping/lists/{shopping_list_id}")
         return MealieShoppingListOut.parse_response(response)
 
-    def create_shopping_list_item(self, item: MealieShoppingListItemCreate) -> MealieShoppingListItemOut:
-        response = self.client.post("/api/groups/shopping/items", payload=item.dict())
-        return MealieShoppingListItemOut.parse_response(response)
+    def create_shopping_list_items(
+        self, items: list[MealieShoppingListItemCreate]
+    ) -> MealieShoppingListItemsCollectionOut:
+        response = self.client.post(f"/api/groups/shopping/items/create-bulk", payload=[item.dict() for item in items])
+        return MealieShoppingListItemsCollectionOut.parse_response(response)
 
-    def update_shopping_list_item(self, item: MealieShoppingListItemUpdate):
-        response = self.client.put(f"/api/groups/shopping/items/{item.id}", payload=item.dict())
-        return MealieShoppingListItemOut.parse_response(response)
+    def update_shopping_list_items(
+        self, items: list[MealieShoppingListItemUpdateBulk]
+    ) -> MealieShoppingListItemsCollectionOut:
+        response = self.client.put(f"/api/groups/shopping/items", payload=[item.dict() for item in items])
+        return MealieShoppingListItemsCollectionOut.parse_response(response)
 
-    def delete_shopping_list_item(self, item_id: str) -> MealieShoppingListItemOut:
-        response = self.client.delete(f"/api/groups/shopping/items/{item_id}")
-        return MealieShoppingListItemOut.parse_response(response)
+    def delete_shopping_list_items(self, item_ids: list[str]) -> None:
+        response = self.client.put(f"/api/groups/shopping/items", params={"ids": item_ids})
+        response_json: dict[str, Any] = response.json()
+        if response_json.get("error"):
+            # TODO: make this a custom exception type
+            raise Exception("API returned an error when trying to bulk delete items")
 
     def remove_recipe_ingredients_from_shopping_list(
         self, shopping_list_id: str, recipe_id: str

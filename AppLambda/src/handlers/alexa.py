@@ -19,6 +19,7 @@ from ..models.mealie import (
     MealieShoppingListItemCreate,
     MealieShoppingListItemExtras,
     MealieShoppingListItemOut,
+    MealieShoppingListItemUpdateBulk,
 )
 from ..services.alexa import AlexaListService
 from ..services.mealie import MealieListService
@@ -128,6 +129,9 @@ class AlexaSyncHandler(BaseSyncHandler):
         alexa_list_id = list_sync_map.alexa_list_id
         alexa_item_ids = list_event.list_item_ids
 
+        mealie_items_to_create: list[MealieShoppingListItemCreate] = []
+        mealie_items_to_update: list[MealieShoppingListItemUpdateBulk] = []
+        mealie_items_to_delete: list[MealieShoppingListItemOut] = []
         for alexa_item_id in alexa_item_ids:
             try:
                 mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item_id)
@@ -140,7 +144,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                         mealie_item.extras.alexa_item_id = None
                         mealie_item.extras.alexa_item_version = None
 
-                    self.mealie_service.update_item(mealie_item)
+                    mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
                     continue
 
                 elif list_event.operation == Operation.create.value:
@@ -151,7 +155,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                     if not alexa_item or alexa_item.status == ListItemState.completed:
                         continue
 
-                    self.mealie_service.create_item(
+                    mealie_items_to_create.append(
                         MealieShoppingListItemCreate(
                             shopping_list_id=mealie_list_id,
                             note=alexa_item.value,
@@ -173,7 +177,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                             mealie_item.extras.alexa_item_id = None
                             mealie_item.extras.alexa_item_version = None
 
-                        self.mealie_service.update_item(mealie_item)
+                        mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
                         continue
 
                     if not self.can_update_mealie_item(mealie_item, alexa_item):
@@ -182,8 +186,8 @@ class AlexaSyncHandler(BaseSyncHandler):
                     if alexa_item.value != mealie_item.display:
                         # the content does not match, and we don't have structured item data
                         # in Alexa, so we need to completely replace the item in Mealie
-                        self.mealie_service.delete_item(mealie_item)
-                        self.mealie_service.create_item(
+                        mealie_items_to_delete.append(mealie_item)
+                        mealie_items_to_create.append(
                             MealieShoppingListItemCreate(
                                 shopping_list_id=mealie_list_id,
                                 note=alexa_item.value,
@@ -210,12 +214,20 @@ class AlexaSyncHandler(BaseSyncHandler):
                     else:
                         mealie_item.extras.alexa_item_version = str(alexa_item.version)
 
-                    self.mealie_service.update_item(mealie_item)
+                    mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
                 logging.error(f"Unhandled exception when trying to {list_event.operation.value} Alexa item in Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(alexa_item_id)
+
+        try:
+            self.mealie_service.bulk_handle_items(
+                mealie_items_to_create, mealie_items_to_update, mealie_items_to_delete
+            )
+
+        except Exception as e:
+            logging.error(f"Unhandled exception when trying to perform bulk CRUD op from Alexa to Mealie")
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.alexa_list_id:
@@ -227,6 +239,7 @@ class AlexaSyncHandler(BaseSyncHandler):
         alexa_items_to_create: list[AlexaListItemCreateIn] = []
         alexa_items_to_update: list[AlexaListItemUpdateBulkIn] = []
         mealie_items_to_callback: list[MealieShoppingListItemOut] = []
+        mealie_items_to_update: list[MealieShoppingListItemUpdateBulk] = []
         for alexa_item in self.alexa_service.get_list(alexa_list_id).items or []:
             mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item.id)
 
@@ -275,7 +288,7 @@ class AlexaSyncHandler(BaseSyncHandler):
 
                     mealie_item.extras.alexa_item_id = alexa_item.id
                     mealie_item.extras.alexa_item_version = str(alexa_item.version)
-                    self.mealie_service.update_item(mealie_item)
+                    mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
                 except Exception as e:
                     logging.error("Unhandled exception when trying to write Alexa changes back to Mealie")
@@ -287,3 +300,9 @@ class AlexaSyncHandler(BaseSyncHandler):
             logging.error(f"{type(e).__name__}: {e}")
             logging.error(f"create: {alexa_items_to_create}")
             logging.error(f"update: {alexa_items_to_update}")
+
+        try:
+            self.mealie_service.update_items(mealie_items_to_update)
+
+        except Exception as e:
+            logging.error(f"Unhandled exception when trying to bulk update Mealie items with new Alexa ids")

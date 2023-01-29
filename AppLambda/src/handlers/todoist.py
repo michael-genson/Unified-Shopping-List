@@ -12,7 +12,7 @@ from ..models.mealie import (
     MealieShoppingListItemCreate,
     MealieShoppingListItemExtras,
     MealieShoppingListItemOut,
-    MealieShoppingListItemUpdate,
+    MealieShoppingListItemUpdateBulk,
 )
 from ..models.todoist import TodoistSyncEvent
 from ..services.mealie import MealieListService
@@ -96,6 +96,9 @@ class TodoistSyncHandler(BaseSyncHandler):
         mealie_list_id = list_sync_map.mealie_shopping_list_id
         project_id = list_sync_map.todoist_project_id
 
+        mealie_items_to_create: list[MealieShoppingListItemCreate] = []
+        mealie_items_to_update: list[MealieShoppingListItemUpdateBulk] = []
+        mealie_items_to_delete: list[MealieShoppingListItemOut] = []
         for task in self.todoist_service.get_tasks(project_id):
             try:
                 # if the item is linked, compare the item label and content
@@ -110,9 +113,9 @@ class TodoistSyncHandler(BaseSyncHandler):
                             continue
 
                         new_label = self.get_mealie_label_by_task(task)
-                        self.mealie_service.update_item(
+                        mealie_items_to_update.append(
                             mealie_item.cast(
-                                MealieShoppingListItemUpdate,
+                                MealieShoppingListItemUpdateBulk,
                                 label_id=new_label.id if new_label else None,
                             )
                         )
@@ -122,7 +125,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     else:
                         # the content does not match, and we don't have structured item data
                         # in Todoist, so we need to completely replace the item in Mealie
-                        self.mealie_service.delete_item(mealie_item)
+                        mealie_items_to_delete.append(mealie_item)
                         mealie_item_to_create = MealieShoppingListItemCreate(
                             shopping_list_id=mealie_list_id,
                             note=task.content,
@@ -134,7 +137,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                         if label:
                             mealie_item_to_create.label_id = label.id
 
-                        self.mealie_service.create_item(mealie_item_to_create)
+                        mealie_items_to_create.append(mealie_item_to_create)
 
                 elif TODOIST_MEALIE_LABEL not in task.labels:
                     # the item is not linked, so create the item in Mealie
@@ -149,7 +152,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     if label:
                         mealie_item_to_create.label_id = label.id
 
-                    self.mealie_service.create_item(mealie_item_to_create)
+                    mealie_items_to_create.append(mealie_item_to_create)
 
             except Exception as e:
                 logging.error("Unhandled exception when trying to sync Todoist item to Mealie")
@@ -168,12 +171,20 @@ class TodoistSyncHandler(BaseSyncHandler):
                 if not self.todoist_service.get_task(mealie_item.extras.todoist_task_id, project_id):
                     mealie_item.checked = True
                     mealie_item.extras.todoist_task_id = None
-                    self.mealie_service.update_item(mealie_item)
+                    mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
                 logging.error("Unhandled exception when trying to sync Todoist item to Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)
+
+        try:
+            self.mealie_service.bulk_handle_items(
+                mealie_items_to_create, mealie_items_to_update, mealie_items_to_delete
+            )
+
+        except Exception as e:
+            logging.error(f"Unhandled exception when trying to perform bulk CRUD op from Todoist to Mealie")
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.todoist_project_id:
@@ -181,7 +192,7 @@ class TodoistSyncHandler(BaseSyncHandler):
 
         mealie_list_id = list_sync_map.mealie_shopping_list_id
         project_id = list_sync_map.todoist_project_id
-
+        mealie_items_to_update: list[MealieShoppingListItemUpdateBulk] = []
         for task in self.todoist_service.get_tasks(project_id):
             try:
                 # if the item is linked, update the task content
@@ -212,7 +223,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                             mealie_item.extras = MealieShoppingListItemExtras()
 
                         mealie_item.extras.todoist_task_id = updated_task.id
-                        self.mealie_service.update_item(mealie_item)
+                        mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
                 # close Todoist task if it used to be linked to a Mealie item
                 elif TODOIST_MEALIE_LABEL in task.labels:
@@ -246,9 +257,15 @@ class TodoistSyncHandler(BaseSyncHandler):
                     mealie_item.extras = MealieShoppingListItemExtras()
 
                 mealie_item.extras.todoist_task_id = new_task.id
-                self.mealie_service.update_item(mealie_item)
+                mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
                 logging.error("Unhandled exception when trying to receive Mealie change in Todoist")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)
+
+        try:
+            self.mealie_service.update_items(mealie_items_to_update)
+
+        except Exception as e:
+            logging.error(f"Unhandled exception when trying to bulk update Mealie items with new Todoist task ids")

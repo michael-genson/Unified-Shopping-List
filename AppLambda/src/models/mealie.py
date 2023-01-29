@@ -186,7 +186,7 @@ class MealieShoppingListItemOut(MealieShoppingListItemBase):
     recipe_references: list[MealieShoppingListItemRecipeRefOut] = []
 
 
-class ShoppingListItemsCollectionOut(MealieBase):
+class MealieShoppingListItemsCollectionOut(MealieBase):
     """Container for bulk shopping list item changes"""
 
     created_items: list[MealieShoppingListItemOut] = []

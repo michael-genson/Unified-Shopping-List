@@ -13,7 +13,8 @@ from ..models.mealie import (
     MealieShoppingListItemCreate,
     MealieShoppingListItemExtras,
     MealieShoppingListItemOut,
-    MealieShoppingListItemUpdate,
+    MealieShoppingListItemsCollectionOut,
+    MealieShoppingListItemUpdateBulk,
     MealieShoppingListOut,
 )
 
@@ -168,70 +169,71 @@ class MealieListService:
 
         return None
 
-    def create_item(
-        self, item: MealieShoppingListItemCreate, allow_duplicate_item_value=False
-    ) -> Optional[MealieShoppingListItemOut]:
-        item = item.cast(MealieShoppingListItemCreate)  # subclasses cause conflicts
-        if self.config.use_foods:
-            item = self.add_food_to_item(item)
+    def _handle_list_item_changes(self, items_collection: MealieShoppingListItemsCollectionOut) -> None:
+        """Updates internal list states after a bulk operation"""
 
-        # this only works for certain user configurations
-        # TODO: get this functionality implemented in Mealie, i.e. combine items upon create
-        if not allow_duplicate_item_value:
-            item_value = item.note.lower() if item.note else ""
-            for existing_item in self.get_list(item.shopping_list_id).list_items:
-                if existing_item.display.lower() != item_value:
+        # created items
+        for new_item in items_collection.created_items:
+            shopping_list = self.get_list(new_item.shopping_list_id)
+            shopping_list.list_items.append(new_item)
+
+        # updated items
+        updated_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        for updated_item in items_collection.updated_items:
+            updated_items_by_list_id.setdefault(updated_item.shopping_list_id, []).append(updated_item)
+
+        for list_id, updated_items in updated_items_by_list_id.items():
+            shopping_list = self.get_list(list_id)
+            item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(shopping_list.list_items)}
+            for updated_item in updated_items:
+                # this should never happen since we track all list modifications
+                if updated_item.id not in shopping_list.list_items:
+                    shopping_list.list_items.append(updated_item)
                     continue
 
-                if (not item.extras) or existing_item.extras == item.extras:
-                    return None
+                index = item_id_by_index[updated_item.id]
+                shopping_list.list_items[index] = updated_item
 
-                # if the items are the same, but the new item has extras, merge them and update the existing item
-                if not existing_item.extras:
-                    existing_item.extras = item.extras
+        # deleted items
+        deleted_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        for deleted_item in items_collection.deleted_items:
+            deleted_items_by_list_id.setdefault(deleted_item.shopping_list_id, []).append(deleted_item)
 
-                else:
-                    existing_item.extras.merge(item.extras)
+        for list_id, deleted_items in deleted_items_by_list_id.items():
+            deleted_item_ids = [deleted_item.id for deleted_item in deleted_items]
+            shopping_list = self.get_list(list_id)
+            shopping_list.list_items[:] = [
+                existing_item for existing_item in shopping_list.list_items if existing_item.id not in deleted_item_ids
+            ]
 
-                return self.update_item(existing_item)
+    def create_items(self, items: list[MealieShoppingListItemCreate]) -> None:
+        if not items:
+            return
 
-        new_item = self._client.create_shopping_list_item(item)
-        self.get_list(new_item.shopping_list_id).list_items.append(new_item)
-        return new_item
+        items_collection = self._client.create_shopping_list_items(items)
+        self._handle_list_item_changes(items_collection)
 
-    def update_item(self, item: MealieShoppingListItemUpdate) -> MealieShoppingListItemOut:
-        item = item.cast(MealieShoppingListItemUpdate)  # subclasses cause conflicts
-        if self.config.use_foods:
-            item = self.add_food_to_item(item)
+    def update_items(self, items: list[MealieShoppingListItemUpdateBulk]) -> None:
+        if not items:
+            return
 
-        updated_item = self._client.update_shopping_list_item(item)
-        shopping_list = self.get_list(updated_item.shopping_list_id)
+        items_collection = self._client.update_shopping_list_items(items)
+        self._handle_list_item_changes(items_collection)
 
-        for i, item in enumerate(shopping_list.list_items):
-            if item.id == updated_item.id:
-                shopping_list.list_items[i] = updated_item
-                break
+    def delete_items(self, items: list[MealieShoppingListItemOut]) -> None:
+        if not items:
+            return
 
-        return updated_item
+        self._client.delete_shopping_list_items([item.id for item in items])
+        self._handle_list_item_changes(MealieShoppingListItemsCollectionOut(deleted_items=items))
 
-    def delete_item(self, list_item: MealieShoppingListItemOut) -> None:
-        self._client.delete_shopping_list_item(list_item.id)
-        shopping_list = self.get_list(list_item.shopping_list_id)
-        shopping_list.list_items[:] = [item for item in shopping_list.list_items if item.id != list_item.id]
-
-    def remove_recipe_ingredients_from_list(self, list: MealieShoppingListOut, recipe_id: str, qty: int = 1) -> None:
-        for _ in range(qty):
-            self._client.remove_recipe_ingredients_from_shopping_list(list.id, recipe_id)
-
-        shopping_list = self.get_list(list.id)
-        for ref in shopping_list.recipe_references:
-            if ref.recipe_id == recipe_id:
-                if ref.recipe_quantity:
-                    ref.recipe_quantity -= qty
-
-                break
-
-            if not ref.recipe_quantity or ref.recipe_quantity < 0:
-                shopping_list.recipe_references[:] = [
-                    ref for ref in shopping_list.recipe_references if ref.recipe_id != recipe_id
-                ]
+    def bulk_handle_items(
+        self,
+        create_items: list[MealieShoppingListItemCreate],
+        update_items: list[MealieShoppingListItemUpdateBulk],
+        delete_items: list[MealieShoppingListItemOut],
+    ) -> None:
+        # items are handled in this order to prevent merge conflicts (e.g. creating items can result in updating items)
+        self.delete_items(delete_items)
+        self.update_items(update_items)
+        self.create_items(create_items)

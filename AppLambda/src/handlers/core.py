@@ -33,27 +33,11 @@ class SQSSyncMessageHandler:
             handler = registered_handler(self.user, self.mealie)
             handler.receive_changes_from_mealie(sync_event, list_sync_map)
 
-        # delete checked items from Mealie
-        # TODO: submit PR to Mealie to allow only querying/pulling unchecked items so we don't have to do this
-        recipe_ref_ids_to_keep = set()
+        # delete checked items from Mealie so our queries don't get huge
+        # since we query the shopping list, not the list items directly, we can't filter our query
+        # TODO: refactor service to query items directly so we don't have to do this
         shopping_list = self.mealie.get_list(list_sync_map.mealie_shopping_list_id)
-        for list_item in shopping_list.list_items:
-            if not list_item.checked and list_item.recipe_references:
-                recipe_ref_ids_to_keep.update([ref.recipe_id for ref in list_item.recipe_references])
-
-            if list_item.checked:
-                self.mealie.delete_item(list_item)
-
-        # delete empty recipe refs from Mealie
-        # we wrap this in a blanket try-except block because the endpoint just changed (https://github.com/hay-kot/mealie/pull/1954)
-        # TODO: submit PR to Mealie so this is done automatically when items are checked off or deleted
-        try:
-            for recipe_ref in shopping_list.recipe_references:
-                if recipe_ref.recipe_id not in recipe_ref_ids_to_keep:
-                    self.mealie.remove_recipe_ingredients_from_list(shopping_list, recipe_ref.recipe_id)
-
-        except Exception:
-            pass
+        self.mealie.delete_items([item for item in shopping_list.list_items if item.checked])
 
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
         """
