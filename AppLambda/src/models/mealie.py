@@ -149,65 +149,10 @@ class MealieShoppingListItemUpdate(MealieShoppingListItemCreate):
 
 
 class MealieShoppingListItemOut(MealieShoppingListItemUpdate):
+    display: str
     unit: Optional[Unit]
     food: Optional[Food]
     label: Optional[Label]
-
-    def _format_quantity(self) -> str:
-        qty: Union[float, Fraction]
-
-        # decimal
-        if not self.unit or not self.unit.fraction:
-            qty = round(self.quantity, MEALIE_UNIT_DECIMAL_PRECISION)
-            if qty.is_integer():
-                return str(int(qty))
-
-            else:
-                return str(qty)
-
-        # fraction
-        qty = Fraction(self.quantity).limit_denominator(MEALIE_UNIT_FRACTION_MAX_DENOMINATOR)
-        if qty.denominator == 1:
-            return str(qty.numerator)
-
-        if qty.numerator <= qty.denominator or MEALIE_UNIT_FRACTION_ALLOW_IMPROPER:
-            return str(qty)
-
-        # convert an improper fraction into a mixed fraction (e.g. 11/4 --> 2 3/4)
-        whole_number = 0
-        while qty.numerator > qty.denominator:
-            whole_number += 1
-            qty -= 1
-
-        return f"{whole_number} {qty}"
-
-    @property
-    def display(self) -> str:
-        components = []
-
-        # ingredients with no food come across with a qty of 1, which looks weird
-        # e.g. "1 2 tbsp of olive oil"
-        if self.quantity and (self.is_food or self.quantity != 1):
-            components.append(self._format_quantity())
-
-        if not self.is_food:
-            components.append(self.note or "")
-
-        else:
-            if self.quantity and self.unit:
-                components.append(str(self.unit))
-
-            if self.food:
-                components.append(str(self.food))
-
-            if self.note:
-                if self.food and self.note[0] != "(" and self.note[-1] != ")":
-                    components.append(f"({self.note})")
-
-                else:
-                    components.append(str(self.note))
-
-        return " ".join(components)
 
 
 class MealieShoppingListOut(MealieBase):
