@@ -5,7 +5,7 @@ from fractions import Fraction
 from json import JSONDecodeError
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, validator
 from requests import Response
 
 from ..config import (
@@ -100,14 +100,6 @@ class Food(UnitFoodBase):
         return self.name
 
 
-class MealieShoppingListItemRecipeRef(MealieBase):
-    recipe_id: str
-
-    id: Optional[str]
-    shopping_list_item_id: Optional[str]
-    recipe_quantity: Optional[float] = 0
-
-
 class MealieShoppingListRecipeRef(MealieBase):
     recipe_id: str
 
@@ -115,6 +107,28 @@ class MealieShoppingListRecipeRef(MealieBase):
     shopping_list_id: Optional[str]
     recipe_quantity: Optional[float] = 0
     recipe: Optional[MealieRecipe]
+
+
+class MealieShoppingListItemRecipeRefCreate(MealieBase):
+    recipe_id: str
+    recipe_quantity: float = 0
+    """the quantity of this item in a single recipe (scale == 1)"""
+
+    recipe_scale: Optional[float] = 1
+    """the number of times this recipe has been added"""
+
+    @validator("recipe_quantity", pre=True)
+    def default_none_to_zero(cls, v):
+        return 0 if v is None else v
+
+
+class MealieShoppingListItemRecipeRefUpdate(MealieShoppingListItemRecipeRefCreate):
+    id: str
+    shopping_list_item_id: str
+
+
+class MealieShoppingListItemRecipeRefOut(MealieShoppingListItemRecipeRefUpdate):
+    ...
 
 
 class MealieShoppingListItemExtras(MealieBase):
@@ -126,7 +140,7 @@ class MealieShoppingListItemExtras(MealieBase):
     """string representation of the Alexa list item's version number (int)"""
 
 
-class MealieShoppingListItemCreate(MealieBase):
+class MealieShoppingListItemBase(MealieBase):
     shopping_list_id: str
     checked: bool = False
     position: int = 0
@@ -136,23 +150,48 @@ class MealieShoppingListItemCreate(MealieBase):
     note: Optional[str] = ""
     quantity: float = 1
 
-    unit_id: Optional[str] = None
     food_id: Optional[str] = None
     label_id: Optional[str] = None
+    unit_id: Optional[str] = None
 
-    recipe_references: list[MealieShoppingListItemRecipeRef] = []
-    extras: Optional[MealieShoppingListItemExtras]
+    extras: Optional[MealieShoppingListItemExtras] = None
 
 
-class MealieShoppingListItemUpdate(MealieShoppingListItemCreate):
+class MealieShoppingListItemCreate(MealieShoppingListItemBase):
+    recipe_references: list[MealieShoppingListItemRecipeRefCreate] = []
+
+
+class MealieShoppingListItemUpdate(MealieShoppingListItemBase):
+    recipe_references: list[Union[MealieShoppingListItemRecipeRefCreate, MealieShoppingListItemRecipeRefUpdate]] = []
+
+
+class MealieShoppingListItemUpdateBulk(MealieShoppingListItemUpdate):
+    """Only used for bulk update operations where the shopping list item id isn't already supplied"""
+
     id: str
 
 
-class MealieShoppingListItemOut(MealieShoppingListItemUpdate):
+class MealieShoppingListItemOut(MealieShoppingListItemBase):
+    id: str
     display: str
-    unit: Optional[Unit]
+    """
+    How the ingredient should be displayed
+
+    Automatically calculated after the object is created
+    """
+
     food: Optional[Food]
     label: Optional[Label]
+    unit: Optional[Unit]
+    recipe_references: list[MealieShoppingListItemRecipeRefOut] = []
+
+
+class ShoppingListItemsCollectionOut(MealieBase):
+    """Container for bulk shopping list item changes"""
+
+    created_items: list[MealieShoppingListItemOut] = []
+    updated_items: list[MealieShoppingListItemOut] = []
+    deleted_items: list[MealieShoppingListItemOut] = []
 
 
 class MealieShoppingListOut(MealieBase):
