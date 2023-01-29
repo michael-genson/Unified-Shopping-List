@@ -1,18 +1,12 @@
 import json
 from datetime import datetime
 from enum import Enum
-from fractions import Fraction
 from json import JSONDecodeError
 from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ValidationError, validator
 from requests import Response
 
-from ..config import (
-    MEALIE_UNIT_DECIMAL_PRECISION,
-    MEALIE_UNIT_FRACTION_ALLOW_IMPROPER,
-    MEALIE_UNIT_FRACTION_MAX_DENOMINATOR,
-)
 from ..models.core import BaseSyncEvent, Source
 from ._base import APIBase
 
