@@ -1,18 +1,12 @@
 import json
 from datetime import datetime
 from enum import Enum
-from fractions import Fraction
 from json import JSONDecodeError
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, validator
 from requests import Response
 
-from ..config import (
-    MEALIE_UNIT_DECIMAL_PRECISION,
-    MEALIE_UNIT_FRACTION_ALLOW_IMPROPER,
-    MEALIE_UNIT_FRACTION_MAX_DENOMINATOR,
-)
 from ..models.core import BaseSyncEvent, Source
 from ._base import APIBase
 
@@ -100,14 +94,6 @@ class Food(UnitFoodBase):
         return self.name
 
 
-class MealieShoppingListItemRecipeRef(MealieBase):
-    recipe_id: str
-
-    id: Optional[str]
-    shopping_list_item_id: Optional[str]
-    recipe_quantity: Optional[float] = 0
-
-
 class MealieShoppingListRecipeRef(MealieBase):
     recipe_id: str
 
@@ -115,6 +101,28 @@ class MealieShoppingListRecipeRef(MealieBase):
     shopping_list_id: Optional[str]
     recipe_quantity: Optional[float] = 0
     recipe: Optional[MealieRecipe]
+
+
+class MealieShoppingListItemRecipeRefCreate(MealieBase):
+    recipe_id: str
+    recipe_quantity: float = 0
+    """the quantity of this item in a single recipe (scale == 1)"""
+
+    recipe_scale: Optional[float] = 1
+    """the number of times this recipe has been added"""
+
+    @validator("recipe_quantity", pre=True)
+    def default_none_to_zero(cls, v):
+        return 0 if v is None else v
+
+
+class MealieShoppingListItemRecipeRefUpdate(MealieShoppingListItemRecipeRefCreate):
+    id: str
+    shopping_list_item_id: str
+
+
+class MealieShoppingListItemRecipeRefOut(MealieShoppingListItemRecipeRefUpdate):
+    ...
 
 
 class MealieShoppingListItemExtras(MealieBase):
@@ -126,7 +134,7 @@ class MealieShoppingListItemExtras(MealieBase):
     """string representation of the Alexa list item's version number (int)"""
 
 
-class MealieShoppingListItemCreate(MealieBase):
+class MealieShoppingListItemBase(MealieBase):
     shopping_list_id: str
     checked: bool = False
     position: int = 0
@@ -136,78 +144,48 @@ class MealieShoppingListItemCreate(MealieBase):
     note: Optional[str] = ""
     quantity: float = 1
 
-    unit_id: Optional[str] = None
     food_id: Optional[str] = None
     label_id: Optional[str] = None
+    unit_id: Optional[str] = None
 
-    recipe_references: list[MealieShoppingListItemRecipeRef] = []
-    extras: Optional[MealieShoppingListItemExtras]
+    extras: Optional[MealieShoppingListItemExtras] = None
 
 
-class MealieShoppingListItemUpdate(MealieShoppingListItemCreate):
+class MealieShoppingListItemCreate(MealieShoppingListItemBase):
+    recipe_references: list[MealieShoppingListItemRecipeRefCreate] = []
+
+
+class MealieShoppingListItemUpdate(MealieShoppingListItemBase):
+    recipe_references: list[Union[MealieShoppingListItemRecipeRefCreate, MealieShoppingListItemRecipeRefUpdate]] = []
+
+
+class MealieShoppingListItemUpdateBulk(MealieShoppingListItemUpdate):
+    """Only used for bulk update operations where the shopping list item id isn't already supplied"""
+
     id: str
 
 
-class MealieShoppingListItemOut(MealieShoppingListItemUpdate):
-    unit: Optional[Unit]
+class MealieShoppingListItemOut(MealieShoppingListItemBase):
+    id: str
+    display: str
+    """
+    How the ingredient should be displayed
+
+    Automatically calculated after the object is created
+    """
+
     food: Optional[Food]
     label: Optional[Label]
+    unit: Optional[Unit]
+    recipe_references: list[MealieShoppingListItemRecipeRefOut] = []
 
-    def _format_quantity(self) -> str:
-        qty: Union[float, Fraction]
 
-        # decimal
-        if not self.unit or not self.unit.fraction:
-            qty = round(self.quantity, MEALIE_UNIT_DECIMAL_PRECISION)
-            if qty.is_integer():
-                return str(int(qty))
+class MealieShoppingListItemsCollectionOut(MealieBase):
+    """Container for bulk shopping list item changes"""
 
-            else:
-                return str(qty)
-
-        # fraction
-        qty = Fraction(self.quantity).limit_denominator(MEALIE_UNIT_FRACTION_MAX_DENOMINATOR)
-        if qty.denominator == 1:
-            return str(qty.numerator)
-
-        if qty.numerator <= qty.denominator or MEALIE_UNIT_FRACTION_ALLOW_IMPROPER:
-            return str(qty)
-
-        # convert an improper fraction into a mixed fraction (e.g. 11/4 --> 2 3/4)
-        whole_number = 0
-        while qty.numerator > qty.denominator:
-            whole_number += 1
-            qty -= 1
-
-        return f"{whole_number} {qty}"
-
-    @property
-    def display(self) -> str:
-        components = []
-
-        # ingredients with no food come across with a qty of 1, which looks weird
-        # e.g. "1 2 tbsp of olive oil"
-        if self.quantity and (self.is_food or self.quantity != 1):
-            components.append(self._format_quantity())
-
-        if not self.is_food:
-            components.append(self.note or "")
-
-        else:
-            if self.quantity and self.unit:
-                components.append(str(self.unit))
-
-            if self.food:
-                components.append(str(self.food))
-
-            if self.note:
-                if self.food and self.note[0] != "(" and self.note[-1] != ")":
-                    components.append(f"({self.note})")
-
-                else:
-                    components.append(str(self.note))
-
-        return " ".join(components)
+    created_items: list[MealieShoppingListItemOut] = []
+    updated_items: list[MealieShoppingListItemOut] = []
+    deleted_items: list[MealieShoppingListItemOut] = []
 
 
 class MealieShoppingListOut(MealieBase):

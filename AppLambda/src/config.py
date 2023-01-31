@@ -1,6 +1,6 @@
 ### About ###
 APP_TITLE = "Unified Shopping List"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 INTERNAL_APP_NAME = "shopping_list_api"
 
 
@@ -41,10 +41,6 @@ ALEXA_API_SOURCE_ID = "user_api"
 ### Mealie ###
 MEALIE_INTEGRATION_ID = "shopping_list_api"
 MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE = "jsons://{full_path}?-username={username}&-security_hash={security_hash}"
-
-MEALIE_UNIT_DECIMAL_PRECISION = 3
-MEALIE_UNIT_FRACTION_MAX_DENOMINATOR = 16
-MEALIE_UNIT_FRACTION_ALLOW_IMPROPER = False
 
 
 ### Todoist ###
