@@ -1,6 +1,6 @@
 ### About ###
 APP_TITLE = "Unified Shopping List"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 INTERNAL_APP_NAME = "shopping_list_api"
 
 
