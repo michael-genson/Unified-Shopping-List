@@ -187,7 +187,7 @@ class MealieListService:
             item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(shopping_list.list_items)}
             for updated_item in updated_items:
                 # this should never happen since we track all list modifications
-                if updated_item.id not in shopping_list.list_items:
+                if updated_item.id not in item_id_by_index:
                     shopping_list.list_items.append(updated_item)
                     continue
 
