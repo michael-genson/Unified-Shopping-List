@@ -246,7 +246,7 @@ class MealieClient:
         return MealieShoppingListItemsCollectionOut.parse_response(response)
 
     def delete_shopping_list_items(self, item_ids: list[str]) -> None:
-        response = self.client.put(f"/api/groups/shopping/items", params={"ids": item_ids})
+        response = self.client.delete(f"/api/groups/shopping/items", params={"ids": item_ids})
         response_json: dict[str, Any] = response.json()
         if response_json.get("error"):
             # TODO: make this a custom exception type
