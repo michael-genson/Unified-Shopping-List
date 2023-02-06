@@ -22,7 +22,7 @@ from requests import PreparedRequest
 from ..app import rate_limit_service, templates, token_service, users_service
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..config import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ACCESS_TOKEN_EXPIRE_MINUTES_INTEGRATION,
     ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY,
     ALEXA_API_SOURCE_ID,
     ALEXA_SECRET_HEADER_KEY,
@@ -156,7 +156,7 @@ async def get_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_INTEGRATION)
     return token_service.refresh_token(code, access_token_expires)
 
 
