@@ -210,6 +210,10 @@ class MealieListService:
         if not items:
             return
 
+        if self.config.use_foods:
+            for item in items:
+                item = self.add_food_to_item(item)
+
         items_collection = self._client.create_shopping_list_items(items)
         self._handle_list_item_changes(items_collection)
 
