@@ -233,6 +233,15 @@ class MealieClient:
         response = self.client.get(f"/api/groups/shopping/lists/{shopping_list_id}")
         return MealieShoppingListOut.parse_response(response)
 
+    def get_shopping_list_items(self, shopping_list_id: str, include_checked: bool = False):
+        # TODO: replace this with a filtered query once Mealie supports it
+        shopping_list = self.get_shopping_list(shopping_list_id)
+        if include_checked:
+            return shopping_list.list_items
+
+        else:
+            return [item for item in shopping_list.list_items if not item.checked]
+
     def create_shopping_list_items(
         self, items: list[MealieShoppingListItemCreate]
     ) -> MealieShoppingListItemsCollectionOut:
