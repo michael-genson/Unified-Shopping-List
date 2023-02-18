@@ -159,7 +159,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(task)
 
-        for mealie_item in self.mealie_service.get_list(mealie_list_id).list_items:
+        for mealie_item in self.mealie_service.get_list_items(mealie_list_id):
             try:
                 if mealie_item.checked:
                     continue
@@ -234,7 +234,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(task)
 
-        for mealie_item in self.mealie_service.get_list(mealie_list_id).list_items:
+        for mealie_item in self.mealie_service.get_list_items(mealie_list_id):
             try:
                 if mealie_item.checked:
                     continue

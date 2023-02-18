@@ -266,7 +266,7 @@ class AlexaSyncHandler(BaseSyncHandler):
             alexa_items_to_update.append(alexa_item.cast(AlexaListItemUpdateBulkIn))
             mealie_items_to_callback.append(mealie_item)
 
-        for mealie_item in self.mealie_service.get_list(mealie_list_id).list_items:
+        for mealie_item in self.mealie_service.get_list_items(mealie_list_id):
             if mealie_item.checked:
                 continue
 

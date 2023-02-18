@@ -36,8 +36,8 @@ class SQSSyncMessageHandler:
         # delete checked items from Mealie so our queries don't get huge
         # since we query the shopping list, not the list items directly, we can't filter our query
         # TODO: refactor service to query items directly so we don't have to do this
-        shopping_list = self.mealie.get_list(list_sync_map.mealie_shopping_list_id)
-        self.mealie.delete_items([item for item in shopping_list.list_items if item.checked])
+        list_items = self.mealie.get_list_items(list_sync_map.mealie_shopping_list_id)
+        self.mealie.delete_items([item for item in list_items if item.checked])
 
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
         """
