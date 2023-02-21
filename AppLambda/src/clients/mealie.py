@@ -15,6 +15,7 @@ from ..models.mealie import (
     MealieEventNotifierUpdate,
     MealieRecipe,
     MealieShoppingListItemCreate,
+    MealieShoppingListItemOut,
     MealieShoppingListItemsCollectionOut,
     MealieShoppingListItemUpdateBulk,
     MealieShoppingListOut,
@@ -233,14 +234,17 @@ class MealieClient:
         response = self.client.get(f"/api/groups/shopping/lists/{shopping_list_id}")
         return MealieShoppingListOut.parse_response(response)
 
-    def get_shopping_list_items(self, shopping_list_id: str, include_checked: bool = False):
-        # TODO: replace this with a filtered query once Mealie supports it
-        shopping_list = self.get_shopping_list(shopping_list_id)
-        if include_checked:
-            return shopping_list.list_items
+    def get_all_shopping_list_items(
+        self, shopping_list_id: str, include_checked: bool = False, params: Optional[dict[str, Any]] = None
+    ) -> Iterable[MealieShoppingListItemOut]:
+        query_filter = f"shopping_list_id={shopping_list_id}"
+        if not include_checked:
+            query_filter += " AND checked=false"
 
-        else:
-            return [item for item in shopping_list.list_items if not item.checked]
+        params = {"queryFilter": query_filter}
+        list_items_data = self.client.get_all("/api/groups/shopping/items", params=params)
+        for list_item_data in list_items_data:
+            yield MealieShoppingListItemOut.parse_obj(list_item_data)
 
     def create_shopping_list_items(
         self, items: list[MealieShoppingListItemCreate]

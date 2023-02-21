@@ -33,12 +33,6 @@ class SQSSyncMessageHandler:
             handler = registered_handler(self.user, self.mealie)
             handler.receive_changes_from_mealie(sync_event, list_sync_map)
 
-        # delete checked items from Mealie so our queries don't get huge
-        # since we query the shopping list, not the list items directly, we can't filter our query
-        # TODO: modify client to perform a filtered query once Mealie supports it
-        list_items = self.mealie.get_list_items(list_sync_map.mealie_shopping_list_id, include_checked=True)
-        self.mealie.delete_items([item for item in list_items if item.checked])
-
     def handle_message(self, message: SQSMessage) -> Optional[Source]:
         """
         Parse SQS message and handle its sync event
