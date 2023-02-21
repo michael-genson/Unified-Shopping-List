@@ -1,5 +1,5 @@
 from functools import cache, cached_property
-from typing import Optional, TypeVar, cast
+from typing import Iterable, Optional, TypeVar, cast
 
 from fuzzywuzzy import process
 
@@ -31,8 +31,12 @@ class MealieListService:
         self.config = cast(UserMealieConfiguration, user.configuration.mealie)
         self._client = MealieClient(self.config.base_url, self.config.auth_token)
 
-        self.shopping_lists: dict[str, MealieShoppingListOut] = {}
-        """map of {shopping_list_id: shopping_list}"""
+        self.list_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        """
+        map of {shopping_list_id: list[shopping_list_items]}
+        
+        *not guaranteed to store checked items*
+        """
 
     @cached_property
     def recipe_store(self) -> dict[str, MealieRecipe]:
@@ -134,23 +138,27 @@ class MealieListService:
 
         return item
 
-    def get_all_lists(self) -> list[MealieShoppingListOut]:
-        if not self.shopping_lists:
-            all_lists = self._client.get_all_shopping_lists()
-            self.shopping_lists = {shopping_list.id: shopping_list for shopping_list in all_lists}
+    @cache
+    def get_all_lists(self) -> Iterable[MealieShoppingListOut]:
+        return self._client.get_all_shopping_lists()
 
-        return list(self.shopping_lists.values())
+    def get_all_list_items(self, list_id: str, include_checked: bool = False) -> list[MealieShoppingListItemOut]:
+        """
+        Fetch all list items from Mealie or local cache. Sometimes contains checked items
 
-    def get_list(self, list_id: str) -> MealieShoppingListOut:
-        if list_id in self.shopping_lists:
-            return self.shopping_lists[list_id]
+        Optionally include all checked items queried directly from Mealie
+        """
 
-        shopping_list = self._client.get_shopping_list(list_id)
-        self.shopping_lists[list_id] = shopping_list
-        return self._client.get_shopping_list(list_id)
+        # checked items are not always cached, so we only check the cache if we don't care about them
+        if list_id in self.list_items_by_list_id and not include_checked:
+            return self.list_items_by_list_id[list_id]
+
+        list_items = list(self._client.get_all_shopping_list_items(list_id, include_checked))
+        self.list_items_by_list_id[list_id] = list_items
+        return list_items
 
     def get_item(self, list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_list(list_id).list_items:
+        for item in self.get_all_list_items(list_id):
             if item.id == item_id:
                 return item
 
@@ -159,7 +167,7 @@ class MealieListService:
     def get_item_by_extra(
         self, list_id: str, extras_key: str, extras_value: str
     ) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_list(list_id).list_items:
+        for item in self.get_all_list_items(list_id):
             if not item.extras:
                 continue
 
@@ -174,8 +182,8 @@ class MealieListService:
 
         # created items
         for new_item in items_collection.created_items:
-            shopping_list = self.get_list(new_item.shopping_list_id)
-            shopping_list.list_items.append(new_item)
+            list_items = self.get_all_list_items(new_item.shopping_list_id)
+            list_items.append(new_item)
 
         # updated items
         updated_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
@@ -183,16 +191,16 @@ class MealieListService:
             updated_items_by_list_id.setdefault(updated_item.shopping_list_id, []).append(updated_item)
 
         for list_id, updated_items in updated_items_by_list_id.items():
-            shopping_list = self.get_list(list_id)
-            item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(shopping_list.list_items)}
+            list_items = self.get_all_list_items(list_id)
+            item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(list_items)}
             for updated_item in updated_items:
                 # this should never happen since we track all list modifications
                 if updated_item.id not in item_id_by_index:
-                    shopping_list.list_items.append(updated_item)
+                    list_items.append(updated_item)
                     continue
 
                 index = item_id_by_index[updated_item.id]
-                shopping_list.list_items[index] = updated_item
+                list_items[index] = updated_item
 
         # deleted items
         deleted_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
@@ -201,10 +209,8 @@ class MealieListService:
 
         for list_id, deleted_items in deleted_items_by_list_id.items():
             deleted_item_ids = [deleted_item.id for deleted_item in deleted_items]
-            shopping_list = self.get_list(list_id)
-            shopping_list.list_items[:] = [
-                existing_item for existing_item in shopping_list.list_items if existing_item.id not in deleted_item_ids
-            ]
+            list_items = self.get_all_list_items(list_id)
+            list_items[:] = [existing_item for existing_item in list_items if existing_item.id not in deleted_item_ids]
 
     def create_items(self, items: list[MealieShoppingListItemCreate]) -> None:
         if not items:
