@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 from fastapi import FastAPI, status
 from fastapi.responses import RedirectResponse
@@ -10,9 +11,11 @@ from .config import APP_TITLE, APP_VERSION
 from .handlers.mangum import SQS
 
 ### App Setup ###
+current_dir = str(pathlib.Path(__file__).parent.resolve())
+
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
-app.mount("/static", StaticFiles(directory="./src/static"), name="static")
-templates = Jinja2Templates(directory="./src/static/templates")
+app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(current_dir, "static/templates"))
 
 SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
 SYNC_EVENT_DEV_SQS_QUEUE_NAME = os.getenv("syncEventDevSQSQueueName", "")
