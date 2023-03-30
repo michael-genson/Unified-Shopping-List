@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-from ..app import rate_limit_service, token_service, users_service
+from ..app import services
 from ..models.core import RateLimitCategory, Token, User, WhitelistError
 from ..services.auth_token import InvalidTokenError
 from ..services.user import UserIsDisabledError, UserIsNotRegisteredError
@@ -15,8 +15,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """Gets the currently authenticated user and verifies that they're active"""
 
     try:
-        username = token_service.get_username_from_token(token)
-        _user_in_db = users_service.get_user(username, active_only=False)
+        username = services.token.get_username_from_token(token)
+        _user_in_db = services.user.get_user(username, active_only=False)
         if _user_in_db is None:
             raise InvalidTokenError()
 
@@ -42,7 +42,7 @@ async def log_in_for_access_token(
     """Generates a new token from a username and password"""
 
     try:
-        user = users_service.get_authenticated_user(form_data.username, form_data.password)
+        user = services.user.get_authenticated_user(form_data.username, form_data.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,7 +50,7 @@ async def log_in_for_access_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        return token_service.create_token(user.username)
+        return services.token.create_token(user.username)
 
     except UserIsNotRegisteredError:
         raise HTTPException(
@@ -75,7 +75,7 @@ async def log_in_for_access_token(
 
 
 @router.get("/me", response_model=User)
-@rate_limit_service.limit(RateLimitCategory.read)
+@services.rate_limit.limit(RateLimitCategory.read)
 async def get_logged_in_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

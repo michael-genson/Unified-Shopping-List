@@ -23,15 +23,9 @@ USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 
 ### Service Setup ###
-from .services.auth_token import AuthTokenService
-from .services.rate_limit import RateLimitService
-from .services.smtp import SMTPService
-from .services.user import UserService
+from .services.factory import ServiceFactory
 
-smtp_service = SMTPService()
-token_service = AuthTokenService()
-users_service = UserService(token_service)
-rate_limit_service = RateLimitService(users_service)
+services = ServiceFactory()
 
 
 ### Route Setup ###

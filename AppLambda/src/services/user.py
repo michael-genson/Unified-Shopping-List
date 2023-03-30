@@ -5,13 +5,12 @@ from passlib.context import CryptContext
 
 from ..app import USE_WHITELIST
 from ..app_secrets import EMAIL_WHITELIST, USERS_PK, USERS_TABLENAME
-from ..clients.aws import DynamoDB
+from ..clients import aws
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
 from .auth_token import AuthTokenService
 
-users_db = DynamoDB(USERS_TABLENAME, USERS_PK)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -33,7 +32,14 @@ class UserIsDisabledError(Exception):
 class UserService:
     def __init__(self, token_service: AuthTokenService) -> None:
         self._token_service = token_service
-        self.db = users_db
+        self._db: Optional[aws.DynamoDB] = None
+
+    @property
+    def db(self):
+        if not self._db:
+            self._db = aws.DynamoDB(USERS_TABLENAME, USERS_PK)
+
+        return self._db
 
     def get_user(self, username: str, active_only=True) -> Optional[UserInDB]:
         """Fetches a user from the database without authentication, if it exists"""

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from ..app import rate_limit_service, users_service
+from ..app import services
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
 from ..config import MEALIE_INTEGRATION_ID
 from ..handlers.core import SQSSyncMessageHandler
@@ -38,7 +38,7 @@ async def sqs_sync_event_handler(event: SQSEvent) -> None:
                 logging.error("Received sync event with invalid client id & secret pair, aborting")
                 continue
 
-            _user_in_db = users_service.get_user(sync_event.username)
+            _user_in_db = services.user.get_user(sync_event.username)
             if not _user_in_db:
                 logging.error(f"Cannot find sync event user {sync_event.username}, aborting")
                 continue
@@ -73,7 +73,7 @@ async def mealie_event_notification_handler(
     if not shopping_list_id:
         return
 
-    _user_in_db = users_service.get_user(username)
+    _user_in_db = services.user.get_user(username)
     if not _user_in_db:
         return
 
@@ -90,7 +90,7 @@ async def mealie_event_notification_handler(
         return
 
     # verify user rate limit; raises 429 error if the rate limit is violated
-    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
+    services.rate_limit.verify_rate_limit(user, RateLimitCategory.sync)
 
     # initiate a sync event
     sync_event = MealieSyncEvent(
@@ -131,11 +131,11 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
         return
 
     # find all users linked to this Todoist account
-    linked_usernames = users_service.get_usernames_by_secondary_index("todoist_user_id", webhook.user_id)
+    linked_usernames = services.user.get_usernames_by_secondary_index("todoist_user_id", webhook.user_id)
 
     users: list[User] = []
     for username in linked_usernames:
-        _user_in_db = users_service.get_user(username)
+        _user_in_db = services.user.get_user(username)
         if not _user_in_db:
             continue
 
@@ -161,7 +161,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
         return
 
     # verify user rate limit; raises 429 error if the rate limit is violated
-    rate_limit_service.verify_rate_limit(user, RateLimitCategory.sync)
+    services.rate_limit.verify_rate_limit(user, RateLimitCategory.sync)
 
     # initiate a sync event for each linked user (there should only be one)
     event_id_base = request.headers.get("X-Todoist-Delivery-ID") or str(uuid4())
@@ -176,7 +176,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
 
 
 @router.post("/alexa")
-@rate_limit_service.limit(RateLimitCategory.sync)
+@services.rate_limit.limit(RateLimitCategory.sync)
 async def alexa_event_notification_handler(event: AlexaListEvent, user: User = Depends(get_current_user)) -> None:
     sync_event = AlexaSyncEvent(
         event_id=event.request_id, username=user.username, list_event=event, timestamp=event.timestamp

@@ -5,19 +5,15 @@ from typing import Callable
 
 from fastapi import HTTPException, status
 
-from ..config import (
-    RATE_LIMIT_MINUTELY_MODIFY,
-    RATE_LIMIT_MINUTELY_READ,
-    RATE_LIMIT_MINUTELY_SYNC,
-)
+from ..config import RATE_LIMIT_MINUTELY_MODIFY, RATE_LIMIT_MINUTELY_READ, RATE_LIMIT_MINUTELY_SYNC
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, RateLimitInterval, User, UserRateLimit
 from .user import UserService
 
 
 class RateLimitService:
-    def __init__(self, users_service: UserService) -> None:
-        self.users_service = users_service
+    def __init__(self, user_service: UserService) -> None:
+        self.user_service = user_service
 
     @classmethod
     def get_limit(cls, category: RateLimitCategory, interval: RateLimitInterval = RateLimitInterval.minutely) -> int:
@@ -81,12 +77,12 @@ class RateLimitService:
 
                 # value is 1 since this API call is the first one
                 user.rate_limit_map[category.value] = UserRateLimit(value=1, expires=new_expires)
-                self.users_service.update_user(user)
+                self.user_service.update_user(user)
 
             # we can overwrite the existing rate limit map
             else:
                 user.rate_limit_map[category.value] = UserRateLimit(value=1, expires=new_expires)
-                self.users_service.update_rate_limit(
+                self.user_service.update_rate_limit(
                     user=user,
                     category=category,
                     operation=DynamoDBAtomicOp.overwrite,
@@ -97,7 +93,7 @@ class RateLimitService:
         # if the value is anything other than 0, we increment it
         else:
             user.rate_limit_map[category.value].value += 1  # type: ignore
-            self.users_service.update_rate_limit(user, category, DynamoDBAtomicOp.increment)
+            self.user_service.update_rate_limit(user, category, DynamoDBAtomicOp.increment)
 
     def limit(self, category: RateLimitCategory):
         """
