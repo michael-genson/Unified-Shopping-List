@@ -7,11 +7,11 @@ import requests
 from pydantic import ValidationError
 from requests import HTTPError, Response
 
-from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET, EVENT_CALLBACK_TABLENAME
+from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET, EVENT_CALLBACK_PK, EVENT_CALLBACK_TABLENAME
 from ..clients.aws import DynamoDB
 from ..models.alexa import CallbackData, CallbackEvent, Message, MessageIn
 
-event_callback_db = DynamoDB(EVENT_CALLBACK_TABLENAME)
+event_callback_db = DynamoDB(EVENT_CALLBACK_TABLENAME, EVENT_CALLBACK_PK)
 
 LWA_URL = "https://api.amazon.com/auth/o2/token"
 ALEXA_MESSAGE_API_URL = "https://api.amazonalexa.com/v1/skillmessages/users/{user_id}"
@@ -93,7 +93,7 @@ class ListManagerClient:
 
         start_time = time.time()
         while True:
-            event = event_callback_db.get("event_id", event_id)
+            event = event_callback_db.get(event_id)
             if event:
                 return event
 

@@ -15,16 +15,22 @@ secrets = session.client("secretsmanager")
 sqs = session.resource("sqs")
 
 
+class MissingPrimaryKeyError(ValueError):
+    def __init__(self, primary_key: str) -> None:
+        super().__init__(f'item is missing the primary key "{primary_key}"')
+
+
 class DynamoDB:
     """Provides higher-level functions to interact with DynamoDB"""
 
-    def __init__(self, tablename: str) -> None:
+    def __init__(self, tablename: str, primary_key: str) -> None:
         self.tablename = tablename
+        self.pk = primary_key
 
-    def get(self, key: str, value: str) -> Optional[dict[str, Any]]:
+    def get(self, primary_key_value: str) -> Optional[dict[str, Any]]:
         """Gets a single item by primary key"""
 
-        data = ddb.get_item(TableName=self.tablename, Key={key: {"S": value}})
+        data = ddb.get_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
         if "Item" not in data:
             return None
 
@@ -51,6 +57,9 @@ class DynamoDB:
     def put(self, item: dict[str, Any], allow_update=True) -> None:
         """Creates or updates a single item"""
 
+        if self.pk not in item:
+            raise MissingPrimaryKeyError(self.pk)
+
         if allow_update:
             ddb.put_item(TableName=self.tablename, Item=ddb_json.dumps(item, as_dict=True))
 
@@ -58,16 +67,11 @@ class DynamoDB:
             ddb.put_item(
                 TableName=self.tablename,
                 Item=ddb_json.dumps(item, as_dict=True),
-                ConditionExpression="attribute_not_exists(username)",
+                ConditionExpression=f"attribute_not_exists({self.pk})",
             )
 
     def atomic_op(
-        self,
-        key: str,
-        value: str,
-        attribute: str,
-        attribute_change_value: int,
-        op: DynamoDBAtomicOp,
+        self, primary_key_value: str, attribute: str, attribute_change_value: int, op: DynamoDBAtomicOp
     ) -> int:
         """Performs an atomic operation"""
 
@@ -88,7 +92,7 @@ class DynamoDB:
 
         response_data = ddb.update_item(
             TableName=self.tablename,
-            Key={key: {"S": value}},
+            Key={self.pk: {"S": primary_key_value}},
             ExpressionAttributeNames=ex_attribute_names,
             ExpressionAttributeValues=ex_attribute_values,
             UpdateExpression=expression,
@@ -104,15 +108,15 @@ class DynamoDB:
             if isinstance(data, int):
                 return data
 
-        logging.error("Reached end of nested atmoic op; this should never happen!")
+        logging.error("Reached end of nested atomic op; this should never happen!")
         logging.error(f"Looking for value of: {attribute}")
         logging.error(f"Response: {response_data}")
         raise Exception("Invalid response from DynamoDB")
 
-    def delete(self, key: str, value: str) -> None:
+    def delete(self, primary_key_value: str) -> None:
         """Deletes one item by primary key"""
 
-        ddb.delete_item(TableName=self.tablename, Key={key: {"S": value}})
+        ddb.delete_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
         return
 
 
