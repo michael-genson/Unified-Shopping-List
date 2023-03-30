@@ -8,25 +8,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from requests import HTTPError, PreparedRequest
 
+from .. import config
 from ..app import templates
 from ..app_secrets import TODOIST_CLIENT_ID, TODOIST_CLIENT_SECRET
-from ..config import TODOIST_AUTH_REQUEST_URL, TODOIST_SCOPE, TODOIST_TOKEN_EXCHANGE_URL
-from ..models.account_linking import (
-    UserTodoistConfigurationCreate,
-    UserTodoistConfigurationUpdate,
-)
+from ..models.account_linking import UserTodoistConfigurationCreate, UserTodoistConfigurationUpdate
 from ..models.core import User
-from ..models.todoist import (
-    TodoistAuthRequest,
-    TodoistRedirect,
-    TodoistTokenExchangeRequest,
-    TodoistTokenResponse,
-)
-from .account_linking import (
-    link_todoist_account,
-    unlink_todoist_account,
-    update_todoist_account_link,
-)
+from ..models.todoist import TodoistAuthRequest, TodoistRedirect, TodoistTokenExchangeRequest, TodoistTokenResponse
+from .account_linking import link_todoist_account, unlink_todoist_account, update_todoist_account_link
 from .core import redirect_if_not_logged_in
 
 auth_router = APIRouter(prefix="/authorization/todoist", tags=["Todoist"])
@@ -138,10 +126,10 @@ async def redirect_to_todoist_auth_request(request: Request):
         return logged_in_response
 
     state = str(uuid4())
-    request_params = TodoistAuthRequest(client_id=TODOIST_CLIENT_ID, scope=TODOIST_SCOPE, state=state)
+    request_params = TodoistAuthRequest(client_id=TODOIST_CLIENT_ID, scope=config.TODOIST_SCOPE, state=state)
 
     req = PreparedRequest()
-    req.prepare_url(TODOIST_AUTH_REQUEST_URL, request_params.dict())
+    req.prepare_url(config.TODOIST_AUTH_REQUEST_URL, request_params.dict())
     redirect_url = cast(str, req.url)
 
     response = RedirectResponse(redirect_url)
@@ -173,7 +161,7 @@ async def authorize_todoist(request: Request, auth: TodoistRedirect = Depends())
             client_id=TODOIST_CLIENT_ID, client_secret=TODOIST_CLIENT_SECRET, code=auth.code
         )
 
-        r = requests.post(TODOIST_TOKEN_EXCHANGE_URL, params=params.dict())
+        r = requests.post(config.TODOIST_TOKEN_EXCHANGE_URL, params=params.dict())
         r.raise_for_status()
         token_response = TodoistTokenResponse.parse_obj(r.json())
 

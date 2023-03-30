@@ -3,10 +3,9 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from ..app import USE_WHITELIST
+from .. import config
 from ..app_secrets import EMAIL_WHITELIST, USERS_PK, USERS_TABLENAME
 from ..clients import aws
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
 from .auth_token import AuthTokenService
@@ -99,7 +98,7 @@ class UserService:
             else:
                 raise UserIsDisabledError()
 
-        if USE_WHITELIST and user.email not in EMAIL_WHITELIST:
+        if config.USE_WHITELIST and user.email not in EMAIL_WHITELIST:
             raise WhitelistError()
 
         return self.authenticate_user(user, password)
@@ -132,10 +131,10 @@ class UserService:
         )
 
         if disabled:
-            new_user.set_expiration(ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
+            new_user.set_expiration(config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
 
         if create_registration_token:
-            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+            access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
             registration_token = self._token_service.create_token(new_user.username, access_token_expires)
 
             new_user.last_registration_token = registration_token.access_token
@@ -217,7 +216,7 @@ class UserService:
             return user
 
         user.incorrect_login_attempts += 1
-        if user.incorrect_login_attempts < LOGIN_LOCKOUT_ATTEMPTS:
+        if user.incorrect_login_attempts < config.LOGIN_LOCKOUT_ATTEMPTS:
             user.incorrect_login_attempts = self.update_atomic_user_field(user, "incorrect_login_attempts")
 
             return user

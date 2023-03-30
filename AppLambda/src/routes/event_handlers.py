@@ -7,9 +7,9 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
+from .. import config
 from ..app import services
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
-from ..config import MEALIE_INTEGRATION_ID
 from ..handlers.core import SQSSyncMessageHandler
 from ..models.account_linking import NotLinkedError
 from ..models.alexa import AlexaListEvent, AlexaSyncEvent
@@ -66,7 +66,7 @@ async def mealie_event_notification_handler(
     if notification.event_type == MealieEventType.invalid:
         return
 
-    if notification.integration_id == MEALIE_INTEGRATION_ID:
+    if notification.integration_id == config.MEALIE_INTEGRATION_ID:
         return
 
     shopping_list_id = notification.get_shopping_list_id_from_document_data()

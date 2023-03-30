@@ -7,19 +7,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from mangum import Mangum
 
-from .config import APP_TITLE, APP_VERSION
+from . import config
 from .handlers.mangum import SQS
 
 ### App Setup ###
 current_dir = str(pathlib.Path(__file__).parent.resolve())
 
-app = FastAPI(title=APP_TITLE, version=APP_VERSION)
+app = FastAPI(title=config.APP_TITLE, version=config.APP_VERSION)
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(current_dir, "static/templates"))
-
-SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
-SYNC_EVENT_DEV_SQS_QUEUE_NAME = os.getenv("syncEventDevSQSQueueName", "")
-USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 
 ### Service Setup ###

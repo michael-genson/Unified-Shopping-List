@@ -4,12 +4,8 @@ from typing import Any, Optional, cast
 
 from pydantic import ValidationError
 
-from ..clients.alexa import (
-    NO_RESPONSE_DATA_EXCEPTION,
-    NO_RESPONSE_EXCEPTION,
-    ListManagerClient,
-)
-from ..config import ALEXA_INTERNAL_SOURCE_ID
+from .. import config
+from ..clients.alexa import NO_RESPONSE_DATA_EXCEPTION, NO_RESPONSE_EXCEPTION, ListManagerClient
 from ..models.account_linking import NotLinkedError, UserAlexaConfiguration
 from ..models.alexa import (
     AlexaListCollectionOut,
@@ -45,7 +41,7 @@ class AlexaListService:
 
     @cache
     def get_all_lists(
-        self, source: str = ALEXA_INTERNAL_SOURCE_ID, active_lists_only: bool = True
+        self, source: str = config.ALEXA_INTERNAL_SOURCE_ID, active_lists_only: bool = True
     ) -> AlexaListCollectionOut:
         """Fetch all lists from Alexa"""
 
@@ -74,7 +70,7 @@ class AlexaListService:
             raise Exception("Response from Alexa is not a valid list collection")
 
     def get_list(
-        self, list_id: str, state: ListState = ListState.active, source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, state: ListState = ListState.active, source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListOut:
         """Fetch a single list from Alexa"""
 
@@ -109,7 +105,7 @@ class AlexaListService:
             raise Exception("Response from Alexa is not a valid list")
 
     def get_list_item(
-        self, list_id: str, item_id: str, source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, item_id: str, source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> Optional[AlexaListItemOut]:
         """Fetch a single list item from Alexa"""
 
@@ -121,7 +117,7 @@ class AlexaListService:
         return None
 
     def create_list_items(
-        self, list_id: str, items: list[AlexaListItemCreateIn], source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, items: list[AlexaListItemCreateIn], source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListItemCollectionOut:
         """Create one or more items in Alexa. Items order is preserved"""
 
@@ -167,7 +163,7 @@ class AlexaListService:
         return AlexaListItemCollectionOut(list_id=list_id, list_items=new_items)
 
     def update_list_items(
-        self, list_id: str, items: list[AlexaListItemUpdateBulkIn], source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, items: list[AlexaListItemUpdateBulkIn], source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListItemCollectionOut:
         """Update one or more items in Alexa"""
 

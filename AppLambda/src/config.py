@@ -1,7 +1,15 @@
+import os
+
 ### About ###
 APP_TITLE = "Unified Shopping List"
 APP_VERSION = "0.3.4"
 INTERNAL_APP_NAME = "shopping_list_api"
+
+
+### App ###
+SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
+SYNC_EVENT_DEV_SQS_QUEUE_NAME = os.getenv("syncEventDevSQSQueueName", "")
+USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 
 ### Database ###

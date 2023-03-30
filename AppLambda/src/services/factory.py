@@ -40,3 +40,9 @@ class ServiceFactory:
             self._user = UserService(self.token)
 
         return self._user
+
+    def reset(self):
+        self._rate_limit = None
+        self._smtp = None
+        self._token = None
+        self._user = None

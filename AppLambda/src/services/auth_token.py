@@ -3,8 +3,8 @@ from typing import Optional
 
 from jose import JWTError, jwt
 
+from .. import config
 from ..app_secrets import ALGORITHM, SECRET_KEY
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES
 from ..models.core import Token
 
 
@@ -18,7 +18,7 @@ class AuthTokenService:
         """Creates a new access token for a user"""
 
         if not expires:
-            expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
 
         expiration = datetime.utcnow() + expires
 

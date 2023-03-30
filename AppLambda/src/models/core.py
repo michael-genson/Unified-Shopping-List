@@ -6,15 +6,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from ..app import SYNC_EVENT_DEV_SQS_QUEUE_NAME, SYNC_EVENT_SQS_QUEUE_NAME
+from .. import config
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
 from ..clients.aws import SQSFIFO
 from ._base import APIBase
-from .account_linking import (
-    UserAlexaConfiguration,
-    UserMealieConfiguration,
-    UserTodoistConfiguration,
-)
+from .account_linking import UserAlexaConfiguration, UserMealieConfiguration, UserTodoistConfiguration
 
 
 class WhitelistError(Exception):
@@ -128,5 +124,5 @@ class BaseSyncEvent(APIBase):
     def send_to_queue(self, use_dev_route=False) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = SQSFIFO(SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else SYNC_EVENT_SQS_QUEUE_NAME)
+        sqs = SQSFIFO(config.SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else config.SYNC_EVENT_SQS_QUEUE_NAME)
         sqs.send_message(self.json(), self.event_id, self.group_id)
