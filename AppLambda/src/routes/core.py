@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
@@ -9,24 +8,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from ..app import (
-    USE_WHITELIST,
-    app,
-    smtp_service,
-    templates,
-    token_service,
-    users_service,
-)
+from ..app import USE_WHITELIST, app, smtp_service, templates, token_service, users_service
 from ..app_secrets import EMAIL_WHITELIST
 from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
 from ..models.core import Token, User, WhitelistError
 from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth_token import InvalidTokenError
-from ..services.user import (
-    UserAlreadyExistsError,
-    UserIsDisabledError,
-    UserIsNotRegisteredError,
-)
+from ..services.user import UserAlreadyExistsError, UserIsDisabledError, UserIsNotRegisteredError
 
 router = APIRouter(prefix="/app", tags=["Application"])
 
