@@ -4,7 +4,7 @@ from typing import Optional
 from passlib.context import CryptContext
 
 from .. import config
-from ..app_secrets import EMAIL_WHITELIST, USERS_PK, USERS_TABLENAME
+from ..app_secrets import EMAIL_WHITELIST
 from ..clients import aws
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
@@ -36,7 +36,7 @@ class UserService:
     @property
     def db(self):
         if not self._db:
-            self._db = aws.DynamoDB(USERS_TABLENAME, USERS_PK)
+            self._db = aws.DynamoDB(config.USERS_TABLENAME, config.USERS_PK)
 
         return self._db
 
@@ -63,7 +63,7 @@ class UserService:
         """Queries database using a global secondary index and returns all usernames with that value"""
 
         user_data = self.db.query(gsi_key, gsi_value)
-        return [str(data.get(USERS_PK)) for data in user_data]
+        return [str(data.get(config.USERS_PK)) for data in user_data]
 
     def authenticate_user(self, user: UserInDB, password: str) -> Optional[User]:
         """Validates if a user is successfully authenticated"""

@@ -4,15 +4,57 @@ from typing import Any, Optional, Union, cast
 
 import boto3
 from dynamodb_json import json_util as ddb_json  # type: ignore
+from mypy_boto3_dynamodb import DynamoDBClient
+from mypy_boto3_secretsmanager import SecretsManagerClient
+from mypy_boto3_sqs import SQSServiceResource
 
 from ..app_secrets import AWS_REGION
 from ..models.aws import DynamoDBAtomicOp
 
-session = boto3.Session(region_name=AWS_REGION)
 
-ddb = session.client("dynamodb")
-secrets = session.client("secretsmanager")
-sqs = session.resource("sqs")
+class AWSClientResourceFactory:
+    def __init__(self) -> None:
+        self._session: Optional[boto3.Session] = None
+        self._ddb: Optional[DynamoDBClient] = None
+        self._secrets: Optional[SecretsManagerClient] = None
+        self._sqs: Optional[SQSServiceResource] = None
+
+    @property
+    def session(self):
+        if not self._session:
+            self._session = boto3.Session(region_name=AWS_REGION)
+
+        return self._session
+
+    @property
+    def ddb(self):
+        if not self._ddb:
+            self._ddb = self.session.client("dynamodb")
+
+        return self._ddb
+
+    @property
+    def secrets(self):
+        if not self._secrets:
+            self._secrets = self.session.client("secretsmanager")
+
+        return self._secrets
+
+    @property
+    def sqs(self):
+        if not self._sqs:
+            self._sqs = self.session.resource("sqs")
+
+        return self._sqs
+
+    def reset(self):
+        self._session = None
+        self._ddb = None
+        self._secrets = None
+        self._sqs = None
+
+
+_aws = AWSClientResourceFactory()
 
 
 class MissingPrimaryKeyError(ValueError):
@@ -30,7 +72,7 @@ class DynamoDB:
     def get(self, primary_key_value: str) -> Optional[dict[str, Any]]:
         """Gets a single item by primary key"""
 
-        data = ddb.get_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
+        data = _aws.ddb.get_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
         if "Item" not in data:
             return None
 
@@ -42,7 +84,7 @@ class DynamoDB:
         key_condition_expression = f"{key} = :{key}"
         expression_attribute_values = {f":{key}": {"S": value}}
 
-        data = ddb.query(
+        data = _aws.ddb.query(
             TableName=self.tablename,
             IndexName=key,
             KeyConditionExpression=key_condition_expression,
@@ -61,10 +103,10 @@ class DynamoDB:
             raise MissingPrimaryKeyError(self.pk)
 
         if allow_update:
-            ddb.put_item(TableName=self.tablename, Item=ddb_json.dumps(item, as_dict=True))
+            _aws.ddb.put_item(TableName=self.tablename, Item=ddb_json.dumps(item, as_dict=True))
 
         else:
-            ddb.put_item(
+            _aws.ddb.put_item(
                 TableName=self.tablename,
                 Item=ddb_json.dumps(item, as_dict=True),
                 ConditionExpression=f"attribute_not_exists({self.pk})",
@@ -90,7 +132,7 @@ class DynamoDB:
 
         expression = f"SET {'.'.join(ex_attribute_names)} = {ex_equals}"
 
-        response_data = ddb.update_item(
+        response_data = _aws.ddb.update_item(
             TableName=self.tablename,
             Key={self.pk: {"S": primary_key_value}},
             ExpressionAttributeNames=ex_attribute_names,
@@ -116,7 +158,7 @@ class DynamoDB:
     def delete(self, primary_key_value: str) -> None:
         """Deletes one item by primary key"""
 
-        ddb.delete_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
+        _aws.ddb.delete_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
         return
 
 
@@ -125,7 +167,7 @@ class SecretsManager:
     def get_secrets(secret_id: str) -> dict[str, Any]:
         """Fetches secrets from AWS secrets manager"""
 
-        response = secrets.get_secret_value(SecretId=secret_id)
+        response = _aws.secrets.get_secret_value(SecretId=secret_id)
         return json.loads(response["SecretString"])
 
 
@@ -133,7 +175,7 @@ class SQSFIFO:
     """Provides higher-level functions to interact with SQS FIFO queues"""
 
     def __init__(self, queue_url: str) -> None:
-        self.queue = sqs.Queue(queue_url)
+        self.queue = _aws.sqs.Queue(queue_url)
 
     def send_message(self, content: str, de_dupe_id: str, group_id: str) -> None:
         self.queue.send_message(

@@ -30,6 +30,13 @@ LOGIN_LOCKOUT_ATTEMPTS = 5
 """Number of incorrect login attempts before a user is locked out"""
 
 
+### Database Definition ###
+EVENT_CALLBACK_TABLENAME = "alexa-callback-events"
+EVENT_CALLBACK_PK = "event_id"
+
+USERS_TABLENAME = "shopping-list-api-users"
+USERS_PK = "username"
+
 ### API ###
 RATE_LIMIT_MINUTELY_READ = 60
 """Number of times per minute a "read" API can be called"""

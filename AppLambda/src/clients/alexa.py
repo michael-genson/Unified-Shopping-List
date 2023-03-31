@@ -7,7 +7,8 @@ import requests
 from pydantic import ValidationError
 from requests import HTTPError, Response
 
-from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET, EVENT_CALLBACK_PK, EVENT_CALLBACK_TABLENAME
+from .. import config
+from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET
 from ..clients import aws
 from ..models.alexa import CallbackData, CallbackEvent, Message, MessageIn
 
@@ -33,7 +34,7 @@ class ListManagerClient:
     @property
     def event_callback_db(self):
         if not self._event_callback_db:
-            self._event_callback_db = aws.DynamoDB(EVENT_CALLBACK_TABLENAME, EVENT_CALLBACK_PK)
+            self._event_callback_db = aws.DynamoDB(config.EVENT_CALLBACK_TABLENAME, config.EVENT_CALLBACK_PK)
 
         return self._event_callback_db
 

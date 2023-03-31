@@ -47,3 +47,4 @@ Quality of Life
 
 Development / DevOps
 - more automated testing coverage
+- move config and secrets to env vars and out of codebase
