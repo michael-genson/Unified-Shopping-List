@@ -4,7 +4,7 @@ from AppLambda.src import config
 from AppLambda.src.app import services
 from AppLambda.src.models.core import User
 from AppLambda.src.routes import core
-from tests.utils import random_email, random_string
+from tests.utils import create_user_with_known_credentials, random_email, random_string
 
 
 def test_new_user(user: User):
@@ -64,12 +64,7 @@ def test_user_not_whitelisted(api_client: TestClient):
 
 
 def test_invalid_registration_token(api_client: TestClient):
-    username = random_email()
-    form_data = {"username": username, "password": random_string(20)}
-    response = api_client.post(core.router.url_path_for("register"), data=form_data)
-    response.raise_for_status()
-
-    user = services.user.get_user(username, active_only=False)
+    user, _ = create_user_with_known_credentials(api_client, register=False)
     assert user
     assert user.disabled
 
@@ -78,12 +73,12 @@ def test_invalid_registration_token(api_client: TestClient):
         params={"registration_token": random_string()},
     )
     response.raise_for_status()
-    user = services.user.get_user(username, active_only=False)
+    user = services.user.get_user(user.username, active_only=False)
     assert user
     assert user.disabled
 
     response = api_client.get(core.router.url_path_for("complete_registration"))
     response.raise_for_status()
-    user = services.user.get_user(username, active_only=False)
+    user = services.user.get_user(user.username, active_only=False)
     assert user
     assert user.disabled

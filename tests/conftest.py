@@ -4,13 +4,14 @@ from pytest import MonkeyPatch, fixture
 from AppLambda.src import config
 from AppLambda.src.app import app, services
 from AppLambda.src.clients import aws
+from AppLambda.src.services.rate_limit import RateLimitService
 from AppLambda.src.services.smtp import SMTPService
 
 from .fixtures import *
 from .mocks.database import DynamoDBMock
 
 
-@fixture(scope="session", autouse=True)
+@fixture(scope="module", autouse=True)
 def setup():
     config.USE_WHITELIST = False
     do_nothing = lambda *args, **kwargs: None
@@ -18,10 +19,13 @@ def setup():
 
     mp.setattr(aws, "DynamoDB", DynamoDBMock)
     mp.setattr(SMTPService, "send", do_nothing)
+
+    # rate limit service is flaky during testing, so we disable it by default
+    mp.setattr(RateLimitService, "verify_rate_limit", do_nothing)
     yield
 
 
-@fixture(scope="function", autouse=True)
+@fixture(autouse=True)
 def function_teardown():
     yield
     services.reset()

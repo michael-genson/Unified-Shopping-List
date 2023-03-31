@@ -237,7 +237,7 @@ class UserService:
         new_expires: Optional[int] = None,
     ) -> None:
         """
-        Updates a user's rate limit and returns the updates user. Optionall provide a new expires value
+        Updates a user's rate limit and returns the updates user. Optionally provide a new expires value
 
         Raises <botocore.exceptions.ClientError> if the user doesn't already have a rate limit set for this category
         """
