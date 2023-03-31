@@ -78,15 +78,15 @@ class DynamoDB:
 
         return ddb_json.loads(data["Item"])
 
-    def query(self, key: str, value: str) -> list[dict[str, Any]]:
-        """Queries by primary key or global secondary index and returns all items"""
+    def query(self, index: str, value: str) -> list[dict[str, Any]]:
+        """Queries by global secondary index and returns all items"""
 
-        key_condition_expression = f"{key} = :{key}"
-        expression_attribute_values = {f":{key}": {"S": value}}
+        key_condition_expression = f"{index} = :{index}"
+        expression_attribute_values = {f":{index}": {"S": value}}
 
         data = _aws.ddb.query(
             TableName=self.tablename,
-            IndexName=key,
+            IndexName=index,
             KeyConditionExpression=key_condition_expression,
             ExpressionAttributeValues=expression_attribute_values,
         )

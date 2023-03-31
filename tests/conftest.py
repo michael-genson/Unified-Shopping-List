@@ -9,7 +9,6 @@ from AppLambda.src import config
 from AppLambda.src.app import app, services
 from AppLambda.src.app_secrets import AWS_REGION
 from AppLambda.src.clients.aws import _aws
-from AppLambda.src.services.rate_limit import RateLimitService
 from AppLambda.src.services.smtp import SMTPService
 
 from .fixtures import *
@@ -27,9 +26,6 @@ def set_aws_credentials():
 
 def mock_services(mp: MonkeyPatch):
     mp.setattr(SMTPService, "send", do_nothing)
-
-    # rate limit service is flaky during testing, so we disable it by default
-    mp.setattr(RateLimitService, "verify_rate_limit", do_nothing)
 
 
 def patch_config():
@@ -76,13 +72,13 @@ def inject_mock_database():
             ],
             GlobalSecondaryIndexes=[
                 {
-                    "IndexName": "idx1",
-                    "KeySchema": [{"AttributeName": "alexa_user_id", "KeyType": "Hash"}],
+                    "IndexName": "alexa_user_id",
+                    "KeySchema": [{"AttributeName": "alexa_user_id", "KeyType": "HASH"}],
                     "Projection": {"ProjectionType": "KEYS_ONLY"},
                 },
                 {
-                    "IndexName": "idx2",
-                    "KeySchema": [{"AttributeName": "todoist_user_id", "KeyType": "Hash"}],
+                    "IndexName": "todoist_user_id",
+                    "KeySchema": [{"AttributeName": "todoist_user_id", "KeyType": "HASH"}],
                     "Projection": {"ProjectionType": "KEYS_ONLY"},
                 },
             ],
