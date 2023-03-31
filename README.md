@@ -46,4 +46,4 @@ Quality of Life
 - improve mobile frontend experience
 
 Development / DevOps
-- automated testing
+- more automated testing coverage
