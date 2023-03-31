@@ -29,7 +29,6 @@ def setup():
 def function_teardown():
     yield
     services.reset()
-    config.USE_WHITELIST = False  # TODO: use reset function
 
 
 @fixture(scope="session")

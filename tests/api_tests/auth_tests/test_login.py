@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
 from AppLambda.src import config
 from AppLambda.src.app import services
@@ -47,7 +48,7 @@ def test_log_in(api_client: TestClient):
     assert current_user.username == user.username
 
 
-def test_login_user_not_exist(api_client: TestClient):
+def test_login_user_invalid_username(api_client: TestClient):
     form_data = {"username": random_email(), "password": random_string(20)}
 
     # try to log in
@@ -105,7 +106,7 @@ def test_login_disabled(api_client: TestClient):
     assert response.status_code == 401
 
 
-def test_login_not_whitelisted(api_client: TestClient):
+def test_login_not_whitelisted(api_client: TestClient, monkeypatch: MonkeyPatch):
     user, password = create_user_with_known_credentials(api_client)
     form_data = {"username": user.username, "password": password}
 
@@ -115,12 +116,13 @@ def test_login_not_whitelisted(api_client: TestClient):
     Token.parse_obj(response.json())
 
     # enable whitelist and try to login
-    config.USE_WHITELIST = True
-    response = api_client.post(core.router.url_path_for("log_in"), data=form_data)
-    response.raise_for_status()
-    assert not response.cookies.get("access_token")
+    with monkeypatch.context() as mp:
+        mp.setattr(config, "USE_WHITELIST", True)
+        response = api_client.post(core.router.url_path_for("log_in"), data=form_data)
+        response.raise_for_status()
+        assert not response.cookies.get("access_token")
 
-    # try to get access token
-    response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
-    assert response.status_code == 401
-    assert not response.cookies.get("access_token")
+        # try to get access token
+        response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
+        assert response.status_code == 401
+        assert not response.cookies.get("access_token")
