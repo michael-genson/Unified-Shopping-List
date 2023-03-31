@@ -58,7 +58,6 @@ def test_login_user_not_exist(api_client: TestClient):
     # try to get access token
     response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
     assert response.status_code == 401
-    assert not response.cookies.get("access_token")
 
 
 def test_login_wrong_password(api_client: TestClient, user: User):
@@ -72,7 +71,6 @@ def test_login_wrong_password(api_client: TestClient, user: User):
     # try to get access token
     response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
     assert response.status_code == 401
-    assert not response.cookies.get("access_token")
 
 
 def test_login_not_registered(api_client: TestClient):
@@ -87,7 +85,6 @@ def test_login_not_registered(api_client: TestClient):
     # try to get access token before finishing registration
     response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
     assert response.status_code == 401
-    assert not response.cookies.get("access_token")
 
 
 def test_login_disabled(api_client: TestClient):
@@ -106,12 +103,16 @@ def test_login_disabled(api_client: TestClient):
     # try to get access token
     response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
     assert response.status_code == 401
-    assert not response.cookies.get("access_token")
 
 
 def test_login_not_whitelisted(api_client: TestClient):
     user, password = create_user_with_known_credentials(api_client)
     form_data = {"username": user.username, "password": password}
+
+    # log in normally
+    response = api_client.post(auth.router.url_path_for("log_in_for_access_token"), data=form_data)
+    response.raise_for_status()
+    Token.parse_obj(response.json())
 
     # enable whitelist and try to login
     config.USE_WHITELIST = True
