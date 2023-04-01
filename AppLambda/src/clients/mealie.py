@@ -6,6 +6,8 @@ from typing import Any, Iterable, Optional, Union
 import requests
 from requests import HTTPError, Response
 
+from AppLambda.src.clients.routes.mealie import Routes
+
 from ..models.mealie import (
     AuthToken,
     Food,
@@ -185,7 +187,7 @@ class MealieClient:
         """Call the Mealie API and check if the configuration is valid"""
 
         try:
-            self.client.get("/api/users/self")
+            self.client.get(Routes.USERS_SELF)
             return True
 
         except HTTPError:
@@ -198,17 +200,17 @@ class MealieClient:
         return {food.name.lower(): food for food in self.get_all_foods()}
 
     def create_auth_token(self, name: str, integration_id: Optional[str] = None) -> AuthToken:
-        response = self.client.post("/api/users/api-tokens", payload={"name": name, "integrationId": integration_id})
+        response = self.client.post(Routes.USERS_API_TOKENS, payload={"name": name, "integrationId": integration_id})
         return AuthToken.parse_obj(response.json())
 
     def delete_auth_token(self, token_id: str) -> None:
-        self.client.delete(f"/api/users/api-tokens/{token_id}")
+        self.client.delete(Routes.USERS_API_TOKENS_TOKEN_ID(token_id))
 
     def create_notifier(self, name: str, apprise_url: str) -> MealieEventNotifierOut:
         payload = MealieEventNotifierCreate(name=name, apprise_url=apprise_url)
 
         response = self.client.post(
-            "/api/groups/events/notifications",
+            Routes.GROUPS_EVENTS_NOTIFICATIONS,
             payload=payload.dict(),
         )
 
@@ -216,22 +218,22 @@ class MealieClient:
 
     def update_notifier(self, notifier: MealieEventNotifierUpdate) -> MealieEventNotifierOut:
         response = self.client.put(
-            f"/api/groups/events/notifications/{notifier.id}",
+            Routes.GROUPS_EVENTS_NOTIFICATIONS_NOTIFICATION_ID(notifier.id),
             payload=notifier.dict(),
         )
 
         return MealieEventNotifierOut.parse_obj(response.json())
 
     def delete_notifier(self, notifier_id: str) -> None:
-        self.client.delete(f"/api/groups/events/notifications/{notifier_id}")
+        self.client.delete(Routes.GROUPS_EVENTS_NOTIFICATIONS_NOTIFICATION_ID(notifier_id))
 
     def get_all_shopping_lists(self) -> Iterable[MealieShoppingListOut]:
-        shopping_lists_data = self.client.get_all("/api/groups/shopping/lists")
+        shopping_lists_data = self.client.get_all(Routes.GROUPS_SHOPPING_LISTS)
         for shopping_list_data in shopping_lists_data:
             yield MealieShoppingListOut.parse_obj(shopping_list_data)
 
     def get_shopping_list(self, shopping_list_id: str):
-        response = self.client.get(f"/api/groups/shopping/lists/{shopping_list_id}")
+        response = self.client.get(Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID(shopping_list_id))
         return MealieShoppingListOut.parse_response(response)
 
     def get_all_shopping_list_items(
@@ -242,24 +244,24 @@ class MealieClient:
             query_filter += " AND checked=false"
 
         params = {"queryFilter": query_filter}
-        list_items_data = self.client.get_all("/api/groups/shopping/items", params=params)
+        list_items_data = self.client.get_all(Routes.GROUPS_SHOPPING_ITEMS, params=params)
         for list_item_data in list_items_data:
             yield MealieShoppingListItemOut.parse_obj(list_item_data)
 
     def create_shopping_list_items(
         self, items: list[MealieShoppingListItemCreate]
     ) -> MealieShoppingListItemsCollectionOut:
-        response = self.client.post(f"/api/groups/shopping/items/create-bulk", payload=[item.dict() for item in items])
+        response = self.client.post(Routes.GROUPS_SHOPPING_ITEMS_CREATE_BULK, payload=[item.dict() for item in items])
         return MealieShoppingListItemsCollectionOut.parse_response(response)
 
     def update_shopping_list_items(
         self, items: list[MealieShoppingListItemUpdateBulk]
     ) -> MealieShoppingListItemsCollectionOut:
-        response = self.client.put(f"/api/groups/shopping/items", payload=[item.dict() for item in items])
+        response = self.client.put(Routes.GROUPS_SHOPPING_ITEMS, payload=[item.dict() for item in items])
         return MealieShoppingListItemsCollectionOut.parse_response(response)
 
     def delete_shopping_list_items(self, item_ids: list[str]) -> None:
-        response = self.client.delete(f"/api/groups/shopping/items", params={"ids": item_ids})
+        response = self.client.delete(Routes.GROUPS_SHOPPING_ITEMS, params={"ids": item_ids})
         response_json: dict[str, Any] = response.json()
         if response_json.get("error"):
             # TODO: make this a custom exception type
@@ -268,20 +270,22 @@ class MealieClient:
     def remove_recipe_ingredients_from_shopping_list(
         self, shopping_list_id: str, recipe_id: str
     ) -> MealieShoppingListOut:
-        response = self.client.post(f"/api/groups/shopping/lists/{shopping_list_id}/recipe/{recipe_id}/delete")
+        response = self.client.post(
+            Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID_RECIPE_RECIPE_ID_DELETE(shopping_list_id, recipe_id)
+        )
         return MealieShoppingListOut.parse_response(response)
 
     def get_all_recipes(self) -> Iterable[MealieRecipe]:
-        recipes_data = self.client.get_all("/api/recipes")
+        recipes_data = self.client.get_all(Routes.RECIPES)
         for recipe_data in recipes_data:
             yield MealieRecipe.parse_obj(recipe_data)
 
     def get_all_foods(self) -> Iterable[Food]:
-        foods_data = self.client.get_all("/api/foods")
+        foods_data = self.client.get_all(Routes.FOODS)
         for food_data in foods_data:
             yield Food.parse_obj(food_data)
 
     def get_all_labels(self) -> Iterable[Label]:
-        labels_data = self.client.get_all("/api/groups/labels")
+        labels_data = self.client.get_all(Routes.GROUPS_LABELS)
         for label_data in labels_data:
             yield Label.parse_obj(label_data)
