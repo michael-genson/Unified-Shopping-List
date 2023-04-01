@@ -3,13 +3,10 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
-from pytest import MonkeyPatch
 
-from AppLambda.src import config
 from AppLambda.src.app import services
-from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import auth, core
-from tests.utils import create_user_with_known_credentials, get_auth_headers, random_email, random_string
+from tests.utils import create_user_with_known_credentials, random_email, random_password, random_string
 
 
 def get_password_reset_token(api_client: TestClient, username: str) -> str:
@@ -26,7 +23,7 @@ def test_reset_password(api_client: TestClient):
     existing_user, old_password = create_user_with_known_credentials(api_client)
     reset_token = get_password_reset_token(api_client, existing_user.username)
 
-    new_password = random_string(20)
+    new_password = random_password()
     response = api_client.post(
         core.router.url_path_for("reset_password"), params={"reset_token": reset_token}, data={"password": new_password}
     )
@@ -57,7 +54,7 @@ def test_reset_password_invalid_token(api_client: TestClient):
     get_password_reset_token(api_client, existing_user.username)
 
     # try invalid token
-    new_password = random_string(20)
+    new_password = random_password()
     response = api_client.post(
         core.router.url_path_for("reset_password"),
         params={"reset_token": random_string()},
@@ -114,7 +111,7 @@ def test_reset_password_old_token(api_client: TestClient):
     valid_reset_token = get_password_reset_token(api_client, existing_user.username)
 
     # try to use invalid token
-    new_password = random_string(20)
+    new_password = random_password()
     response = api_client.post(
         core.router.url_path_for("reset_password"),
         params={"reset_token": invalid_reset_token},
@@ -133,7 +130,7 @@ def test_reset_password_old_token(api_client: TestClient):
     response.raise_for_status()
 
     # use valid token
-    new_password = random_string(20)
+    new_password = random_password()
     response = api_client.post(
         core.router.url_path_for("reset_password"),
         params={"reset_token": valid_reset_token},
@@ -158,7 +155,7 @@ def test_reset_password_expired_token(api_client: TestClient):
 
     with freeze_time(datetime.now() + timedelta(days=999)):
         # try to use invalid token
-        new_password = random_string(20)
+        new_password = random_password()
         response = api_client.post(
             core.router.url_path_for("reset_password"),
             params={"reset_token": expired_reset_token},

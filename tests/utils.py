@@ -18,6 +18,10 @@ def random_email(length=10) -> str:
     return "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length)) + "@example.com"
 
 
+def random_password(length=20) -> str:
+    return random_string(length)
+
+
 def random_bool() -> bool:
     return bool(random.getrandbits(1))
 
@@ -41,7 +45,7 @@ def create_user_with_known_credentials(api_client: TestClient, register=True) ->
     Returns the user and their password
     """
     username = random_email()
-    password = random_string(20)
+    password = random_password()
     form_data = {"username": username, "password": password}
     response = api_client.post(core.router.url_path_for("register"), data=form_data)
     response.raise_for_status()

@@ -140,7 +140,7 @@ class UserService:
             new_user.last_registration_token = registration_token.access_token
 
         self.db.put(new_user.dict(exclude_none=True), allow_update=allow_update)
-        return new_user
+        return new_user.cast(User)
 
     def update_user(self, user: User, remove_expiration: bool = False) -> None:
         """Updates an existing user"""

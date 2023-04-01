@@ -48,6 +48,7 @@ def function_teardown():
     # reset factories for every test
     services.reset()
     _aws.reset()
+    patch_config()
 
 
 @fixture(autouse=True)

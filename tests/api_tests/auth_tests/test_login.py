@@ -16,6 +16,13 @@ def test_get_logged_in_user(api_client: TestClient, user: User):
     assert current_user.username == user.username
 
 
+def test_password_not_returned_in_api(api_client: TestClient, user: User):
+    response = api_client.get(auth.router.url_path_for("get_logged_in_user"), headers=get_auth_headers(user))
+    response.raise_for_status()
+
+    assert "hashed_password" not in response.json()
+
+
 def test_log_in(api_client: TestClient):
     user, password = create_user_with_known_credentials(api_client)
     form_data = {"username": user.username, "password": password}
