@@ -21,6 +21,7 @@ from AppLambda.src.models.mealie import (
     MealieShoppingListRecipeRef,
     Unit,
 )
+from tests.utils import random_url
 
 T = TypeVar("T")
 
@@ -38,12 +39,14 @@ class MockDBKey(Enum):
 
 class MockMealieServer:
     def __init__(self) -> None:
+        self.base_url = random_url()
         self.group_id = str(uuid4())
         self.db: defaultdict[MockDBKey, dict[str, dict[str, Any]]] = defaultdict(dict[str, dict[str, Any]])
+        self.headers: dict[str, str] = {}
 
     @classmethod
-    def _get_id_from_endpoint(cls, endpoint: str) -> str:
-        return endpoint.split("/")[-1]
+    def _get_id_from_url(cls, url: str) -> str:
+        return url.split("/")[-1]
 
     @classmethod
     def _assert_or_404(cls, data: Optional[T]) -> T:
@@ -55,9 +58,11 @@ class MockMealieServer:
         return data
 
     def _validate_headers(self, headers: Optional[dict]) -> dict:
+        if headers is None:
+            headers = {}
 
+        headers.update(self.headers)
         try:
-            assert headers
             auth_header = headers.get("Authorization")
             assert auth_header and isinstance(auth_header, str)
 
@@ -85,13 +90,13 @@ class MockMealieServer:
     def _get_all(self, key: MockDBKey) -> list[dict[str, Any]]:
         return list(self.db[key].values())
 
-    def _get_one(self, key: MockDBKey, id_or_endpoint: str) -> dict[str, Any]:
-        id = self._get_id_from_endpoint(id_or_endpoint)
+    def _get_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
+        id = self._get_id_from_url(id_or_url)
         data = self._assert_or_404(self.db[key].get(id))
         return data
 
-    def _delete_one(self, key: MockDBKey, id_or_endpoint: str) -> dict[str, Any]:
-        id = self._get_id_from_endpoint(id_or_endpoint)
+    def _delete_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
+        id = self._get_id_from_url(id_or_url)
         data = self._assert_or_404(self.db[key].pop(id, None))
         return data
 
@@ -103,9 +108,9 @@ class MockMealieServer:
         self._insert_one(MockDBKey.notifiers, notifier_out.id, data)
         return data
 
-    def _update_notifier(self, id_or_endpoint: str) -> dict[str, Any]:
+    def _update_notifier(self, id_or_url: str) -> dict[str, Any]:
         # we don't track updates to notifiers
-        return self._get_one(MockDBKey.notifiers, id_or_endpoint)
+        return self._get_one(MockDBKey.notifiers, id_or_url)
 
     def _create_shopping_list_item(self, payload: dict[str, Any]) -> dict[str, Any]:
         item = MealieShoppingListItemCreate(**payload)
@@ -181,35 +186,55 @@ class MockMealieServer:
 
     def _create_user_api_token(self, payload: dict[str, Any]) -> dict[str, Any]:
         assert "name" in payload
-        token = AuthToken(id=uuid4(), name=payload["name"], token=str(uuid4()))
+        token = AuthToken(id=str(uuid4()), name=payload["name"], token=str(uuid4()))
         data = token.dict()
 
         self._insert_one(MockDBKey.user_api_tokens, token.id, data)
         return data
 
-    def handle_request(
+    def get_all_records(self, record_type: MockDBKey) -> dict[str, dict[str, Any]]:
+        """
+        Fetch all records by record type
+
+        Bypasses normal mock HTTP validation
+        """
+
+        return self.db[record_type]
+
+    def get_record_by_id(self, record_type: MockDBKey, id: str) -> Optional[dict[str, Any]]:
+        """
+        Fetch a single record by id and record type, if it exists
+
+        Bypasses normal mock HTTP validation
+        """
+
+        return self.get_all_records(record_type).get(id)
+
+    def request(
         self,
         method: str,
-        endpoint: str,
+        url: str,
         headers: Optional[dict] = None,
         params: Optional[dict] = None,
-        payload: Optional[Union[list, dict]] = None,
+        json: Optional[Union[list, dict]] = None,
+        *args,
+        **kwargs,
     ) -> Response:
         """Routes an HTTP request to a mock function"""
 
         headers = self._validate_headers(headers)
         params = params or {}
-        payload = payload or {}
+        payload = json or {}
+
+        def is_route(route: Union[str, Callable]) -> bool:
+            endpoint = url[len(self.base_url) :]  # all random URLs are the same length
+            if isinstance(route, str):
+                return route == endpoint
+
+            args = [".*"] * len(inspect.signature(route).parameters)
+            return bool(re.compile(route(*args)).match(endpoint))
 
         try:
-
-            def is_route(route: Union[str, Callable]) -> bool:
-                if isinstance(route, str):
-                    return route == endpoint
-
-                args = [".*"] * len(inspect.signature(route).parameters)
-                return bool(re.compile(route(*args)).match(endpoint))
-
             method = method.upper()
             data: Optional[Union[str, list, dict]] = None
             if is_route(Routes.FOODS):
@@ -223,10 +248,10 @@ class MockMealieServer:
 
             elif is_route(Routes.GROUPS_EVENTS_NOTIFICATIONS_NOTIFICATION_ID):
                 if method == "PUT":
-                    data = self._update_notifier(endpoint)
+                    data = self._update_notifier(url)
 
                 elif method == "DELETE":
-                    data = self._delete_one(MockDBKey.notifiers, endpoint)
+                    data = self._delete_one(MockDBKey.notifiers, url)
 
             elif is_route(Routes.GROUPS_LABELS):
                 if method == "GET":
@@ -238,7 +263,7 @@ class MockMealieServer:
 
             elif is_route(Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID):
                 if method == "GET":
-                    data = self._get_one(MockDBKey.shopping_lists, endpoint)
+                    data = self._get_one(MockDBKey.shopping_lists, url)
 
             elif is_route(Routes.GROUPS_SHOPPING_ITEMS):
                 if method == "GET":
@@ -286,11 +311,12 @@ class MockMealieServer:
 
             elif is_route(Routes.USERS_API_TOKENS_TOKEN_ID):
                 if method == "DELETE":
-                    data = self._get_one(MockDBKey.user_api_tokens, endpoint)
+                    data = self._get_one(MockDBKey.user_api_tokens, url)
 
             if data is not None:
                 response = Response()
                 response.json = lambda: data  # type: ignore
+                response.status_code = 200
                 return response
 
             else:

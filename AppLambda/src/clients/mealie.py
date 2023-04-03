@@ -72,7 +72,7 @@ class MealieBaseClient:
             base_url = "https://" + base_url
 
         self.base_url = base_url
-        self._client = requests.session()
+        self._client = self._get_client()
         self._client.headers.update(
             {
                 "content-type": "application/json",
@@ -83,6 +83,10 @@ class MealieBaseClient:
         self.timeout = timeout
         self.rate_limit_throttle = rate_limit_throttle
         self.max_attempts = max_attempts
+
+    @classmethod
+    def _get_client(cls, *args, **kwargs):
+        return requests.session(*args, **kwargs)
 
     def _request(
         self,

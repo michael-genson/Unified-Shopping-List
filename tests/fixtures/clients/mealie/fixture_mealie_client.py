@@ -26,6 +26,11 @@ mock_server = MockMealieServer()
 
 
 @pytest.fixture()
+def mealie_server() -> MockMealieServer:
+    return mock_server
+
+
+@pytest.fixture()
 def mealie_foods() -> list[Food]:
     foods = [Food(id=str(uuid4()), name=random_string(), description=random_string()) for _ in range(10)]
     for food in foods:
@@ -216,17 +221,12 @@ def mealie_api_tokens() -> list[AuthToken]:
     return tokens
 
 
-def _translate_request_handler(*args, **kwargs):
-    args = args[1:]  # remove "self" argument
-    return mock_server.handle_request(*args, **kwargs)
-
-
 @pytest.fixture(scope="session", autouse=True)
 def mock_mealie_server():
     """Replace all Mealie API calls with locally mocked database calls"""
 
     mp = MonkeyPatch()
-    mp.setattr(MealieBaseClient, "_request", lambda *args, **kwargs: _translate_request_handler(*args, **kwargs))
+    mp.setattr(MealieBaseClient, "_get_client", lambda *args, **kwargs: mock_server)
     yield
 
 
