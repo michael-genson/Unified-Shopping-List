@@ -17,22 +17,15 @@ do_nothing = lambda *args, **kwargs: None
 
 
 @fixture(scope="session", autouse=True)
-def mock_services(monkeypatch: MonkeyPatch):
-    monkeypatch.setattr(SMTPService, "send", do_nothing)
+def mock_services():
+    mp = MonkeyPatch()
+    mp.setattr(SMTPService, "send", do_nothing)
+    yield
 
 
 @fixture(scope="session")
 def api_client():
     yield TestClient(app)
-
-
-@fixture(autouse=True)
-def set_aws_credentials():
-    os.environ["AWS_ACCESS_KEY_ID"] = "disabled"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "disabled"
-    os.environ["AWS_SECURITY_TOKEN"] = "disabled"
-    os.environ["AWS_SESSION_TOKEN"] = "disabled"
-    os.environ["AWS_DEFAULT_REGION"] = AWS_REGION  # TODO: remove secrets dependency
 
 
 @fixture(autouse=True)
@@ -44,6 +37,14 @@ def reset_config():
 def reset_factories():
     services.reset()
     _aws.reset()
+
+
+def set_aws_credentials():
+    os.environ["AWS_ACCESS_KEY_ID"] = "disabled"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "disabled"
+    os.environ["AWS_SECURITY_TOKEN"] = "disabled"
+    os.environ["AWS_SESSION_TOKEN"] = "disabled"
+    os.environ["AWS_DEFAULT_REGION"] = AWS_REGION  # TODO: remove secrets dependency
 
 
 @fixture(autouse=True)

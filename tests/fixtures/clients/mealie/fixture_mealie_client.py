@@ -222,12 +222,12 @@ def _translate_request_handler(*args, **kwargs):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def mock_mealie_server(monkeypatch: MonkeyPatch):
+def mock_mealie_server():
     """Replace all Mealie API calls with locally mocked database calls"""
 
-    monkeypatch.setattr(
-        MealieBaseClient, "_request", lambda *args, **kwargs: _translate_request_handler(*args, **kwargs)
-    )
+    mp = MonkeyPatch()
+    mp.setattr(MealieBaseClient, "_request", lambda *args, **kwargs: _translate_request_handler(*args, **kwargs))
+    yield
 
 
 @pytest.fixture(autouse=True)
