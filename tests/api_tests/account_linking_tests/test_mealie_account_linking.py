@@ -8,10 +8,10 @@ from AppLambda.src.models.core import User
 from AppLambda.src.models.mealie import AuthToken
 from AppLambda.src.routes import account_linking
 from tests.fixtures.clients.mealie.router import MockDBKey, MockMealieServer
-from tests.utils import get_auth_headers, random_string, random_url
+from tests.utils import get_auth_headers, random_bool, random_string, random_url
 
 
-def test_link_to_mealie(
+def test_mealie_link_create(
     mealie_server: MockMealieServer, api_client: TestClient, user: User, mealie_api_tokens: list[AuthToken]
 ):
     notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
@@ -41,7 +41,7 @@ def test_link_to_mealie(
     assert updated_user.configuration.mealie == new_config
 
 
-def test_mealie_link_with_invalid_token(mealie_server: MockMealieServer, api_client: TestClient, user: User):
+def test_mealie_link_create_with_invalid_token(mealie_server: MockMealieServer, api_client: TestClient, user: User):
     existing_notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
 
     params = {"baseUrl": random_url(), "initialAuthToken": random_string()}
@@ -59,3 +59,100 @@ def test_mealie_link_with_invalid_token(mealie_server: MockMealieServer, api_cli
     assert updated_user
     assert not updated_user.is_linked_to_mealie
     assert not updated_user.configuration.mealie
+
+
+def test_mealie_link_update(api_client: TestClient, user_linked_mealie: User):
+    existing_config = user_linked_mealie.configuration.mealie
+    assert existing_config
+
+    params = {
+        "useFoods": not existing_config.use_foods,
+        "overwriteOriginalItemNames": existing_config.overwrite_original_item_names,
+        "confidenceThreshold": existing_config.confidence_threshold,
+    }
+    response = api_client.put(
+        account_linking.api_router.url_path_for("update_mealie_account_link"),
+        params=params,
+        headers=get_auth_headers(user_linked_mealie),
+    )
+    response.raise_for_status()
+
+    updated_user = services.user.get_user(user_linked_mealie.username)
+    assert updated_user
+
+    assert updated_user.is_linked_to_mealie
+    updated_config = updated_user.configuration.mealie
+    assert updated_config
+
+    assert updated_config.use_foods is not None
+    assert updated_config.use_foods is not bool(existing_config.use_foods)
+    assert updated_config.overwrite_original_item_names == existing_config.overwrite_original_item_names
+    assert updated_config.confidence_threshold == existing_config.confidence_threshold
+
+
+def test_mealie_link_update_not_linked(api_client: TestClient, user: User):
+    response = api_client.put(
+        account_linking.api_router.url_path_for("update_mealie_account_link"),
+        headers=get_auth_headers(user),
+    )
+    assert response.status_code == 401
+
+    updated_user = services.user.get_user(user.username)
+    assert updated_user
+    assert not updated_user.is_linked_to_mealie
+    assert not updated_user.configuration.mealie
+
+
+def test_mealie_link_delete(mealie_server: MockMealieServer, api_client: TestClient, user_linked_mealie: User):
+    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    existing_notifiers = len(notifier_data)
+    assert existing_notifiers
+
+    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    existing_tokens = len(api_token_data)
+    assert existing_tokens
+
+    response = api_client.delete(
+        account_linking.api_router.url_path_for("unlink_mealie_account"), headers=get_auth_headers(user_linked_mealie)
+    )
+    response.raise_for_status()
+
+    # verify user is no longer linked to mealie
+    updated_user = services.user.get_user(user_linked_mealie.username)
+    assert updated_user
+    assert not updated_user.is_linked_to_mealie
+    assert not updated_user.configuration.mealie
+
+    # verify the notifier and api token were deleted
+    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    assert len(notifier_data) == existing_notifiers - 1
+
+    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    assert len(api_token_data) == existing_tokens - 1
+
+
+def test_mealie_link_delete_not_linked(mealie_server: MockMealieServer, api_client: TestClient, user: User):
+    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    existing_notifiers = len(notifier_data)
+
+    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    existing_tokens = len(api_token_data)
+
+    # the response should come back okay, but not do anything
+    response = api_client.delete(
+        account_linking.api_router.url_path_for("unlink_mealie_account"), headers=get_auth_headers(user)
+    )
+    response.raise_for_status()
+
+    # verify user still isn't linked
+    updated_user = services.user.get_user(user.username)
+    assert updated_user
+    assert not updated_user.is_linked_to_mealie
+    assert not updated_user.configuration.mealie
+
+    # verify notifiers and api tokens are unchanged
+    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    assert len(notifier_data) == existing_notifiers
+
+    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    assert len(api_token_data) == existing_tokens

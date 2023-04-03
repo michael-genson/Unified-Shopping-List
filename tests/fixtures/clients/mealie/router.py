@@ -311,7 +311,7 @@ class MockMealieServer:
 
             elif is_route(Routes.USERS_API_TOKENS_TOKEN_ID):
                 if method == "DELETE":
-                    data = self._get_one(MockDBKey.user_api_tokens, url)
+                    data = self._delete_one(MockDBKey.user_api_tokens, url)
 
             if data is not None:
                 response = Response()
