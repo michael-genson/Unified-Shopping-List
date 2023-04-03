@@ -6,8 +6,6 @@ from typing import Any, Iterable, Optional, Union
 import requests
 from requests import HTTPError, Response
 
-from AppLambda.src.clients.routes.mealie import Routes
-
 from ..models.mealie import (
     AuthToken,
     Food,
@@ -25,6 +23,28 @@ from ..models.mealie import (
 )
 
 STATUS_CODES_TO_RETRY = [429, 500]
+
+
+class Routes:
+    FOODS = "/api/foods"
+
+    GROUPS_EVENTS_NOTIFICATIONS = "/api/groups/events/notifications"
+    GROUPS_EVENTS_NOTIFICATIONS_NOTIFICATION_ID = (
+        lambda notification_id: f"{Routes.GROUPS_EVENTS_NOTIFICATIONS}/{notification_id}"
+    )
+
+    GROUPS_LABELS = "/api/groups/labels"
+
+    GROUPS_SHOPPING_LISTS = "/api/groups/shopping/lists"
+    GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID = lambda list_id: f"{Routes.GROUPS_SHOPPING_LISTS}/{list_id}"
+    GROUPS_SHOPPING_ITEMS = "/api/groups/shopping/items"
+    GROUPS_SHOPPING_ITEMS_CREATE_BULK = "/api/groups/shopping/items/create-bulk"
+
+    RECIPES = "/api/recipes"
+
+    USERS_SELF = "/api/users/self"
+    USERS_API_TOKENS = "/api/users/api-tokens"
+    USERS_API_TOKENS_TOKEN_ID = lambda token_id: f"{Routes.USERS_API_TOKENS}/{token_id}"
 
 
 class MealieBaseClient:
@@ -266,14 +286,6 @@ class MealieClient:
         if response_json.get("error"):
             # TODO: make this a custom exception type
             raise Exception("API returned an error when trying to bulk delete items")
-
-    def remove_recipe_ingredients_from_shopping_list(
-        self, shopping_list_id: str, recipe_id: str
-    ) -> MealieShoppingListOut:
-        response = self.client.post(
-            Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID_RECIPE_RECIPE_ID_DELETE(shopping_list_id, recipe_id)
-        )
-        return MealieShoppingListOut.parse_response(response)
 
     def get_all_recipes(self) -> Iterable[MealieRecipe]:
         recipes_data = self.client.get_all(Routes.RECIPES)

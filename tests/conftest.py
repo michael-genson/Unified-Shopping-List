@@ -16,6 +16,17 @@ from .fixtures import *
 do_nothing = lambda *args, **kwargs: None
 
 
+@fixture(scope="session", autouse=True)
+def mock_services(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(SMTPService, "send", do_nothing)
+
+
+@fixture(scope="session")
+def api_client():
+    yield TestClient(app)
+
+
+@fixture(autouse=True)
 def set_aws_credentials():
     os.environ["AWS_ACCESS_KEY_ID"] = "disabled"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "disabled"
@@ -24,31 +35,15 @@ def set_aws_credentials():
     os.environ["AWS_DEFAULT_REGION"] = AWS_REGION  # TODO: remove secrets dependency
 
 
-def mock_services(mp: MonkeyPatch):
-    mp.setattr(SMTPService, "send", do_nothing)
-
-
-def patch_config():
+@fixture(autouse=True)
+def reset_config():
     config.USE_WHITELIST = False
 
 
-@fixture(scope="module", autouse=True)
-def setup():
-    set_aws_credentials()
-    mp = MonkeyPatch()
-
-    mock_services(mp)
-    patch_config()
-    yield
-
-
 @fixture(autouse=True)
-def function_teardown():
-    yield
-    # reset factories for every test
+def reset_factories():
     services.reset()
     _aws.reset()
-    patch_config()
 
 
 @fixture(autouse=True)
@@ -94,8 +89,3 @@ def inject_mock_database():
             BillingMode="PAY_PER_REQUEST",
         )
         yield
-
-
-@fixture(scope="session")
-def api_client():
-    yield TestClient(app)
