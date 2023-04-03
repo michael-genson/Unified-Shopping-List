@@ -7,8 +7,8 @@ from AppLambda.src.models.account_linking import UserMealieConfiguration
 from AppLambda.src.models.core import User
 from AppLambda.src.models.mealie import AuthToken
 from AppLambda.src.routes import account_linking
-from tests.fixtures.clients.mealie.router import MockDBKey, MockMealieServer
-from tests.utils import get_auth_headers, random_bool, random_string, random_url
+from tests.fixtures.databases.mealie.router import MockDBKey, MockMealieServer
+from tests.utils import get_auth_headers, random_string, random_url
 
 
 def test_mealie_link_create(
