@@ -140,7 +140,7 @@ class MealieBaseClient:
             params = {}
 
         has_more = True
-        params["page"] = -1
+        params["page"] = 0
         records = deque[dict]()
 
         # paginate data until we run out
@@ -216,12 +216,6 @@ class MealieClient:
 
         except HTTPError:
             return False
-
-    @cached_property
-    def food_store(self) -> dict[str, Food]:
-        """Dictionary of { food.name.lower(): foods }"""
-
-        return {food.name.lower(): food for food in self.get_all_foods()}
 
     def create_auth_token(self, name: str, integration_id: Optional[str] = None) -> AuthToken:
         response = self.client.post(Routes.USERS_API_TOKENS, payload={"name": name, "integrationId": integration_id})
