@@ -70,8 +70,8 @@ class MealieListService:
         """Compares food to the Mealie food store and finds the closest match within threshold"""
 
         user_food = food.lower()  # food store keys are all lowercase
-        if user_food in self._client.food_store:
-            return self._client.food_store[user_food]
+        if user_food in self.food_store:
+            return self.food_store[user_food]
 
         # if we're only checking for exact matches, stop here
         if self.config.confidence_threshold >= 1:
@@ -79,9 +79,9 @@ class MealieListService:
 
         nearest_match: str
         threshold: int  # score from 0 - 100
-        nearest_match, threshold = process.extractOne(user_food, self._client.food_store.keys())
+        nearest_match, threshold = process.extractOne(user_food, self.food_store.keys())
 
-        return self._client.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
+        return self.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
 
     @cache
     def get_label(self, label: str) -> Optional[Label]:
