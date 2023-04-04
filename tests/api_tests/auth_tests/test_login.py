@@ -2,29 +2,34 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
 from AppLambda.src import config
-from AppLambda.src.app import services
 from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import auth, core
+from AppLambda.src.services.auth_token import AuthTokenService
+from AppLambda.src.services.user import UserService
 from tests.utils import create_user_with_known_credentials, get_auth_headers, random_email, random_string
 
 
-def test_get_logged_in_user(api_client: TestClient, user: User):
-    response = api_client.get(auth.router.url_path_for("get_logged_in_user"), headers=get_auth_headers(user))
+def test_get_logged_in_user(token_service: AuthTokenService, api_client: TestClient, user: User):
+    response = api_client.get(
+        auth.router.url_path_for("get_logged_in_user"), headers=get_auth_headers(token_service, user)
+    )
     response.raise_for_status()
 
     current_user = User.parse_obj(response.json())
     assert current_user.username == user.username
 
 
-def test_password_not_returned_in_api(api_client: TestClient, user: User):
-    response = api_client.get(auth.router.url_path_for("get_logged_in_user"), headers=get_auth_headers(user))
+def test_password_not_returned_in_api(token_service: AuthTokenService, api_client: TestClient, user: User):
+    response = api_client.get(
+        auth.router.url_path_for("get_logged_in_user"), headers=get_auth_headers(token_service, user)
+    )
     response.raise_for_status()
 
     assert "hashed_password" not in response.json()
 
 
-def test_log_in(api_client: TestClient):
-    user, password = create_user_with_known_credentials(api_client)
+def test_log_in(user_service: UserService, api_client: TestClient):
+    user, password = create_user_with_known_credentials(user_service, api_client)
     form_data = {"username": user.username, "password": password}
 
     # log in using email and password
@@ -81,8 +86,8 @@ def test_login_wrong_password(api_client: TestClient, user: User):
     assert response.status_code == 401
 
 
-def test_login_not_registered(api_client: TestClient):
-    user, password = create_user_with_known_credentials(api_client, register=False)
+def test_login_not_registered(user_service: UserService, api_client: TestClient):
+    user, password = create_user_with_known_credentials(user_service, api_client, register=False)
     form_data = {"username": user.username, "password": password}
 
     # try to log in before finishing registration
@@ -95,13 +100,13 @@ def test_login_not_registered(api_client: TestClient):
     assert response.status_code == 401
 
 
-def test_login_disabled(api_client: TestClient):
-    user, password = create_user_with_known_credentials(api_client)
+def test_login_disabled(user_service: UserService, api_client: TestClient):
+    user, password = create_user_with_known_credentials(user_service, api_client)
     form_data = {"username": user.username, "password": password}
 
     # disable user
     user.disabled = True
-    services.user.update_user(user)
+    user_service.update_user(user)
 
     # try to log in
     response = api_client.post(core.router.url_path_for("log_in"), data=form_data)
@@ -113,8 +118,8 @@ def test_login_disabled(api_client: TestClient):
     assert response.status_code == 401
 
 
-def test_login_not_whitelisted(api_client: TestClient, monkeypatch: MonkeyPatch):
-    user, password = create_user_with_known_credentials(api_client)
+def test_login_not_whitelisted(user_service: UserService, api_client: TestClient, monkeypatch: MonkeyPatch):
+    user, password = create_user_with_known_credentials(user_service, api_client)
     form_data = {"username": user.username, "password": password}
 
     # log in normally

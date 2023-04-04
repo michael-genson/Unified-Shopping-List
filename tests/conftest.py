@@ -3,8 +3,7 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
 from AppLambda.src import config
-from AppLambda.src.app import app, services
-from AppLambda.src.clients.aws import _aws
+from AppLambda.src.app import app
 from AppLambda.src.services.smtp import SMTPService
 
 from .fixtures import *
@@ -27,9 +26,3 @@ def api_client():
 @pytest.fixture(autouse=True)
 def reset_config():
     config.USE_WHITELIST = False
-
-
-@pytest.fixture(autouse=True)
-def reset_factories():
-    services.reset()
-    _aws.reset()
