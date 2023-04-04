@@ -1,4 +1,5 @@
 import inspect
+import math
 import re
 from collections import defaultdict
 from enum import Enum
@@ -19,6 +20,7 @@ from AppLambda.src.models.mealie import (
     MealieShoppingListItemsCollectionOut,
     MealieShoppingListItemUpdate,
     MealieShoppingListRecipeRef,
+    Pagination,
     Unit,
 )
 from tests.utils import random_url
@@ -87,8 +89,35 @@ class MockMealieServer:
     def _insert_one(self, key: MockDBKey, id: str, data: dict[str, Any]) -> None:
         self.db[key][id] = data
 
-    def _get_all(self, key: MockDBKey) -> list[dict[str, Any]]:
-        return list(self.db[key].values())
+    def _get_all(self, key: MockDBKey, params: dict[str, Any]) -> dict[str, Any]:
+        items = list(self.db[key].values())
+        page = params.get("page", 1)
+        assert isinstance(page, int)
+        per_page = params.get("perPage", 10)
+        assert isinstance(per_page, int)
+
+        total = len(items)
+        if page == -1:
+            start = 0
+            end = -1
+            has_more = False
+        else:
+            start = (page - 1) * per_page
+            end = page * per_page
+            has_more = end < len(items)
+
+        items = items[start:end] if start < len(items) else []
+        pagination = Pagination(
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=math.ceil(total / per_page),
+            items=items,
+            next="placeholder" if has_more else None,
+            previous="placeholder" if page > 1 else None,
+        )
+
+        return pagination.dict()
 
     def _get_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
@@ -239,7 +268,7 @@ class MockMealieServer:
             data: Optional[Union[str, list, dict]] = None
             if is_route(Routes.FOODS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.foods)
+                    data = self._get_all(MockDBKey.foods, params)
 
             elif is_route(Routes.GROUPS_EVENTS_NOTIFICATIONS):
                 if method == "POST":
@@ -255,11 +284,11 @@ class MockMealieServer:
 
             elif is_route(Routes.GROUPS_LABELS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.labels)
+                    data = self._get_all(MockDBKey.labels, params)
 
             elif is_route(Routes.GROUPS_SHOPPING_LISTS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.shopping_lists)
+                    data = self._get_all(MockDBKey.shopping_lists, params)
 
             elif is_route(Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID):
                 if method == "GET":
@@ -267,7 +296,7 @@ class MockMealieServer:
 
             elif is_route(Routes.GROUPS_SHOPPING_ITEMS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.shopping_list_items)
+                    data = self._get_all(MockDBKey.shopping_list_items, params)
 
                 elif method == "PUT":
                     assert isinstance(payload, list)
@@ -297,7 +326,7 @@ class MockMealieServer:
 
             elif is_route(Routes.RECIPES):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.recipes)
+                    data = self._get_all(MockDBKey.recipes, params)
 
             elif is_route(Routes.USERS_SELF):
                 if method == "GET":
