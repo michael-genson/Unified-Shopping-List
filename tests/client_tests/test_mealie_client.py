@@ -33,7 +33,7 @@ def test_mealie_client_is_valid(mealie_client: MealieClient):
 
 
 @pytest.mark.parametrize(
-    "client_function,record_model,db_key",
+    "client_method,record_model,db_key",
     [
         ("get_all_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
         ("get_all_recipes", MealieRecipe, MockDBKey.recipes),
@@ -44,26 +44,26 @@ def test_mealie_client_is_valid(mealie_client: MealieClient):
 def test_mealie_client_get_all_records(
     mealie_server: MockMealieServer,
     mealie_client: MealieClient,
-    client_function: str,
+    client_method: str,
     record_model: Type[APIBase],
     db_key: MockDBKey,
 ):
     record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}
-    get_all_func: Callable = getattr(mealie_client, client_function)
+    get_all_func: Callable = getattr(mealie_client, client_method)
     all_records_data = get_all_func()
     all_records = {getattr(record, "id"): record for record in all_records_data}
     assert all_records == record_store
 
 
 @pytest.mark.parametrize(
-    "client_function,record_list_fixture",
+    "client_method,record_list_fixture",
     [
         ("get_shopping_list", "mealie_shopping_lists"),
     ],
 )
 def test_mealie_client_get_one_record(
     mealie_client: MealieClient,
-    client_function: str,
+    client_method: str,
     record_list_fixture: str,
     request: pytest.FixtureRequest,
 ):
@@ -71,13 +71,13 @@ def test_mealie_client_get_one_record(
     record_to_get = random.choice(record_list)
     record_id: str = getattr(record_to_get, "id")
 
-    get_func: Callable = getattr(mealie_client, client_function)
+    get_func: Callable = getattr(mealie_client, client_method)
     record = get_func(record_id)
     assert record == record_to_get
 
 
 @pytest.mark.parametrize(
-    "client_function,record_model,db_key,args_callable",
+    "client_method,record_model,db_key,args_callable",
     [
         ("create_auth_token", AuthToken, MockDBKey.user_api_tokens, lambda: (random_string(),)),
         ("create_notifier", MealieEventNotifierOut, MockDBKey.notifiers, lambda: (random_string(), random_string())),
@@ -86,12 +86,12 @@ def test_mealie_client_get_one_record(
 def test_mealie_client_create_record(
     mealie_server: MockMealieServer,
     mealie_client: MealieClient,
-    client_function: str,
+    client_method: str,
     record_model: Type[APIBase],
     db_key: MockDBKey,
     args_callable: Callable,
 ):
-    create_func: Callable = getattr(mealie_client, client_function)
+    create_func: Callable = getattr(mealie_client, client_method)
     new_record = create_func(*args_callable())
 
     record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}
@@ -99,7 +99,7 @@ def test_mealie_client_create_record(
 
 
 @pytest.mark.parametrize(
-    "client_function,record_model,db_key,record_list_fixture",
+    "client_method,record_model,db_key,record_list_fixture",
     [
         ("delete_auth_token", AuthToken, MockDBKey.user_api_tokens, "mealie_api_tokens"),
         ("delete_notifier", MealieEventNotifierOut, MockDBKey.notifiers, "mealie_notifiers"),
@@ -108,7 +108,7 @@ def test_mealie_client_create_record(
 def test_mealie_client_delete_record(
     mealie_server: MockMealieServer,
     mealie_client: MealieClient,
-    client_function: str,
+    client_method: str,
     record_model: Type[APIBase],
     db_key: MockDBKey,
     record_list_fixture: str,
@@ -121,7 +121,7 @@ def test_mealie_client_delete_record(
     record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}
     assert record_store[record_id] == record_to_delete
 
-    delete_func: Callable = getattr(mealie_client, client_function)
+    delete_func: Callable = getattr(mealie_client, client_method)
     delete_func(record_id)
 
     record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}

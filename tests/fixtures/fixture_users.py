@@ -35,6 +35,52 @@ def user_linked_mealie(
     )
     response.raise_for_status()
 
+    # disable config options
+    response = api_client.put(
+        account_linking.api_router.url_path_for("update_mealie_account_link"),
+        params={"useFoods": False, "overwriteOriginalItemNames": False},
+        headers=get_auth_headers(token_service, user),
+    )
+    response.raise_for_status()
+
     linked_user = user_service.get_user(user.username)
     assert linked_user
     return linked_user.cast(User)
+
+
+@fixture()
+def user_linked_mealie_use_foods(
+    token_service: AuthTokenService,
+    user_service: UserService,
+    api_client: TestClient,
+    user_linked_mealie: User,
+) -> User:
+    response = api_client.put(
+        account_linking.api_router.url_path_for("update_mealie_account_link"),
+        params={"useFoods": True, "overwriteOriginalItemNames": False},
+        headers=get_auth_headers(token_service, user_linked_mealie),
+    )
+    response.raise_for_status()
+
+    user = user_service.get_user(user_linked_mealie.username)
+    assert user
+    return user.cast(User)
+
+
+@fixture()
+def user_linked_mealie_overwrite_names(
+    token_service: AuthTokenService,
+    user_service: UserService,
+    api_client: TestClient,
+    user_linked_mealie_use_foods: User,
+) -> User:
+    response = api_client.put(
+        account_linking.api_router.url_path_for("update_mealie_account_link"),
+        params={"useFoods": True, "overwriteOriginalItemNames": True},
+        headers=get_auth_headers(token_service, user_linked_mealie_use_foods),
+    )
+    response.raise_for_status()
+
+    user = user_service.get_user(user_linked_mealie_use_foods.username)
+    assert user
+    return user.cast(User)

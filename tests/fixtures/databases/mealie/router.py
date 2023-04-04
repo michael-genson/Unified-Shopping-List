@@ -199,7 +199,17 @@ class MockMealieServer:
 
             # merge updated data into item
             for key in update_item_data:
-                li[key] = update_item_data[key]
+                if key in li:
+                    li[key] = update_item_data[key]
+
+            # update ORM links
+            for db_key, link in [(MockDBKey.foods, "food"), (MockDBKey.labels, "label"), (MockDBKey.units, "unit")]:
+                link_id = li.get(f"{link}_id")
+                if link_id is None:
+                    li[link] = None
+
+                else:
+                    li[link] = self._get_one(db_key, link_id)
 
             # save changes
             list_items_data[i] = li
