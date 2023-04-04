@@ -100,20 +100,12 @@ class MealieListService:
 
         return None
 
-    def add_food_to_item(self, item: SHOPPING_LIST_ITEM) -> SHOPPING_LIST_ITEM:
+    def add_food_to_item(self, item: MealieShoppingListItemCreate) -> MealieShoppingListItemCreate:
         if not item.note or not self.config.use_foods:
             return item
 
-        # if the item already has a food, we leave the food alone
+        # if the item already has a food, we leave the item alone
         if item.food_id:
-            item.is_food = True
-
-            # Mealie doesn't always add the food's label to the item, so we check the food
-            if not item.label_id:
-                food = self.get_food(item.note)
-                if food and food.label:
-                    item.label_id = food.label.id
-
             return item
 
         food = self.get_food(item.note)
