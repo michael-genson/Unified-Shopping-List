@@ -41,7 +41,8 @@
     "todoist"
   ],
   "python.testing.pytestArgs": [
-    "tests"
+    "--cov=AppLambda/src/",
+    "tests/"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true
