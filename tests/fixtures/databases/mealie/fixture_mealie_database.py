@@ -112,8 +112,6 @@ def mealie_shopping_lists() -> list[MealieShoppingListOut]:
 
     for shopping_list in shopping_lists:
         mock_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
-        for item in shopping_list.list_items:
-            mock_server._insert_one(MockDBKey.shopping_list_items, item.id, item.dict())
 
     return shopping_lists
 
@@ -185,8 +183,6 @@ def mealie_shopping_lists_with_foods_labels_units_recipe(
 
     for shopping_list in shopping_lists:
         mock_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
-        for item in shopping_list.list_items:
-            mock_server._insert_one(MockDBKey.shopping_list_items, item.id, item.dict())
 
     return shopping_lists
 

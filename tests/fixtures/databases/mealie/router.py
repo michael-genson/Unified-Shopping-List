@@ -34,7 +34,6 @@ class MockDBKey(Enum):
     notifiers = "notifiers"
     recipes = "recipes"
     shopping_lists = "shopping_lists"
-    shopping_list_items = "shopping_list_items"
     units = "units"
     user_api_tokens = "user_api_tokens"
 
@@ -89,8 +88,7 @@ class MockMealieServer:
     def _insert_one(self, key: MockDBKey, id: str, data: dict[str, Any]) -> None:
         self.db[key][id] = data
 
-    def _get_all(self, key: MockDBKey, params: dict[str, Any]) -> dict[str, Any]:
-        items = list(self.db[key].values())
+    def _paginate(self, items: list[dict[str, Any]], params: dict[str, Any]) -> Pagination:
         page = params.get("page", 1)
         assert isinstance(page, int)
         per_page = params.get("perPage", 10)
@@ -117,7 +115,11 @@ class MockMealieServer:
             previous="placeholder" if page > 1 else None,
         )
 
-        return pagination.dict()
+        return pagination
+
+    def _get_all(self, key: MockDBKey, params: dict[str, Any]) -> dict[str, Any]:
+        items = list(self.db[key].values())
+        return self._paginate(items, params).dict()
 
     def _get_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
@@ -141,6 +143,16 @@ class MockMealieServer:
         # we don't track updates to notifiers
         return self._get_one(MockDBKey.notifiers, id_or_url)
 
+    def _get_all_shopping_list_items(
+        self, shopping_list_id: str, include_checked: bool, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        shopping_list = self._get_one(MockDBKey.shopping_lists, shopping_list_id)
+        list_items = cast(list[dict[str, Any]], shopping_list["list_items"])
+        if not include_checked:
+            list_items = [li for li in list_items if not li["checked"]]
+
+        return self._paginate(list_items, params).dict()
+
     def _create_shopping_list_item(self, payload: dict[str, Any]) -> dict[str, Any]:
         item = MealieShoppingListItemCreate(**payload)
         id = str(uuid4())
@@ -163,7 +175,6 @@ class MockMealieServer:
             recipe_references=recipe_references,
         )
         data = item_out.dict()
-        self._insert_one(MockDBKey.shopping_list_items, id, data)
 
         # insert list item into shopping list
         shopping_list = self.db[MockDBKey.shopping_lists].get(item_out.shopping_list_id)
@@ -176,41 +187,47 @@ class MockMealieServer:
     def _update_shopping_list_item(self, id: str, payload: dict[str, Any]) -> dict[str, Any]:
         update_item = MealieShoppingListItemUpdate(**payload)
         update_item_data = update_item.dict()
-        existing_item_data = self._get_one(MockDBKey.shopping_list_items, id)
-        for key in existing_item_data:
-            if key in update_item_data:
-                existing_item_data[key] = update_item_data[key]
 
-        self._insert_one(MockDBKey.shopping_list_items, id, existing_item_data)
-
-        # update list item in shopping list
-        shopping_list = self.db[MockDBKey.shopping_lists].get(update_item.shopping_list_id)
-        assert shopping_list
-
+        shopping_list = self._get_one(MockDBKey.shopping_lists, update_item.shopping_list_id)
         list_items_data = cast(Optional[list[dict[str, Any]]], shopping_list.get("list_items"))
         assert list_items_data
 
-        assert id in set(li.get("id") for li in list_items_data)
-        new_list_items_data = [existing_item_data if li.get("id") == id else li for li in list_items_data]
-        self.db[MockDBKey.shopping_lists][update_item.shopping_list_id]["list_items"] = new_list_items_data
+        item_data: Optional[dict[str, Any]] = None
+        for i, li in enumerate(list_items_data):
+            if id != li.get("id"):
+                continue
 
-        return existing_item_data
+            # merge updated data into item
+            for key in update_item_data:
+                li[key] = update_item_data[key]
 
-    def _delete_shopping_list_item(self, id: str) -> dict[str, Any]:
-        deleted_item_data = self._delete_one(MockDBKey.shopping_list_items, id)
+            # save changes
+            list_items_data[i] = li
+            item_data = li
+            break
 
-        # remove item from shopping list
-        item = MealieShoppingListItemOut(**deleted_item_data)
-        shopping_list_data = self.db[MockDBKey.shopping_lists].get(item.shopping_list_id)
-        assert shopping_list_data
+        assert item_data
+        self.db[MockDBKey.shopping_lists][update_item.shopping_list_id]["list_items"] = list_items_data
+        return item_data
 
-        list_items_data = cast(Optional[list[dict[str, Any]]], shopping_list_data.get("list_items"))
-        assert list_items_data
+    def _delete_shopping_list_item(self, item_id: str) -> dict[str, Any]:
+        shopping_lists = self.get_all_records(MockDBKey.shopping_lists)
+        deleted_item_data: Optional[dict[str, Any]] = None
+        for shopping_list in shopping_lists.values():
+            list_items_data = cast(list[dict[str, Any]], shopping_list["list_items"])
+            for i, li in enumerate(list_items_data):
+                if item_id != li.get("id"):
+                    continue
 
-        new_list_items_data = [li for li in list_items_data if not li.get("id") == item.id]
-        assert len(new_list_items_data) < len(list_items_data)
-        self.db[MockDBKey.shopping_lists][item.shopping_list_id]["list_items"] = new_list_items_data
+                # store the deleted item data and remove it from the shopping list
+                deleted_item_data = li
+                del self.db[MockDBKey.shopping_lists][li["shopping_list_id"]]["list_items"][i]
+                break
 
+            if deleted_item_data:
+                break
+
+        assert deleted_item_data
         return deleted_item_data
 
     def _create_user_api_token(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -296,7 +313,20 @@ class MockMealieServer:
 
             elif is_route(Routes.GROUPS_SHOPPING_ITEMS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.shopping_list_items, params)
+                    assert "queryFilter" in params
+                    shopping_list_id: Optional[str] = None
+                    include_checked = True
+
+                    filters = cast(list[str], params["queryFilter"].split())
+                    for filter in filters:
+                        if "shopping_list_id" in filter:
+                            shopping_list_id = filter.split("=")[-1]
+
+                        elif "checked" in filter:
+                            include_checked = filter.split("=")[-1].lower()[0] == "t"
+
+                    assert shopping_list_id
+                    data = self._get_all_shopping_list_items(shopping_list_id, include_checked, params)
 
                 elif method == "PUT":
                     assert isinstance(payload, list)
