@@ -50,7 +50,7 @@ class MockMealieServer:
         return url.split("/")[-1]
 
     @classmethod
-    def _assert_or_404(cls, data: Optional[T]) -> T:
+    def _assert(cls, data: Optional[T]) -> T:
         if not data:
             response = Response()
             response.status_code = 404
@@ -123,12 +123,12 @@ class MockMealieServer:
 
     def _get_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
-        data = self._assert_or_404(self.db[key].get(id))
+        data = self._assert(self.db[key].get(id))
         return data
 
     def _delete_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
-        data = self._assert_or_404(self.db[key].pop(id, None))
+        data = self._assert(self.db[key].pop(id, None))
         return data
 
     def _create_notifier(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -157,9 +157,9 @@ class MockMealieServer:
         item = MealieShoppingListItemCreate(**payload)
         id = str(uuid4())
 
-        food = Food(**self._assert_or_404(self.db[MockDBKey.foods].get(item.food_id))) if item.food_id else None
-        label = Label(**self._assert_or_404(self.db[MockDBKey.labels].get(item.label_id))) if item.label_id else None
-        unit = Unit(**self._assert_or_404(self.db[MockDBKey.units].get(item.unit_id))) if item.unit_id else None
+        food = Food(**self._assert(self.db[MockDBKey.foods].get(item.food_id))) if item.food_id else None
+        label = Label(**self._assert(self.db[MockDBKey.labels].get(item.label_id))) if item.label_id else None
+        unit = Unit(**self._assert(self.db[MockDBKey.units].get(item.unit_id))) if item.unit_id else None
         recipe_references = [
             ref.cast(MealieShoppingListRecipeRef, id=str(uuid4()), shopping_list_item_id=id)
             for ref in item.recipe_references

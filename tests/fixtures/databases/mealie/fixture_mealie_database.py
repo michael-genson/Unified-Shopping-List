@@ -22,12 +22,12 @@ from tests.utils import random_bool, random_int, random_string
 
 from .router import MockDBKey, MockMealieServer
 
-mock_server = MockMealieServer()
+_mock_mealie_server = MockMealieServer()
 
 
 @pytest.fixture()
 def mealie_server() -> MockMealieServer:
-    return mock_server
+    return _mock_mealie_server
 
 
 @pytest.fixture()
@@ -35,7 +35,7 @@ def mealie_foods() -> list[Food]:
     foods = [Food(id=str(uuid4()), name=random_string(), description=random_string()) for _ in range(10)]
     for food in foods:
         assert food.id
-        mock_server._insert_one(MockDBKey.foods, food.id, food.dict())
+        _mock_mealie_server._insert_one(MockDBKey.foods, food.id, food.dict())
 
     return foods
 
@@ -48,7 +48,7 @@ def mealie_foods_with_labels(mealie_labels: list[Label]) -> list[Food]:
     ]
     for food in foods:
         assert food.id
-        mock_server._insert_one(MockDBKey.foods, food.id, food.dict())
+        _mock_mealie_server._insert_one(MockDBKey.foods, food.id, food.dict())
 
     return foods
 
@@ -57,7 +57,7 @@ def mealie_foods_with_labels(mealie_labels: list[Label]) -> list[Food]:
 def mealie_labels() -> list[Label]:
     labels = [Label(id=str(uuid4()), name=random_string(), color="#FFFFFF") for _ in range(10)]
     for label in labels:
-        mock_server._insert_one(MockDBKey.labels, label.id, label.dict())
+        _mock_mealie_server._insert_one(MockDBKey.labels, label.id, label.dict())
 
     return labels
 
@@ -65,10 +65,11 @@ def mealie_labels() -> list[Label]:
 @pytest.fixture()
 def mealie_notifiers() -> list[MealieEventNotifierOut]:
     notifiers = [
-        MealieEventNotifierOut(id=str(uuid4()), group_id=mock_server.group_id, name=random_string()) for _ in range(10)
+        MealieEventNotifierOut(id=str(uuid4()), group_id=_mock_mealie_server.group_id, name=random_string())
+        for _ in range(10)
     ]
     for notifier in notifiers:
-        mock_server._insert_one(MockDBKey.notifiers, notifier.id, notifier.dict())
+        _mock_mealie_server._insert_one(MockDBKey.notifiers, notifier.id, notifier.dict())
 
     return notifiers
 
@@ -77,7 +78,7 @@ def mealie_notifiers() -> list[MealieEventNotifierOut]:
 def mealie_recipes() -> list[MealieRecipe]:
     recipes = [MealieRecipe(id=str(uuid4()), slug=random_string(), name=random_string()) for _ in range(10)]
     for recipe in recipes:
-        mock_server._insert_one(MockDBKey.recipes, recipe.id, recipe.dict())
+        _mock_mealie_server._insert_one(MockDBKey.recipes, recipe.id, recipe.dict())
 
     return recipes
 
@@ -111,7 +112,7 @@ def mealie_shopping_lists() -> list[MealieShoppingListOut]:
         )
 
     for shopping_list in shopping_lists:
-        mock_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
+        _mock_mealie_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
 
     return shopping_lists
 
@@ -182,7 +183,7 @@ def mealie_shopping_lists_with_foods_labels_units_recipe(
         )
 
     for shopping_list in shopping_lists:
-        mock_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
+        _mock_mealie_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
 
     return shopping_lists
 
@@ -203,7 +204,7 @@ def mealie_units() -> list[Unit]:
 
     for unit in units:
         assert unit.id
-        mock_server._insert_one(MockDBKey.units, unit.id, unit.dict())
+        _mock_mealie_server._insert_one(MockDBKey.units, unit.id, unit.dict())
 
     return units
 
@@ -212,7 +213,7 @@ def mealie_units() -> list[Unit]:
 def mealie_api_tokens() -> list[AuthToken]:
     tokens = [AuthToken(id=str(uuid4()), token=str(uuid4()), name=random_string()) for _ in range(10)]
     for token in tokens:
-        mock_server._insert_one(MockDBKey.user_api_tokens, token.id, token.dict())
+        _mock_mealie_server._insert_one(MockDBKey.user_api_tokens, token.id, token.dict())
 
     return tokens
 
@@ -222,11 +223,11 @@ def mock_mealie_server():
     """Replace all Mealie API calls with locally mocked database calls"""
 
     mp = MonkeyPatch()
-    mp.setattr(MealieBaseClient, "_get_client", lambda *args, **kwargs: mock_server)
+    mp.setattr(MealieBaseClient, "_get_client", lambda *args, **kwargs: _mock_mealie_server)
     yield
 
 
 @pytest.fixture(autouse=True)
 def clean_up_database():
     yield
-    mock_server.db.clear()
+    _mock_mealie_server.db.clear()
