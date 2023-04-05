@@ -33,21 +33,26 @@ def test_mealie_client_is_valid(mealie_client: MealieClient):
 
 
 @pytest.mark.parametrize(
-    "client_method,record_model,db_key",
+    "client_method,record_list_fixture,record_model,db_key",
     [
-        ("get_all_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
-        ("get_all_recipes", MealieRecipe, MockDBKey.recipes),
-        ("get_all_foods", Food, MockDBKey.foods),
-        ("get_all_labels", Label, MockDBKey.labels),
+        ("get_all_shopping_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
+        ("get_all_recipes", "mealie_recipes", MealieRecipe, MockDBKey.recipes),
+        ("get_all_foods", "mealie_foods", Food, MockDBKey.foods),
+        ("get_all_labels", "mealie_labels", Label, MockDBKey.labels),
     ],
 )
 def test_mealie_client_get_all_records(
     mealie_server: MockMealieServer,
     mealie_client: MealieClient,
     client_method: str,
+    record_list_fixture: str,
     record_model: Type[APIBase],
     db_key: MockDBKey,
+    request: pytest.FixtureRequest,
 ):
+    record_list = request.getfixturevalue(record_list_fixture)
+    assert record_list  # pre-populate database
+
     record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}
     get_all_func: Callable = getattr(mealie_client, client_method)
     all_records_data = get_all_func()

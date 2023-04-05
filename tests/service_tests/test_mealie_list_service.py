@@ -1,19 +1,23 @@
 import random
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import pytest
 
 from AppLambda.src.models.account_linking import NotLinkedError
 from AppLambda.src.models.core import User
 from AppLambda.src.models.mealie import (
+    APIBase,
     Food,
     Label,
     MealieRecipe,
     MealieShoppingListItemCreate,
+    MealieShoppingListItemExtras,
+    MealieShoppingListItemOut,
     MealieShoppingListItemUpdateBulk,
     MealieShoppingListOut,
 )
 from AppLambda.src.services.mealie import MealieListService
+from tests.fixtures.databases.mealie.router import MockDBKey, MockMealieServer
 from tests.utils import random_string
 
 
@@ -155,3 +159,94 @@ def test_mealie_list_service_add_food_to_item(
         assert item.is_food is True
         assert item.food_id == food.id
         assert item.label_id == food.label.id
+
+
+@pytest.mark.parametrize(
+    "service_method,record_list_fixture,record_model,db_key",
+    [
+        ("get_all_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
+    ],
+)
+def test_mealie_list_service_get_all(
+    mealie_server: MockMealieServer,
+    mealie_list_service: MealieListService,
+    service_method: str,
+    record_list_fixture: str,
+    record_model: Type[APIBase],
+    db_key: MockDBKey,
+    request: pytest.FixtureRequest,
+):
+    record_list = request.getfixturevalue(record_list_fixture)
+    assert record_list  # pre-populate database
+
+    record_store = {id: record_model(**data) for id, data in mealie_server.get_all_records(db_key).items()}
+    get_all_func: Callable = getattr(mealie_list_service, service_method)
+    all_records_data = get_all_func()
+    all_records = {getattr(record, "id"): record for record in all_records_data}
+    assert all_records == record_store
+
+
+def test_mealie_list_service_get_all_list_items(
+    mealie_list_service: MealieListService,
+    mealie_shopping_lists: list[MealieShoppingListOut],
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+
+    # unchecked is done first to avoid caching checked items
+    expected_checked_items = [item for item in shopping_list.list_items if not item.checked]
+    all_unchecked_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=False)
+    assert len(all_unchecked_items) == len(expected_checked_items)
+    for item in all_unchecked_items:
+        assert item in expected_checked_items
+
+    expected_items = shopping_list.list_items
+    all_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=True)
+    assert len(all_items) == len(expected_items)
+    for item in all_items:
+        assert item in expected_items
+
+
+def test_mealie_list_service_get_item(
+    mealie_list_service: MealieListService,
+    mealie_shopping_lists: list[MealieShoppingListOut],
+):
+    # get a list item that isn't checked
+    list_item: Optional[MealieShoppingListItemOut] = None
+    for shopping_list in mealie_shopping_lists:
+        for li in shopping_list.list_items:
+            if not li.checked:
+                list_item = li
+                break
+
+        if list_item:
+            break
+
+    assert list_item
+    assert mealie_list_service.get_item(list_item.shopping_list_id, list_item.id) == list_item
+
+    # verify a random id returns None
+    assert mealie_list_service.get_item(list_item.shopping_list_id, random_string()) is None
+
+
+def test_mealie_list_service_get_item_by_extra(
+    mealie_list_service: MealieListService,
+    mealie_shopping_lists: list[MealieShoppingListOut],
+):
+    list_item = random.choice(random.choice(mealie_shopping_lists).list_items)
+
+    # give the item an extra
+    alexa_item_id = random_string()
+    list_item_to_update = list_item.cast(MealieShoppingListItemUpdateBulk)
+    list_item_to_update.checked = False
+    list_item_to_update.extras = MealieShoppingListItemExtras(alexa_item_id=alexa_item_id)
+    mealie_list_service.update_items([list_item_to_update])
+
+    updated_list_item = mealie_list_service.get_item(list_item.shopping_list_id, list_item.id)
+    assert updated_list_item
+    assert (
+        mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", alexa_item_id)
+        == updated_list_item
+    )
+
+    # verify a random value returns None
+    assert mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", random_string()) is None
