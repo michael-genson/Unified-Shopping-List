@@ -31,11 +31,13 @@ class MealieListService:
         self.config = cast(UserMealieConfiguration, user.configuration.mealie)
         self._client = MealieClient(self.config.base_url, self.config.auth_token)
 
-        self.list_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        self._list_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
         """
         map of {shopping_list_id: list[shopping_list_items]}
         
-        *not guaranteed to store checked items*
+        guaranteed to contain *all* unchecked items, but sometimes contains *some* checked items
+
+        should not be accessed directly; see `get_all_list_items`
         """
 
     @cached_property
@@ -134,19 +136,19 @@ class MealieListService:
     def get_all_lists(self) -> Iterable[MealieShoppingListOut]:
         return self._client.get_all_shopping_lists()
 
-    def get_all_list_items(self, list_id: str, include_checked: bool = False) -> list[MealieShoppingListItemOut]:
+    def get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
         """
-        Fetch all list items from Mealie or local cache. Sometimes contains checked items
+        Fetch all list items from Mealie or local cache. May include some checked items
 
         Optionally include all checked items queried directly from Mealie
         """
 
         # checked items are not always cached, so we only check the cache if we don't care about them
-        if list_id in self.list_items_by_list_id and not include_checked:
-            return self.list_items_by_list_id[list_id]
+        if list_id in self._list_items_by_list_id and not include_all_checked:
+            return self._list_items_by_list_id[list_id]
 
-        list_items = list(self._client.get_all_shopping_list_items(list_id, include_checked))
-        self.list_items_by_list_id[list_id] = list_items
+        list_items = list(self._client.get_all_shopping_list_items(list_id, include_all_checked))
+        self._list_items_by_list_id[list_id] = list_items
         return list_items
 
     def get_item(self, list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
