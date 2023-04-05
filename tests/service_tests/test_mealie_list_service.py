@@ -18,7 +18,7 @@ from AppLambda.src.models.mealie import (
 )
 from AppLambda.src.services.mealie import MealieListService
 from tests.fixtures.databases.mealie.router import MockDBKey, MockMealieServer
-from tests.utils import random_string
+from tests.utils import random_int, random_string
 
 
 def test_mealie_list_service_unlinked_user(user: User):
@@ -187,8 +187,7 @@ def test_mealie_list_service_get_all(
 
 
 def test_mealie_list_service_get_all_list_items(
-    mealie_list_service: MealieListService,
-    mealie_shopping_lists: list[MealieShoppingListOut],
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
     shopping_list = random.choice(mealie_shopping_lists)
 
@@ -207,8 +206,7 @@ def test_mealie_list_service_get_all_list_items(
 
 
 def test_mealie_list_service_get_item(
-    mealie_list_service: MealieListService,
-    mealie_shopping_lists: list[MealieShoppingListOut],
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
     # get a list item that isn't checked
     list_item: Optional[MealieShoppingListItemOut] = None
@@ -229,8 +227,7 @@ def test_mealie_list_service_get_item(
 
 
 def test_mealie_list_service_get_item_by_extra(
-    mealie_list_service: MealieListService,
-    mealie_shopping_lists: list[MealieShoppingListOut],
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
     list_item = random.choice(random.choice(mealie_shopping_lists).list_items)
 
@@ -250,3 +247,120 @@ def test_mealie_list_service_get_item_by_extra(
 
     # verify a random value returns None
     assert mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", random_string()) is None
+
+
+def test_mealie_list_service_create_items(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+    original_items = shopping_list.list_items
+    items_to_create = [
+        MealieShoppingListItemCreate(
+            shopping_list_id=shopping_list.id,
+            checked=False,
+            position=i,
+            note=random_string(),
+            quantity=random.uniform(1, 10),
+        )
+        for i in range(random_int(3, 10))
+    ]
+    new_item_notes = set(item.note for item in items_to_create if item.note)
+    assert new_item_notes
+
+    mealie_list_service.create_items(items_to_create)
+    updated_list_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=True)
+
+    # verify all new items are present
+    assert len(updated_list_items) == len(original_items) + len(items_to_create)
+    for item in updated_list_items:
+        if item in original_items:
+            continue
+
+        assert item.note
+        new_item_notes.remove(item.note)
+
+    assert not new_item_notes
+
+
+def test_mealie_list_service_update_items(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+    original_items = shopping_list.list_items
+    update_items = [
+        item.cast(MealieShoppingListItemUpdateBulk, note=random_string())
+        for item in random.sample(original_items, random_int(3, len(original_items)))
+    ]
+
+    mealie_list_service.update_items(update_items)
+    original_items_map = {item.id: item for item in original_items}
+    updated_items_map = {item.id: item for item in update_items}
+
+    updated_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=True)
+    assert len(updated_items) == len(original_items)
+    for item in updated_items:
+        if item.id not in updated_items_map:
+            assert item.note == original_items_map[item.id].note
+        else:
+            assert item.note == updated_items_map[item.id].note != original_items_map[item.id].note
+
+
+def test_mealie_list_service_delete_items(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+    original_items = shopping_list.list_items
+    items_to_delete = random.sample(original_items, random_int(3, len(original_items)))
+
+    mealie_list_service.delete_items(items_to_delete)
+    deleted_item_ids = set(item.id for item in items_to_delete)
+
+    updated_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=True)
+    assert len(updated_items) == len(original_items) - len(items_to_delete)
+    for item in original_items:
+        assert bool(item.id in deleted_item_ids) ^ bool(item.id not in deleted_item_ids)
+
+
+def test_mealie_list_service_bulk_handle_items(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+    original_items = shopping_list.list_items
+    items_to_create = [
+        MealieShoppingListItemCreate(
+            shopping_list_id=shopping_list.id,
+            checked=False,
+            position=i,
+            note=random_string(100),
+            quantity=random.uniform(1, 10),
+        )
+        for i in range(random_int(3, 10))
+    ]
+    items_to_delete = random.sample(original_items, random_int(1, 3))
+    items_to_update = [
+        item.cast(MealieShoppingListItemUpdateBulk, note=random_string(100))
+        for item in random.sample([item for item in original_items if item not in items_to_delete], random_int(1, 3))
+    ]
+
+    assert items_to_create and items_to_update and items_to_delete
+
+    original_item_map = {item.id: item for item in original_items}
+    new_item_notes = set(item.note for item in items_to_create if item.note)
+    updated_item_note_map = {item.id: item.note for item in items_to_update if item.note}
+    deleted_item_ids = set(item.id for item in items_to_delete)
+
+    mealie_list_service.bulk_handle_items(
+        create_items=items_to_create, update_items=items_to_update, delete_items=items_to_delete
+    )
+
+    modified_items = mealie_list_service.get_all_list_items(shopping_list.id, include_all_checked=True)
+    assert len(modified_items) == len(original_items) + len(items_to_create) - len(items_to_delete)
+    for item in modified_items:
+        assert item.id not in deleted_item_ids
+        if item.id in updated_item_note_map:
+            assert item.note == updated_item_note_map[item.id] != original_item_map[item.id].note
+        elif item.note in new_item_notes:
+            assert item.id not in original_item_map
+        else:
+            assert item.id in original_item_map
+            assert item == original_item_map[item.id]
