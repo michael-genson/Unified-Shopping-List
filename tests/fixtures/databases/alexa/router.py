@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Any, Optional, TypeVar
 from uuid import uuid4
 
+from fastapi.encoders import jsonable_encoder
+
 from AppLambda.src import config
 from AppLambda.src.clients import aws
 from AppLambda.src.models.alexa import (
@@ -136,7 +138,7 @@ class MockAlexaServer:
 
         return self.db.get(list_id)
 
-    def send_message(self, message: Message, *args, **kwargs) -> None:
+    def send_message(self, user_id: str, message: Message, *args, **kwargs) -> None:
 
         # default response if there is no operation + object_type match
         response_body: CallbackData = CallbackData(success=False, detail="invalid operation + object_type parameters")
@@ -145,32 +147,32 @@ class MockAlexaServer:
             for request in message.requests:
                 response: Optional[dict[str, Any]] = None
 
-                if request.operation == Operation.read_all:
-                    if request.object_type == ObjectType.list:
+                if request.operation == Operation.read_all.value:
+                    if request.object_type == ObjectType.list.value:
                         response = {"lists": self._get_all_lists()}
 
-                elif request.operation == Operation.read:
-                    if request.object_type == ObjectType.list:
+                elif request.operation == Operation.read.value:
+                    if request.object_type == ObjectType.list.value:
                         response = self._get_list(request.object_data)
 
-                    elif request.object_type == ObjectType.list_item:
+                    elif request.object_type == ObjectType.list_item.value:
                         response = self._get_list_item(request.object_data)
 
                 else:
-                    if request.object_type == ObjectType.list:
+                    if request.object_type == ObjectType.list.value:
                         raise NotImplementedError()
 
-                    elif request.object_type == ObjectType.list_item:
-                        if request.operation == Operation.create:
+                    elif request.object_type == ObjectType.list_item.value:
+                        if request.operation == Operation.create.value:
                             response = self._create_list_item(request.object_data)
 
-                        elif request.operation == Operation.update:
+                        elif request.operation == Operation.update.value:
                             response = self._update_list_item(request.object_data)
 
-                        elif request.operation == Operation.delete:
+                        elif request.operation == Operation.delete.value:
                             raise NotImplementedError()
 
-                if response:
+                if response is not None:
                     response["metadata"] = request.metadata
                     responses.append(response)
 
@@ -195,7 +197,7 @@ class MockAlexaServer:
         callback = CallbackEvent(
             event_source=message.source,
             event_id=message.event_id,
-            data=json.dumps(response_body.dict(exclude_none=True)),
+            data=json.dumps(jsonable_encoder(response_body.dict(exclude_none=True))),
         )
 
         self.ddb_client.put(callback.dict(exclude_none=True), allow_update=False)
