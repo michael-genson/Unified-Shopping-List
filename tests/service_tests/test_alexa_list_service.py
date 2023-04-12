@@ -71,9 +71,10 @@ def test_alexa_list_service_create_list_items(
 
     new_items = response.list_items
     assert len(new_items) == len(items_to_create)
-    new_item_values = set(item.value for item in new_items)
-    for item in items_to_create:
-        assert item.value in new_item_values
+
+    # check that all values are present and order is preserved
+    for item_to_create, new_item in zip(items_to_create, new_items):
+        assert item_to_create.value == new_item.value
 
     fetched_list = alexa_list_service.get_list(alexa_list.list_id)
     assert fetched_list.items

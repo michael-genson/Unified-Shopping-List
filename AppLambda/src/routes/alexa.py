@@ -204,7 +204,7 @@ async def get_list(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    return list_service.get_list(list_id, source=source)
+    return list_service.get_list(list_id, source=source)  # TODO: catch invalid list id and throw 404 error
 
 
 ### List Items ###
@@ -252,7 +252,7 @@ async def get_list_item(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    item = list_service.get_list_item(list_id, item_id, source)
+    item = list_service.get_list_item(list_id, item_id, source)  # TODO: catch invalid list id and throw 404 error
 
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
