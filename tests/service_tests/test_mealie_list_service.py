@@ -56,7 +56,7 @@ def test_mealie_list_service_get_recipe_url(mealie_list_service: MealieListServi
 
 
 @pytest.mark.parametrize(
-    "service_method,record_list_fixture,",
+    "service_method, record_list_fixture",
     [
         ("get_food", "mealie_foods"),
         ("get_label", "mealie_labels"),
@@ -114,7 +114,7 @@ def test_mealie_list_service_get_label_from_item(
 
 
 @pytest.mark.parametrize(
-    "mealie_list_service_fixture,use_foods,overwrite_names",
+    "mealie_list_service_fixture, use_foods,overwrite_names",
     [
         ("mealie_list_service", False, False),
         ("mealie_list_service_use_foods", True, False),
@@ -162,7 +162,7 @@ def test_mealie_list_service_add_food_to_item(
 
 
 @pytest.mark.parametrize(
-    "service_method,record_list_fixture,record_model,db_key",
+    "service_method, record_list_fixture,record_model, db_key",
     [
         ("get_all_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
     ],

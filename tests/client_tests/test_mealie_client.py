@@ -33,7 +33,7 @@ def test_mealie_client_is_valid(mealie_client: MealieClient):
 
 
 @pytest.mark.parametrize(
-    "client_method,record_list_fixture,record_model,db_key",
+    "client_method, record_list_fixture, record_model,db_key",
     [
         ("get_all_shopping_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
         ("get_all_recipes", "mealie_recipes", MealieRecipe, MockDBKey.recipes),
@@ -61,7 +61,7 @@ def test_mealie_client_get_all_records(
 
 
 @pytest.mark.parametrize(
-    "client_method,record_list_fixture",
+    "client_method, record_list_fixture",
     [
         ("get_shopping_list", "mealie_shopping_lists"),
     ],
@@ -82,7 +82,7 @@ def test_mealie_client_get_one_record(
 
 
 @pytest.mark.parametrize(
-    "client_method,record_model,db_key,args_callable",
+    "client_method, record_model, db_key, args_callable",
     [
         ("create_auth_token", AuthToken, MockDBKey.user_api_tokens, lambda: (random_string(),)),
         ("create_notifier", MealieEventNotifierOut, MockDBKey.notifiers, lambda: (random_string(), random_string())),
@@ -104,7 +104,7 @@ def test_mealie_client_create_record(
 
 
 @pytest.mark.parametrize(
-    "client_method,record_model,db_key,record_list_fixture",
+    "client_method, record_model, db_key,record_list_fixture",
     [
         ("delete_auth_token", AuthToken, MockDBKey.user_api_tokens, "mealie_api_tokens"),
         ("delete_notifier", MealieEventNotifierOut, MockDBKey.notifiers, "mealie_notifiers"),
