@@ -101,7 +101,7 @@ class MockAlexaServer:
 
         existing_item_data: Optional[dict[str, Any]] = None
         existing_item_index: int = -1
-        for i, item in self.db.get(update_list_item.list_id, {}).get("items", []):
+        for i, item in enumerate(self.db.get(update_list_item.list_id, {}).get("items", [])):
             if item.get("id") == update_list_item.item_id:
                 existing_item_data = item
                 existing_item_index = i

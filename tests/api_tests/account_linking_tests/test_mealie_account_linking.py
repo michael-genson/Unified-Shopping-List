@@ -32,6 +32,7 @@ def test_mealie_link_create(
     )
     response.raise_for_status()
     new_config = UserMealieConfiguration.parse_obj(response.json())
+    assert new_config.is_valid
 
     # confirm a new auth token was generated
     assert new_config.auth_token
@@ -78,9 +79,9 @@ def test_mealie_link_create_with_invalid_token(
 
 
 def test_mealie_link_update(
-    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked_mealie: User
+    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked: User
 ):
-    existing_config = user_linked_mealie.configuration.mealie
+    existing_config = user_linked.configuration.mealie
     assert existing_config
 
     params = {
@@ -91,11 +92,11 @@ def test_mealie_link_update(
     response = api_client.put(
         account_linking.api_router.url_path_for("update_mealie_account_link"),
         params=params,
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(token_service, user_linked),
     )
     response.raise_for_status()
 
-    updated_user = user_service.get_user(user_linked_mealie.username)
+    updated_user = user_service.get_user(user_linked.username)
     assert updated_user
 
     assert updated_user.is_linked_to_mealie
@@ -128,8 +129,10 @@ def test_mealie_link_delete(
     user_service: UserService,
     mealie_server: MockMealieServer,
     api_client: TestClient,
-    user_linked_mealie: User,
+    user_linked: User,
 ):
+    assert user_linked.is_linked_to_mealie
+
     notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
     existing_notifiers = len(notifier_data)
     assert existing_notifiers
@@ -140,12 +143,12 @@ def test_mealie_link_delete(
 
     response = api_client.delete(
         account_linking.api_router.url_path_for("unlink_mealie_account"),
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(token_service, user_linked),
     )
     response.raise_for_status()
 
     # verify user is no longer linked to mealie
-    updated_user = user_service.get_user(user_linked_mealie.username)
+    updated_user = user_service.get_user(user_linked.username)
     assert updated_user
     assert not updated_user.is_linked_to_mealie
     assert not updated_user.configuration.mealie

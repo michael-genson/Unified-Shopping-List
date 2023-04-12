@@ -15,6 +15,7 @@ from ..models.alexa import CallbackData, CallbackEvent, Message, MessageIn
 LWA_URL = "https://api.amazon.com/auth/o2/token"
 ALEXA_MESSAGE_API_URL = "https://api.amazonalexa.com/v1/skillmessages/users/{user_id}"
 
+# TODO: make these inherit from a custom exception type
 NO_RESPONSE_EXCEPTION = "Could not find a response from Alexa"
 NO_RESPONSE_DATA_EXCEPTION = "Alexa returned a response, but there was no response data"
 
