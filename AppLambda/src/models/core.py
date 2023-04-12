@@ -77,15 +77,15 @@ class User(APIBase):
 
     @property
     def is_linked_to_mealie(self):
-        return self.configuration.mealie and self.configuration.mealie.is_valid
+        return bool(self.configuration.mealie and self.configuration.mealie.is_valid)
 
     @property
     def is_linked_to_alexa(self):
-        return self.alexa_user_id and self.configuration.alexa and self.configuration.alexa.is_valid
+        return bool(self.alexa_user_id and self.configuration.alexa and self.configuration.alexa.is_valid)
 
     @property
     def is_linked_to_todoist(self):
-        return self.todoist_user_id and self.configuration.todoist and self.configuration.todoist.is_valid
+        return bool(self.todoist_user_id and self.configuration.todoist and self.configuration.todoist.is_valid)
 
     def set_expiration(self, expiration_in_seconds: int) -> int:
         """Sets expiration time in seconds and returns the TTL value"""
