@@ -79,7 +79,7 @@ async def delete_alexa_config(request: Request):
     user = logged_in_response
 
     try:
-        user = unlink_alexa_account(user)
+        user = await unlink_alexa_account(user)
         return create_alexa_config_template(
             request,
             user,
@@ -173,7 +173,7 @@ async def unlink_user_from_alexa_app(request: Request, user_id: str = Query(...,
             continue
 
         user = _user_in_db.cast(User)
-        unlink_alexa_account(user)
+        await unlink_alexa_account(user)
 
 
 ### Lists ###

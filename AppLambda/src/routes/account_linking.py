@@ -208,7 +208,7 @@ async def handle_sync_map_update_form(request: Request, list_map_data: list[str]
 
 @api_router.post("/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False)
 @services.rate_limit.limit(RateLimitCategory.modify)
-def link_alexa_account(
+async def link_alexa_account(
     user: User = Depends(get_current_user),
     alexa_config_input: UserAlexaConfigurationCreate = Depends(),
 ) -> UserAlexaConfiguration:
@@ -220,7 +220,7 @@ def link_alexa_account(
 
 @api_router.delete("/alexa", tags=["Alexa"])
 @services.rate_limit.limit(RateLimitCategory.modify)
-def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
+async def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
     # TODO: send unlink request to Alexa; currently this just removes the id from the database
     user.alexa_user_id = None
     user.configuration.alexa = None
