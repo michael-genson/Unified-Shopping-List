@@ -32,9 +32,9 @@ def random_int(min=-4294967296, max=4294967296) -> int:
 
 
 def random_url(https=True) -> str:
-    """all random URLs are the same length, with or without https (24 characters)"""
+    """all random URLs are the same length, with or without https (25 characters)"""
 
-    return f"{'https' if https else 'http'}//{random_string(5 if https else 6)}.example.com"
+    return f"{'https' if https else 'http'}://{random_string(5 if https else 6)}.example.com"
 
 
 def get_auth_headers(
