@@ -2,7 +2,6 @@ import random
 from typing import Optional
 
 import pytest
-from pydantic import BaseModel
 from pytest import MonkeyPatch
 from todoist_api_python.models import Project, Section, Task
 
@@ -108,4 +107,4 @@ def mock_todoist_api():
 @pytest.fixture(autouse=True)
 def clean_up_database():
     yield
-    _mock_todoist_server.db.clear()
+    _mock_todoist_server._clear_db()

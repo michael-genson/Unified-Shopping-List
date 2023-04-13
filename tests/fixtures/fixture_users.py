@@ -75,6 +75,15 @@ def user_linked(
     )
     response.raise_for_status()
 
+    # link user to Todoist
+    params = {"accessToken": random_string()}
+    response = api_client.post(
+        account_linking.api_router.url_path_for("link_todoist_account"),
+        params=params,
+        headers=get_auth_headers(token_service, user_linked_mealie),
+    )
+    response.raise_for_status()
+
     linked_user = user_service.get_user(user_linked_mealie.username)
     assert linked_user
     return linked_user.cast(User)

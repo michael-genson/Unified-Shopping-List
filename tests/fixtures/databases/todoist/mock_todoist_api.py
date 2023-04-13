@@ -15,25 +15,6 @@ class MockTodoistAPI:
     def __init__(self, token: str, *args, **kwargs) -> None:
         self.token = token
 
-        # all Todoist instances start with an inbox project
-        inbox_project: Project = _mock_todoist_server._add_one(
-            MockTodoistDBKey.projects,
-            {
-                "color": "grey",
-                "comment_count": 0,
-                "is_favorite": True,
-                "is_inbox_project": True,
-                "is_shared": False,
-                "is_team_inbox": False,
-                "name": "Inbox",
-                "order": 0,
-                "url": random_url(),
-                "view_style": "list",
-            },
-        )
-
-        self.inbox_project_id = inbox_project.id
-
     def get_project(self, project_id: str) -> Optional[Project]:
         project: Optional[Project] = _mock_todoist_server._get_one(MockTodoistDBKey.projects, project_id)
         return project
@@ -79,7 +60,7 @@ class MockTodoistAPI:
     def add_task(self, content: str, **kwargs) -> Task:
         # the API will choose the inbox id by default
         if "project_id" not in kwargs:
-            kwargs["project_id"] = self.inbox_project_id
+            kwargs["project_id"] = _mock_todoist_server.inbox_project_id
         else:
             _mock_todoist_server._assert(_mock_todoist_server._get_one(MockTodoistDBKey.projects, kwargs["project_id"]))
 
@@ -98,6 +79,7 @@ class MockTodoistAPI:
             "labels": [],
             "order": len(existing_tasks),
             "priority": 1,
+            "section_id": None,
             "url": random_url(),
         }
         data = defaults | {k: v for k, v in kwargs.items() if v is not None}
