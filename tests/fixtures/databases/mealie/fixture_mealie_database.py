@@ -20,7 +20,7 @@ from AppLambda.src.models.mealie import (
 )
 from tests.utils import random_bool, random_int, random_string
 
-from .mock_mealie_database import MockDBKey, MockMealieServer
+from .mock_mealie_database import MockMealieDBKey, MockMealieServer
 
 _mock_mealie_server = MockMealieServer()
 
@@ -35,7 +35,7 @@ def mealie_foods() -> list[Food]:
     foods = [Food(id=str(uuid4()), name=random_string(), description=random_string()) for _ in range(10)]
     for food in foods:
         assert food.id
-        _mock_mealie_server._insert_one(MockDBKey.foods, food.id, food.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.foods, food.id, food.dict())
 
     return foods
 
@@ -48,7 +48,7 @@ def mealie_foods_with_labels(mealie_labels: list[Label]) -> list[Food]:
     ]
     for food in foods:
         assert food.id
-        _mock_mealie_server._insert_one(MockDBKey.foods, food.id, food.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.foods, food.id, food.dict())
 
     return foods
 
@@ -57,7 +57,7 @@ def mealie_foods_with_labels(mealie_labels: list[Label]) -> list[Food]:
 def mealie_labels() -> list[Label]:
     labels = [Label(id=str(uuid4()), name=random_string(), color="#FFFFFF") for _ in range(10)]
     for label in labels:
-        _mock_mealie_server._insert_one(MockDBKey.labels, label.id, label.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.labels, label.id, label.dict())
 
     return labels
 
@@ -69,7 +69,7 @@ def mealie_notifiers() -> list[MealieEventNotifierOut]:
         for _ in range(10)
     ]
     for notifier in notifiers:
-        _mock_mealie_server._insert_one(MockDBKey.notifiers, notifier.id, notifier.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.notifiers, notifier.id, notifier.dict())
 
     return notifiers
 
@@ -78,7 +78,7 @@ def mealie_notifiers() -> list[MealieEventNotifierOut]:
 def mealie_recipes() -> list[MealieRecipe]:
     recipes = [MealieRecipe(id=str(uuid4()), slug=random_string(), name=random_string()) for _ in range(10)]
     for recipe in recipes:
-        _mock_mealie_server._insert_one(MockDBKey.recipes, recipe.id, recipe.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.recipes, recipe.id, recipe.dict())
 
     return recipes
 
@@ -112,7 +112,7 @@ def mealie_shopping_lists() -> list[MealieShoppingListOut]:
         )
 
     for shopping_list in shopping_lists:
-        _mock_mealie_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
 
     return shopping_lists
 
@@ -183,7 +183,7 @@ def mealie_shopping_lists_with_foods_labels_units_recipe(
         )
 
     for shopping_list in shopping_lists:
-        _mock_mealie_server._insert_one(MockDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
 
     return shopping_lists
 
@@ -204,7 +204,7 @@ def mealie_units() -> list[Unit]:
 
     for unit in units:
         assert unit.id
-        _mock_mealie_server._insert_one(MockDBKey.units, unit.id, unit.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.units, unit.id, unit.dict())
 
     return units
 
@@ -213,7 +213,7 @@ def mealie_units() -> list[Unit]:
 def mealie_api_tokens() -> list[AuthToken]:
     tokens = [AuthToken(id=str(uuid4()), token=str(uuid4()), name=random_string()) for _ in range(10)]
     for token in tokens:
-        _mock_mealie_server._insert_one(MockDBKey.user_api_tokens, token.id, token.dict())
+        _mock_mealie_server._insert_one(MockMealieDBKey.user_api_tokens, token.id, token.dict())
 
     return tokens
 

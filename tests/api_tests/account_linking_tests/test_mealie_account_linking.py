@@ -8,7 +8,7 @@ from AppLambda.src.models.mealie import AuthToken
 from AppLambda.src.routes import account_linking
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
-from tests.fixtures.databases.mealie.mock_mealie_database import MockDBKey, MockMealieServer
+from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
 from tests.utils import get_auth_headers, random_string, random_url
 
 
@@ -20,7 +20,7 @@ def test_mealie_link_create(
     user: User,
     mealie_api_tokens: list[AuthToken],
 ):
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     existing_notifiers = len(notifier_data)
 
     api_token = random.choice(mealie_api_tokens)
@@ -40,7 +40,7 @@ def test_mealie_link_create(
     assert new_config.auth_token != api_token
 
     # confirm a new notifier was created
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     assert len(notifier_data) == existing_notifiers + 1
 
     # confirm the user is updated
@@ -57,7 +57,7 @@ def test_mealie_link_create_with_invalid_token(
     api_client: TestClient,
     user: User,
 ):
-    existing_notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    existing_notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
 
     params = {"baseUrl": random_url(), "initialAuthToken": random_string()}
     response = api_client.post(
@@ -68,7 +68,7 @@ def test_mealie_link_create_with_invalid_token(
     assert response.status_code == 400
 
     # confirm a new notifier was not created
-    new_notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    new_notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     assert new_notifier_data == existing_notifier_data
 
     # confirm the user is not updated
@@ -133,11 +133,11 @@ def test_mealie_link_delete(
 ):
     assert user_linked.is_linked_to_mealie
 
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     existing_notifiers = len(notifier_data)
     assert existing_notifiers
 
-    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    api_token_data = mealie_server.get_all_records(MockMealieDBKey.user_api_tokens)
     existing_tokens = len(api_token_data)
     assert existing_tokens
 
@@ -154,10 +154,10 @@ def test_mealie_link_delete(
     assert not updated_user.configuration.mealie
 
     # verify the notifier and api token were deleted
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     assert len(notifier_data) == existing_notifiers - 1
 
-    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    api_token_data = mealie_server.get_all_records(MockMealieDBKey.user_api_tokens)
     assert len(api_token_data) == existing_tokens - 1
 
 
@@ -168,10 +168,10 @@ def test_mealie_link_delete_not_linked(
     api_client: TestClient,
     user: User,
 ):
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     existing_notifiers = len(notifier_data)
 
-    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    api_token_data = mealie_server.get_all_records(MockMealieDBKey.user_api_tokens)
     existing_tokens = len(api_token_data)
 
     # the response should come back okay, but not do anything
@@ -187,8 +187,8 @@ def test_mealie_link_delete_not_linked(
     assert not updated_user.configuration.mealie
 
     # verify notifiers and api tokens are unchanged
-    notifier_data = mealie_server.get_all_records(MockDBKey.notifiers)
+    notifier_data = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     assert len(notifier_data) == existing_notifiers
 
-    api_token_data = mealie_server.get_all_records(MockDBKey.user_api_tokens)
+    api_token_data = mealie_server.get_all_records(MockMealieDBKey.user_api_tokens)
     assert len(api_token_data) == existing_tokens

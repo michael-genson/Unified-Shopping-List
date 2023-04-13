@@ -28,7 +28,7 @@ from tests.utils import random_url
 T = TypeVar("T")
 
 
-class MockDBKey(Enum):
+class MockMealieDBKey(Enum):
     foods = "foods"
     labels = "labels"
     notifiers = "notifiers"
@@ -42,7 +42,7 @@ class MockMealieServer:
     def __init__(self) -> None:
         self.base_url = random_url()
         self.group_id = str(uuid4())
-        self.db: defaultdict[MockDBKey, dict[str, dict[str, Any]]] = defaultdict(dict[str, dict[str, Any]])
+        self.db: defaultdict[MockMealieDBKey, dict[str, dict[str, Any]]] = defaultdict(dict[str, dict[str, Any]])
         self.headers: dict[str, str] = {}
 
     @classmethod
@@ -73,7 +73,7 @@ class MockMealieServer:
 
             valid_tokens: set[str] = set(
                 auth_token["token"]
-                for auth_token in self.db[MockDBKey.user_api_tokens].values()
+                for auth_token in self.db[MockMealieDBKey.user_api_tokens].values()
                 if "token" in auth_token
             )
             assert token in valid_tokens
@@ -85,7 +85,7 @@ class MockMealieServer:
 
         return headers
 
-    def _insert_one(self, key: MockDBKey, id: str, data: dict[str, Any]) -> None:
+    def _insert_one(self, key: MockMealieDBKey, id: str, data: dict[str, Any]) -> None:
         self.db[key][id] = data
 
     def _paginate(self, items: list[dict[str, Any]], params: dict[str, Any]) -> Pagination:
@@ -117,16 +117,16 @@ class MockMealieServer:
 
         return pagination
 
-    def _get_all(self, key: MockDBKey, params: dict[str, Any]) -> dict[str, Any]:
+    def _get_all(self, key: MockMealieDBKey, params: dict[str, Any]) -> dict[str, Any]:
         items = list(self.db[key].values())
         return self._paginate(items, params).dict()
 
-    def _get_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
+    def _get_one(self, key: MockMealieDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
         data = self._assert(self.db[key].get(id))
         return data
 
-    def _delete_one(self, key: MockDBKey, id_or_url: str) -> dict[str, Any]:
+    def _delete_one(self, key: MockMealieDBKey, id_or_url: str) -> dict[str, Any]:
         id = self._get_id_from_url(id_or_url)
         data = self._assert(self.db[key].pop(id, None))
         return data
@@ -136,17 +136,17 @@ class MockMealieServer:
         notifier_out = notifier.cast(MealieEventNotifierOut, id=str(uuid4()), group_id=self.group_id)
         data = notifier_out.dict()
 
-        self._insert_one(MockDBKey.notifiers, notifier_out.id, data)
+        self._insert_one(MockMealieDBKey.notifiers, notifier_out.id, data)
         return data
 
     def _update_notifier(self, id_or_url: str) -> dict[str, Any]:
         # we don't track updates to notifiers
-        return self._get_one(MockDBKey.notifiers, id_or_url)
+        return self._get_one(MockMealieDBKey.notifiers, id_or_url)
 
     def _get_all_shopping_list_items(
         self, shopping_list_id: str, include_checked: bool, params: dict[str, Any]
     ) -> dict[str, Any]:
-        shopping_list = self._get_one(MockDBKey.shopping_lists, shopping_list_id)
+        shopping_list = self._get_one(MockMealieDBKey.shopping_lists, shopping_list_id)
         list_items = cast(list[dict[str, Any]], shopping_list["list_items"])
         if not include_checked:
             list_items = [li for li in list_items if not li["checked"]]
@@ -157,9 +157,9 @@ class MockMealieServer:
         item = MealieShoppingListItemCreate(**payload)
         id = str(uuid4())
 
-        food = Food(**self._assert(self.db[MockDBKey.foods].get(item.food_id))) if item.food_id else None
-        label = Label(**self._assert(self.db[MockDBKey.labels].get(item.label_id))) if item.label_id else None
-        unit = Unit(**self._assert(self.db[MockDBKey.units].get(item.unit_id))) if item.unit_id else None
+        food = Food(**self._assert(self.db[MockMealieDBKey.foods].get(item.food_id))) if item.food_id else None
+        label = Label(**self._assert(self.db[MockMealieDBKey.labels].get(item.label_id))) if item.label_id else None
+        unit = Unit(**self._assert(self.db[MockMealieDBKey.units].get(item.unit_id))) if item.unit_id else None
         recipe_references = [
             ref.cast(MealieShoppingListRecipeRef, id=str(uuid4()), shopping_list_item_id=id)
             for ref in item.recipe_references
@@ -177,7 +177,7 @@ class MockMealieServer:
         data = item_out.dict()
 
         # insert list item into shopping list
-        shopping_list = self.db[MockDBKey.shopping_lists].get(item_out.shopping_list_id)
+        shopping_list = self.db[MockMealieDBKey.shopping_lists].get(item_out.shopping_list_id)
         assert shopping_list
         assert "list_items" in shopping_list
         shopping_list["list_items"].append(data)
@@ -188,7 +188,7 @@ class MockMealieServer:
         update_item = MealieShoppingListItemUpdate(**payload)
         update_item_data = update_item.dict()
 
-        shopping_list = self._get_one(MockDBKey.shopping_lists, update_item.shopping_list_id)
+        shopping_list = self._get_one(MockMealieDBKey.shopping_lists, update_item.shopping_list_id)
         list_items_data = cast(Optional[list[dict[str, Any]]], shopping_list.get("list_items"))
         assert list_items_data
 
@@ -203,7 +203,11 @@ class MockMealieServer:
                     li[key] = update_item_data[key]
 
             # update ORM links
-            for db_key, link in [(MockDBKey.foods, "food"), (MockDBKey.labels, "label"), (MockDBKey.units, "unit")]:
+            for db_key, link in [
+                (MockMealieDBKey.foods, "food"),
+                (MockMealieDBKey.labels, "label"),
+                (MockMealieDBKey.units, "unit"),
+            ]:
                 link_id = li.get(f"{link}_id")
                 if link_id is None:
                     li[link] = None
@@ -217,11 +221,11 @@ class MockMealieServer:
             break
 
         assert item_data
-        self.db[MockDBKey.shopping_lists][update_item.shopping_list_id]["list_items"] = list_items_data
+        self.db[MockMealieDBKey.shopping_lists][update_item.shopping_list_id]["list_items"] = list_items_data
         return item_data
 
     def _delete_shopping_list_item(self, item_id: str) -> dict[str, Any]:
-        shopping_lists = self.get_all_records(MockDBKey.shopping_lists)
+        shopping_lists = self.get_all_records(MockMealieDBKey.shopping_lists)
         deleted_item_data: Optional[dict[str, Any]] = None
         for shopping_list in shopping_lists.values():
             list_items_data = cast(list[dict[str, Any]], shopping_list["list_items"])
@@ -231,7 +235,7 @@ class MockMealieServer:
 
                 # store the deleted item data and remove it from the shopping list
                 deleted_item_data = li
-                del self.db[MockDBKey.shopping_lists][li["shopping_list_id"]]["list_items"][i]
+                del self.db[MockMealieDBKey.shopping_lists][li["shopping_list_id"]]["list_items"][i]
                 break
 
             if deleted_item_data:
@@ -245,10 +249,10 @@ class MockMealieServer:
         token = AuthToken(id=str(uuid4()), name=payload["name"], token=str(uuid4()))
         data = token.dict()
 
-        self._insert_one(MockDBKey.user_api_tokens, token.id, data)
+        self._insert_one(MockMealieDBKey.user_api_tokens, token.id, data)
         return data
 
-    def get_all_records(self, record_type: MockDBKey) -> dict[str, dict[str, Any]]:
+    def get_all_records(self, record_type: MockMealieDBKey) -> dict[str, dict[str, Any]]:
         """
         Fetch all records by record type
 
@@ -257,7 +261,7 @@ class MockMealieServer:
 
         return self.db[record_type]
 
-    def get_record_by_id(self, record_type: MockDBKey, id: str) -> Optional[dict[str, Any]]:
+    def get_record_by_id(self, record_type: MockMealieDBKey, id: str) -> Optional[dict[str, Any]]:
         """
         Fetch a single record by id and record type, if it exists
 
@@ -295,7 +299,7 @@ class MockMealieServer:
             data: Optional[Union[str, list, dict]] = None
             if is_route(Routes.FOODS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.foods, params)
+                    data = self._get_all(MockMealieDBKey.foods, params)
 
             elif is_route(Routes.GROUPS_EVENTS_NOTIFICATIONS):
                 if method == "POST":
@@ -307,19 +311,19 @@ class MockMealieServer:
                     data = self._update_notifier(url)
 
                 elif method == "DELETE":
-                    data = self._delete_one(MockDBKey.notifiers, url)
+                    data = self._delete_one(MockMealieDBKey.notifiers, url)
 
             elif is_route(Routes.GROUPS_LABELS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.labels, params)
+                    data = self._get_all(MockMealieDBKey.labels, params)
 
             elif is_route(Routes.GROUPS_SHOPPING_LISTS):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.shopping_lists, params)
+                    data = self._get_all(MockMealieDBKey.shopping_lists, params)
 
             elif is_route(Routes.GROUPS_SHOPPING_LISTS_SHOPPING_LIST_ID):
                 if method == "GET":
-                    data = self._get_one(MockDBKey.shopping_lists, url)
+                    data = self._get_one(MockMealieDBKey.shopping_lists, url)
 
             elif is_route(Routes.GROUPS_SHOPPING_ITEMS):
                 if method == "GET":
@@ -366,7 +370,7 @@ class MockMealieServer:
 
             elif is_route(Routes.RECIPES):
                 if method == "GET":
-                    data = self._get_all(MockDBKey.recipes, params)
+                    data = self._get_all(MockMealieDBKey.recipes, params)
 
             elif is_route(Routes.USERS_SELF):
                 if method == "GET":
@@ -380,7 +384,7 @@ class MockMealieServer:
 
             elif is_route(Routes.USERS_API_TOKENS_TOKEN_ID):
                 if method == "DELETE":
-                    data = self._delete_one(MockDBKey.user_api_tokens, url)
+                    data = self._delete_one(MockMealieDBKey.user_api_tokens, url)
 
             if data is not None:
                 response = Response()

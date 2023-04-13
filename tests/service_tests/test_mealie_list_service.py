@@ -17,7 +17,7 @@ from AppLambda.src.models.mealie import (
     MealieShoppingListOut,
 )
 from AppLambda.src.services.mealie import MealieListService
-from tests.fixtures.databases.mealie.router import MockDBKey, MockMealieServer
+from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
 from tests.utils import random_int, random_string
 
 
@@ -164,7 +164,7 @@ def test_mealie_list_service_add_food_to_item(
 @pytest.mark.parametrize(
     "service_method, record_list_fixture,record_model, db_key",
     [
-        ("get_all_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
+        ("get_all_lists", "mealie_shopping_lists", MealieShoppingListOut, MockMealieDBKey.shopping_lists),
     ],
 )
 def test_mealie_list_service_get_all(
@@ -173,7 +173,7 @@ def test_mealie_list_service_get_all(
     service_method: str,
     record_list_fixture: str,
     record_model: Type[APIBase],
-    db_key: MockDBKey,
+    db_key: MockMealieDBKey,
     request: pytest.FixtureRequest,
 ):
     record_list = request.getfixturevalue(record_list_fixture)

@@ -20,7 +20,7 @@ from AppLambda.src.models.mealie import (
     MealieShoppingListOut,
     Unit,
 )
-from tests.fixtures.databases.mealie.mock_mealie_database import MockDBKey, MockMealieServer
+from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
 from tests.utils import random_bool, random_int, random_string
 
 
@@ -35,10 +35,10 @@ def test_mealie_client_is_valid(mealie_client: MealieClient):
 @pytest.mark.parametrize(
     "client_method, record_list_fixture, record_model,db_key",
     [
-        ("get_all_shopping_lists", "mealie_shopping_lists", MealieShoppingListOut, MockDBKey.shopping_lists),
-        ("get_all_recipes", "mealie_recipes", MealieRecipe, MockDBKey.recipes),
-        ("get_all_foods", "mealie_foods", Food, MockDBKey.foods),
-        ("get_all_labels", "mealie_labels", Label, MockDBKey.labels),
+        ("get_all_shopping_lists", "mealie_shopping_lists", MealieShoppingListOut, MockMealieDBKey.shopping_lists),
+        ("get_all_recipes", "mealie_recipes", MealieRecipe, MockMealieDBKey.recipes),
+        ("get_all_foods", "mealie_foods", Food, MockMealieDBKey.foods),
+        ("get_all_labels", "mealie_labels", Label, MockMealieDBKey.labels),
     ],
 )
 def test_mealie_client_get_all_records(
@@ -47,7 +47,7 @@ def test_mealie_client_get_all_records(
     client_method: str,
     record_list_fixture: str,
     record_model: Type[APIBase],
-    db_key: MockDBKey,
+    db_key: MockMealieDBKey,
     request: pytest.FixtureRequest,
 ):
     record_list = request.getfixturevalue(record_list_fixture)
@@ -84,8 +84,13 @@ def test_mealie_client_get_one_record(
 @pytest.mark.parametrize(
     "client_method, record_model, db_key, args_callable",
     [
-        ("create_auth_token", AuthToken, MockDBKey.user_api_tokens, lambda: (random_string(),)),
-        ("create_notifier", MealieEventNotifierOut, MockDBKey.notifiers, lambda: (random_string(), random_string())),
+        ("create_auth_token", AuthToken, MockMealieDBKey.user_api_tokens, lambda: (random_string(),)),
+        (
+            "create_notifier",
+            MealieEventNotifierOut,
+            MockMealieDBKey.notifiers,
+            lambda: (random_string(), random_string()),
+        ),
     ],
 )
 def test_mealie_client_create_record(
@@ -93,7 +98,7 @@ def test_mealie_client_create_record(
     mealie_client: MealieClient,
     client_method: str,
     record_model: Type[APIBase],
-    db_key: MockDBKey,
+    db_key: MockMealieDBKey,
     args_callable: Callable,
 ):
     create_func: Callable = getattr(mealie_client, client_method)
@@ -106,8 +111,8 @@ def test_mealie_client_create_record(
 @pytest.mark.parametrize(
     "client_method, record_model, db_key,record_list_fixture",
     [
-        ("delete_auth_token", AuthToken, MockDBKey.user_api_tokens, "mealie_api_tokens"),
-        ("delete_notifier", MealieEventNotifierOut, MockDBKey.notifiers, "mealie_notifiers"),
+        ("delete_auth_token", AuthToken, MockMealieDBKey.user_api_tokens, "mealie_api_tokens"),
+        ("delete_notifier", MealieEventNotifierOut, MockMealieDBKey.notifiers, "mealie_notifiers"),
     ],
 )
 def test_mealie_client_delete_record(
@@ -115,7 +120,7 @@ def test_mealie_client_delete_record(
     mealie_client: MealieClient,
     client_method: str,
     record_model: Type[APIBase],
-    db_key: MockDBKey,
+    db_key: MockMealieDBKey,
     record_list_fixture: str,
     request: pytest.FixtureRequest,
 ):
@@ -136,7 +141,7 @@ def test_mealie_client_delete_record(
 def test_mealie_client_update_notifier(
     mealie_server: MockMealieServer, mealie_client: MealieClient, mealie_notifiers: list[MealieEventNotifierOut]
 ):
-    original_record_store = mealie_server.get_all_records(MockDBKey.notifiers)
+    original_record_store = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     notifier = random.choice(mealie_notifiers)
     updated_notifier = mealie_client.update_notifier(
         notifier.cast(MealieEventNotifierUpdate, options=MealieEventNotifierOptions())
@@ -145,7 +150,7 @@ def test_mealie_client_update_notifier(
     # our database is unchanged when notifiers are updated, so all we need
     # to test is that both the notifier and the database are unchanged
     assert updated_notifier == notifier
-    updated_record_store = mealie_server.get_all_records(MockDBKey.notifiers)
+    updated_record_store = mealie_server.get_all_records(MockMealieDBKey.notifiers)
     assert updated_record_store == original_record_store
 
 
@@ -176,7 +181,7 @@ def test_mealie_client_create_shopping_list_items(
 ):
     original_lists = {
         id: MealieShoppingListOut(**data)
-        for id, data in mealie_server.get_all_records(MockDBKey.shopping_lists).items()
+        for id, data in mealie_server.get_all_records(MockMealieDBKey.shopping_lists).items()
     }
 
     new_items_by_list_id: defaultdict[str, list[MealieShoppingListItemCreate]] = defaultdict(list)
@@ -211,7 +216,7 @@ def test_mealie_client_create_shopping_list_items(
 
     updated_lists = {
         id: MealieShoppingListOut(**data)
-        for id, data in mealie_server.get_all_records(MockDBKey.shopping_lists).items()
+        for id, data in mealie_server.get_all_records(MockMealieDBKey.shopping_lists).items()
     }
 
     # compare updated list against original list
@@ -248,7 +253,9 @@ def test_mealie_client_update_shopping_list_items(
     assert not response.deleted_items
     updated_items_by_id = {item.id: item for item in response.updated_items}
 
-    updated_shopping_list_data = mealie_server.get_record_by_id(MockDBKey.shopping_lists, original_shopping_list.id)
+    updated_shopping_list_data = mealie_server.get_record_by_id(
+        MockMealieDBKey.shopping_lists, original_shopping_list.id
+    )
     assert updated_shopping_list_data
     updated_shopping_list = MealieShoppingListOut(**updated_shopping_list_data)
 
@@ -270,7 +277,7 @@ def test_mealie_client_delete_shopping_list_items(
     items_to_delete = random.sample(original_shopping_list.list_items, 2)
     mealie_client.delete_shopping_list_items([item.id for item in items_to_delete])
 
-    updated_list_data = mealie_server.get_record_by_id(MockDBKey.shopping_lists, original_shopping_list.id)
+    updated_list_data = mealie_server.get_record_by_id(MockMealieDBKey.shopping_lists, original_shopping_list.id)
     assert updated_list_data
     updated_list = MealieShoppingListOut(**updated_list_data)
 
