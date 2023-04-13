@@ -6,7 +6,8 @@ from AppLambda.src.routes import account_linking
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
 from tests.fixtures.databases.todoist.mock_todoist_api import MockTodoistAPI
-from tests.utils import get_auth_headers, random_bool, random_string
+from tests.utils.generators import random_bool, random_string
+from tests.utils.users import get_auth_headers
 
 
 def test_todoist_link_create(

@@ -16,7 +16,8 @@ from AppLambda.src.models.core import User
 from AppLambda.src.routes import alexa
 from AppLambda.src.services.alexa import AlexaListService
 from AppLambda.src.services.auth_token import AuthTokenService
-from tests.utils import get_auth_headers, random_int, random_string
+from tests.utils.generators import random_int, random_string
+from tests.utils.users import get_auth_headers
 
 
 def test_alexa_crud_get_all_lists(

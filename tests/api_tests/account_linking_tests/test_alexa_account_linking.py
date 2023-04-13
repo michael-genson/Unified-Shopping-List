@@ -12,7 +12,8 @@ from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import account_linking, alexa
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
-from tests.utils import get_auth_headers, random_string, random_url
+from tests.utils.generators import random_string, random_url
+from tests.utils.users import get_auth_headers
 
 
 def test_alexa_link_create(

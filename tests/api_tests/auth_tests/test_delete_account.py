@@ -4,7 +4,7 @@ from AppLambda.src.models.core import User
 from AppLambda.src.routes import core
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
-from tests.utils import get_auth_headers
+from tests.utils.users import get_auth_headers
 
 
 def test_delete_user(token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user: User):

@@ -6,7 +6,7 @@ from jose import jwt
 
 from AppLambda.src.app_secrets import ALGORITHM, SECRET_KEY
 from AppLambda.src.services.auth_token import AuthTokenService
-from tests.utils import random_string
+from tests.utils.generators import random_string
 
 
 def test_auth_token_service_create_token(token_service: AuthTokenService):

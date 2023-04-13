@@ -18,7 +18,7 @@ from AppLambda.src.models.mealie import (
 )
 from AppLambda.src.services.mealie import MealieListService
 from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
-from tests.utils import random_int, random_string
+from tests.utils.generators import random_int, random_string
 
 # TODO: verify service list cache is properly maintained for all operations
 

@@ -6,7 +6,8 @@ from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import auth, core
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
-from tests.utils import create_user_with_known_credentials, get_auth_headers, random_email, random_string
+from tests.utils.generators import random_email, random_string
+from tests.utils.users import create_user_with_known_credentials, get_auth_headers
 
 
 def test_get_logged_in_user(token_service: AuthTokenService, api_client: TestClient, user: User):

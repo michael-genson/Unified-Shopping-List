@@ -9,7 +9,8 @@ from AppLambda.src.routes import account_linking
 from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
 
-from ..utils import create_user_with_known_credentials, get_auth_headers, random_string, random_url
+from ..utils.generators import random_string, random_url
+from ..utils.users import create_user_with_known_credentials, get_auth_headers
 
 
 @fixture()

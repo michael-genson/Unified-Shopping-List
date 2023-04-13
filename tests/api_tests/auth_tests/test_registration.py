@@ -9,7 +9,8 @@ from AppLambda.src import config
 from AppLambda.src.models.core import User
 from AppLambda.src.routes import core
 from AppLambda.src.services.user import UserService
-from tests.utils import create_user_with_known_credentials, random_email, random_string
+from tests.utils.generators import random_email, random_string
+from tests.utils.users import create_user_with_known_credentials
 
 
 def test_register_new_user(user: User):

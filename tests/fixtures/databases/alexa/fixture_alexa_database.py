@@ -6,7 +6,7 @@ from pytest import MonkeyPatch
 
 from AppLambda.src.clients.alexa import ListManagerClient
 from AppLambda.src.models.alexa import AlexaListItemOut, AlexaListOut, ListItemState, ListState
-from tests.utils import random_bool, random_int, random_string
+from tests.utils.generators import random_bool, random_int, random_string
 
 from .mock_alexa_database import MockAlexaServer
 

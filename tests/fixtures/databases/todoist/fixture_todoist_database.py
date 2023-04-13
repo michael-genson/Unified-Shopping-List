@@ -7,7 +7,7 @@ from todoist_api_python.models import Project, Section, Task
 
 from AppLambda.src.routes import account_linking
 from AppLambda.src.services.todoist import TodoistTaskService
-from tests.utils import random_bool, random_string, random_url
+from tests.utils.generators import random_bool, random_string, random_url
 
 from .mock_todoist_api import MockTodoistAPI, _mock_todoist_server
 from .mock_todoist_database import MockTodoistDBKey, MockTodoistServer

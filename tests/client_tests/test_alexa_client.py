@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from AppLambda.src.clients.alexa import ListManagerClient
 from AppLambda.src.models.alexa import AlexaListOut, AlexaReadList, Message, MessageRequest, ObjectType, Operation
-from tests.utils import random_string
+from tests.utils.generators import random_string
 
 
 def create_message(

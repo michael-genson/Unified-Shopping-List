@@ -6,7 +6,7 @@ from uuid import uuid4
 from requests import HTTPError, Response
 from todoist_api_python.models import Project, Section, Task
 
-from tests.utils import random_url
+from tests.utils.generators import random_url
 
 T = TypeVar("T")
 

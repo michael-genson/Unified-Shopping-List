@@ -15,7 +15,7 @@ from AppLambda.src.services.user import (
     UserIsNotRegisteredError,
     UserService,
 )
-from tests.utils import random_email, random_int, random_password, random_string
+from tests.utils.generators import random_email, random_int, random_password, random_string
 
 
 @pytest.fixture()

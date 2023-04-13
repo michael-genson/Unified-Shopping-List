@@ -4,7 +4,7 @@ from typing import Optional
 from requests import HTTPError
 from todoist_api_python.models import Project, Section, Task
 
-from tests.utils import random_url
+from tests.utils.generators import random_url
 
 from .mock_todoist_database import MockTodoistDBKey, MockTodoistServer
 

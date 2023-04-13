@@ -21,7 +21,7 @@ from AppLambda.src.models.mealie import (
     Unit,
 )
 from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
-from tests.utils import random_bool, random_int, random_string
+from tests.utils.generators import random_bool, random_int, random_string
 
 
 def test_mealie_client_is_valid(mealie_client: MealieClient):

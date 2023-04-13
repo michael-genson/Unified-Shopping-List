@@ -6,7 +6,8 @@ from freezegun import freeze_time
 
 from AppLambda.src.routes import auth, core
 from AppLambda.src.services.user import UserService
-from tests.utils import create_user_with_known_credentials, random_email, random_password, random_string
+from tests.utils.generators import random_email, random_password, random_string
+from tests.utils.users import create_user_with_known_credentials
 
 
 def get_password_reset_token(user_service: UserService, api_client: TestClient, username: str) -> str:

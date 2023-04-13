@@ -6,7 +6,7 @@ from AppLambda.src.models.account_linking import NotLinkedError
 from AppLambda.src.models.alexa import AlexaListItemCreateIn, AlexaListItemUpdateBulkIn, AlexaListOut
 from AppLambda.src.models.core import User
 from AppLambda.src.services.alexa import AlexaListService
-from tests.utils import random_int, random_string
+from tests.utils.generators import random_int, random_string
 
 # TODO: verify service list cache is properly maintained for all operations
 

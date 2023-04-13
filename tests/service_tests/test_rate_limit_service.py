@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from AppLambda.src.models.core import RateLimitCategory, User, UserRateLimit
 from AppLambda.src.services.rate_limit import RateLimitService
 from AppLambda.src.services.user import UserService
-from tests.utils import random_int
+from tests.utils.generators import random_int
 
 ALL_RATE_LIMIT_CATEGORIES = [RateLimitCategory.modify, RateLimitCategory.read, RateLimitCategory.sync]
 

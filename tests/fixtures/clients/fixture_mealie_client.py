@@ -4,7 +4,7 @@ import pytest
 
 from AppLambda.src.clients.mealie import MealieClient
 from AppLambda.src.models.mealie import AuthToken
-from tests.utils import random_url
+from tests.utils.generators import random_url
 
 
 @pytest.fixture()

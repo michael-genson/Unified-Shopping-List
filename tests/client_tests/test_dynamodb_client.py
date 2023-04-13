@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from AppLambda.src import config
 from AppLambda.src.clients.aws import DynamoDB
 from AppLambda.src.models.aws import DynamoDBAtomicOp
-from tests.utils import random_email, random_int, random_string
+from tests.utils.generators import random_email, random_int, random_string
 
 
 @pytest.fixture()

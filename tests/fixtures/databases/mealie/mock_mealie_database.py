@@ -23,7 +23,7 @@ from AppLambda.src.models.mealie import (
     Pagination,
     Unit,
 )
-from tests.utils import random_url
+from tests.utils.generators import random_url
 
 T = TypeVar("T")
 
