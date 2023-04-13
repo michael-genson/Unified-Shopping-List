@@ -116,7 +116,7 @@ def test_mealie_list_service_get_label_from_item(
 
 
 @pytest.mark.parametrize(
-    "mealie_list_service_fixture, use_foods,overwrite_names",
+    "mealie_list_service_fixture, use_foods, overwrite_names",
     [
         ("mealie_list_service", False, False),
         ("mealie_list_service_use_foods", True, False),
