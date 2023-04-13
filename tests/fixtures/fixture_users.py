@@ -22,26 +22,13 @@ def user(api_client: TestClient) -> User:
 def user_linked_mealie(
     user_service: UserService, api_client: TestClient, user: User, mealie_api_tokens: list[AuthToken]
 ) -> User:
-    """
-    User that is only linked to Mealie
-
-    - Mealie's `use_foods` is disabled
-    - Mealie's `overwrite_original_item_names` is disabled
-    """
+    """User that is only linked to Mealie"""
 
     api_token = random.choice(mealie_api_tokens)
     params = {"baseUrl": random_url(), "initialAuthToken": api_token.token}
     response = api_client.post(
         account_linking.api_router.url_path_for("link_mealie_account"),
         params=params,
-        headers=get_auth_headers(user),
-    )
-    response.raise_for_status()
-
-    # disable config options
-    response = api_client.put(
-        account_linking.api_router.url_path_for("update_mealie_account_link"),
-        params={"useFoods": False, "overwriteOriginalItemNames": False},
         headers=get_auth_headers(user),
     )
     response.raise_for_status()
@@ -53,12 +40,7 @@ def user_linked_mealie(
 
 @fixture()
 def user_linked(user_service: UserService, api_client: TestClient, user_linked_mealie: User) -> User:
-    """
-    User that is linked to all services
-
-    - Mealie's `use_foods` is disabled
-    - Mealie's `overwrite_original_item_names` is disabled
-    """
+    """User that is linked to all services"""
 
     # link user to Alexa
     params = {"userId": random_string()}
