@@ -20,6 +20,8 @@ from AppLambda.src.services.mealie import MealieListService
 from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey, MockMealieServer
 from tests.utils import random_int, random_string
 
+# TODO: verify service list cache is properly maintained for all operations
+
 
 def test_mealie_list_service_unlinked_user(user: User):
     with pytest.raises(NotLinkedError):
