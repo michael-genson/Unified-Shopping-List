@@ -78,12 +78,8 @@ def _update_account_link(user: User, route: str, params: dict[str, Any]) -> User
 
 
 def update_mealie_config(user: User, config: UserMealieConfigurationUpdate) -> User:
-    return _update_account_link(
-        user, account_linking.api_router.url_path_for("update_mealie_account_link"), config.dict()
-    )
+    return _update_account_link(user, "update_mealie_account_link", config.dict(by_alias=True))
 
 
 def update_todoist_config(user: User, config: UserTodoistConfigurationUpdate) -> User:
-    return _update_account_link(
-        user, account_linking.api_router.url_path_for("update_todoist_account_link"), config.dict()
-    )
+    return _update_account_link(user, "update_todoist_account_link", config.dict(by_alias=True))
