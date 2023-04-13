@@ -328,6 +328,7 @@ def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+# this is not included in the schema because it should only be called directly by Todoist
 @api_router.post("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False)
 @services.rate_limit.limit(RateLimitCategory.modify)
 def link_todoist_account(
@@ -358,8 +359,8 @@ def link_todoist_account(
         if not user_id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not determine Todoist user_id")
 
-    except Exception:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not connect to Todoist")
+    except Exception as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not connect to Todoist") from e
 
     user.todoist_user_id = user_id
     user.configuration.todoist = UserTodoistConfiguration(access_token=config_input.access_token)
@@ -368,7 +369,11 @@ def link_todoist_account(
     return user.configuration.todoist
 
 
-def update_todoist_account_link(user: User, config_input: UserTodoistConfigurationUpdate) -> UserTodoistConfiguration:
+@api_router.put("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"])
+@services.rate_limit.limit(RateLimitCategory.modify)
+async def update_todoist_account_link(
+    user: User = Depends(get_current_user), config_input: UserTodoistConfigurationUpdate = Depends()
+) -> UserTodoistConfiguration:
     if not user.is_linked_to_todoist:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Todoist")
 
@@ -384,7 +389,7 @@ def update_todoist_account_link(user: User, config_input: UserTodoistConfigurati
 
 @api_router.delete("/todoist", tags=["Todoist"])
 @services.rate_limit.limit(RateLimitCategory.modify)
-def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
+async def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
     user.todoist_user_id = None
     user.configuration.todoist = None
     services.user.update_user(user)

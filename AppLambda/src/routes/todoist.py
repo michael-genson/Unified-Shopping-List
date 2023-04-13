@@ -69,7 +69,7 @@ async def update_todoist_configuration(
 
     user = logged_in_response
     try:
-        update_todoist_account_link(user, config_input)
+        await update_todoist_account_link(user, config_input)
         return create_todoist_config_template(
             request,
             user,
@@ -98,7 +98,7 @@ async def delete_todoist_config(request: Request):
 
     user = logged_in_response
     try:
-        user = unlink_todoist_account(user)
+        user = await unlink_todoist_account(user)
         return create_todoist_config_template(
             request,
             user,
