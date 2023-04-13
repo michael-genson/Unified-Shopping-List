@@ -20,7 +20,7 @@ from AppLambda.src.models.mealie import (
 )
 from tests.utils import random_bool, random_int, random_string
 
-from .router import MockDBKey, MockMealieServer
+from .mock_mealie_database import MockDBKey, MockMealieServer
 
 _mock_mealie_server = MockMealieServer()
 

@@ -20,7 +20,7 @@ from AppLambda.src.models.mealie import (
     MealieShoppingListOut,
     Unit,
 )
-from tests.fixtures.databases.mealie.router import MockDBKey, MockMealieServer
+from tests.fixtures.databases.mealie.mock_mealie_database import MockDBKey, MockMealieServer
 from tests.utils import random_bool, random_int, random_string
 
 
