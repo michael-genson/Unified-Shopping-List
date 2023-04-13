@@ -14,10 +14,14 @@ class TodoistTaskService:
             raise NotLinkedError(user.username, "todoist")
 
         self.config = cast(UserTodoistConfiguration, user.configuration.todoist)
-        self._client = TodoistAPI(self.config.access_token)
+        self._client = self._get_client(self.config.access_token)
 
         self.project_tasks: dict[str, list[Task]] = {}
         """map of {project_id: tasks}"""
+
+    @classmethod
+    def _get_client(cls, token: str) -> TodoistAPI:
+        return TodoistAPI(token)
 
     def get_section_by_id(self, section_id: str) -> Section:
         return self._client.get_section(section_id)

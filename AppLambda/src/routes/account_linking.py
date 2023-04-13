@@ -34,6 +34,10 @@ frontend_router = APIRouter(prefix="/app/map-shopping-lists", tags=["Account Lin
 api_router = APIRouter(prefix="/api/account-linking", tags=["Account Linking"])
 
 
+def _get_todoist_client(token: str) -> TodoistAPI:
+    return TodoistAPI(token)
+
+
 ### Frontend ###
 async def create_shopping_list_sync_map_template(request: Request, user: User, **kwargs):
     context = {
@@ -87,7 +91,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
     if user.is_linked_to_todoist:
         try:
             todoist_config = cast(UserTodoistConfiguration, user.configuration.todoist)
-            todoist_client = TodoistAPI(todoist_config.access_token)
+            todoist_client = _get_todoist_client(todoist_config.access_token)
             todoist_projects = todoist_client.get_projects()
 
             existing_links = {
@@ -330,7 +334,7 @@ def link_todoist_account(
     user: User = Depends(get_current_user),
     config_input: UserTodoistConfigurationCreate = Depends(),
 ) -> UserTodoistConfiguration:
-    client = TodoistAPI(config_input.access_token)
+    client = _get_todoist_client(config_input.access_token)
 
     try:
         # there is no endpoint for fetching a user's id, so we read a task from the inbox
