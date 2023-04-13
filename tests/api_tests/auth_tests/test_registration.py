@@ -70,7 +70,7 @@ def test_register_user_not_whitelisted(user_service: UserService, api_client: Te
 
 
 def test_register_invalid_registration_token(user_service: UserService, api_client: TestClient):
-    existing_user, _ = create_user_with_known_credentials(user_service, api_client, register=False)
+    existing_user, _ = create_user_with_known_credentials(api_client, register=False)
     assert existing_user.disabled
 
     response = api_client.get(
@@ -90,7 +90,7 @@ def test_register_invalid_registration_token(user_service: UserService, api_clie
 
 
 def test_register_old_token(user_service: UserService, api_client: TestClient):
-    original_user, password = create_user_with_known_credentials(user_service, api_client, register=False)
+    original_user, password = create_user_with_known_credentials(api_client, register=False)
     time.sleep(1)  # make sure registration token is replaced
     form_data = {"username": original_user.username, "password": password}
     response = api_client.post(core.router.url_path_for("register"), data=form_data)
@@ -122,7 +122,7 @@ def test_register_old_token(user_service: UserService, api_client: TestClient):
 
 
 def test_register_expired_token(user_service: UserService, api_client: TestClient):
-    new_user, _ = create_user_with_known_credentials(user_service, api_client, register=False)
+    new_user, _ = create_user_with_known_credentials(api_client, register=False)
     with freeze_time(datetime.now() + timedelta(days=999)):
         # try to use invalid token
         response = api_client.get(

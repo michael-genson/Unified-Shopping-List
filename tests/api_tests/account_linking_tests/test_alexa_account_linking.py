@@ -16,15 +16,13 @@ from tests.utils.generators import random_string, random_url
 from tests.utils.users import get_auth_headers
 
 
-def test_alexa_link_create(
-    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked_mealie: User
-):
+def test_alexa_link_create(user_service: UserService, api_client: TestClient, user_linked_mealie: User):
     alexa_user_id = random_string()
     params = {"userId": alexa_user_id}
     response = api_client.post(
         account_linking.api_router.url_path_for("link_alexa_account"),
         params=params,
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     response.raise_for_status()
     new_config = UserAlexaConfiguration.parse_obj(response.json())
@@ -38,13 +36,11 @@ def test_alexa_link_create(
     assert updated_user.alexa_user_id == alexa_user_id
 
 
-def test_alexa_link_delete(
-    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked: User
-):
+def test_alexa_link_delete(user_service: UserService, api_client: TestClient, user_linked: User):
     assert user_linked.is_linked_to_alexa
     response = api_client.delete(
         account_linking.api_router.url_path_for("unlink_alexa_account"),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 

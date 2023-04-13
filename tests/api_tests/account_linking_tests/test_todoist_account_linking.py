@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from AppLambda.src.models.account_linking import UserTodoistConfiguration
 from AppLambda.src.models.core import User
 from AppLambda.src.routes import account_linking
-from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
 from tests.fixtures.databases.todoist.mock_todoist_api import MockTodoistAPI
 from tests.utils.generators import random_bool, random_string
@@ -11,11 +10,7 @@ from tests.utils.users import get_auth_headers
 
 
 def test_todoist_link_create(
-    token_service: AuthTokenService,
-    user_service: UserService,
-    todoist_api: MockTodoistAPI,
-    api_client: TestClient,
-    user_linked_mealie: User,
+    user_service: UserService, todoist_api: MockTodoistAPI, api_client: TestClient, user_linked_mealie: User
 ):
     assert not user_linked_mealie.is_linked_to_todoist
 
@@ -28,7 +23,7 @@ def test_todoist_link_create(
     response = api_client.post(
         account_linking.api_router.url_path_for("link_todoist_account"),
         params=params,
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     response.raise_for_status()
 
@@ -46,12 +41,7 @@ def test_todoist_link_create(
     assert todoist_api.get_tasks() == all_tasks
 
 
-def test_todoist_link_update(
-    token_service: AuthTokenService,
-    user_service: UserService,
-    api_client: TestClient,
-    user_linked: User,
-):
+def test_todoist_link_update(user_service: UserService, api_client: TestClient, user_linked: User):
     existing_config = user_linked.configuration.todoist
     assert existing_config
 
@@ -63,7 +53,7 @@ def test_todoist_link_update(
     response = api_client.put(
         account_linking.api_router.url_path_for("update_todoist_account_link"),
         params=params,
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 
@@ -80,9 +70,7 @@ def test_todoist_link_update(
     assert updated_config.add_recipes_to_task_description == existing_config.add_recipes_to_task_description
 
 
-def test_todoist_link_update_not_linked(
-    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked_mealie: User
-):
+def test_todoist_link_update_not_linked(user_service: UserService, api_client: TestClient, user_linked_mealie: User):
     assert not user_linked_mealie.is_linked_to_todoist
 
     params: dict = {
@@ -93,7 +81,7 @@ def test_todoist_link_update_not_linked(
     response = api_client.put(
         account_linking.api_router.url_path_for("update_todoist_account_link"),
         params=params,
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
@@ -103,13 +91,11 @@ def test_todoist_link_update_not_linked(
     assert not updated_user.configuration.todoist
 
 
-def test_todoist_link_delete(
-    token_service: AuthTokenService, user_service: UserService, api_client: TestClient, user_linked: User
-):
+def test_todoist_link_delete(user_service: UserService, api_client: TestClient, user_linked: User):
     assert user_linked.is_linked_to_todoist
     response = api_client.delete(
         account_linking.api_router.url_path_for("unlink_todoist_account"),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 

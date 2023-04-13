@@ -4,13 +4,19 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
 
+from AppLambda.src.app import app
 from AppLambda.src.routes import auth, core
+from AppLambda.src.services.auth_token import AuthTokenService
 from AppLambda.src.services.user import UserService
 from tests.utils.generators import random_email, random_password, random_string
 from tests.utils.users import create_user_with_known_credentials
 
 
-def get_password_reset_token(user_service: UserService, api_client: TestClient, username: str) -> str:
+def get_password_reset_token(username: str) -> str:
+    token_service = AuthTokenService()
+    user_service = UserService(token_service)
+    api_client = TestClient(app)
+
     response = api_client.post(core.router.url_path_for("initiate_password_reset_email"), data={"username": username})
     response.raise_for_status()
 
@@ -20,9 +26,9 @@ def get_password_reset_token(user_service: UserService, api_client: TestClient, 
     return user.last_password_reset_token
 
 
-def test_reset_password(user_service: UserService, api_client: TestClient):
-    existing_user, old_password = create_user_with_known_credentials(user_service, api_client)
-    reset_token = get_password_reset_token(user_service, api_client, existing_user.username)
+def test_reset_password(api_client: TestClient):
+    existing_user, old_password = create_user_with_known_credentials(api_client)
+    reset_token = get_password_reset_token(existing_user.username)
 
     new_password = random_password()
     response = api_client.post(
@@ -50,9 +56,9 @@ def test_reset_password_invalid_username(api_client: TestClient):
     response.raise_for_status()
 
 
-def test_reset_password_invalid_token(user_service: UserService, api_client: TestClient):
-    existing_user, old_password = create_user_with_known_credentials(user_service, api_client)
-    get_password_reset_token(user_service, api_client, existing_user.username)
+def test_reset_password_invalid_token(api_client: TestClient):
+    existing_user, old_password = create_user_with_known_credentials(api_client)
+    get_password_reset_token(existing_user.username)
 
     # try invalid token
     new_password = random_password()
@@ -81,9 +87,9 @@ def test_reset_password_invalid_token(user_service: UserService, api_client: Tes
     response.raise_for_status()
 
 
-def test_reset_password_invalid_new_password(user_service: UserService, api_client: TestClient):
-    existing_user, old_password = create_user_with_known_credentials(user_service, api_client)
-    reset_token = get_password_reset_token(user_service, api_client, existing_user.username)
+def test_reset_password_invalid_new_password(api_client: TestClient):
+    existing_user, old_password = create_user_with_known_credentials(api_client)
+    reset_token = get_password_reset_token(existing_user.username)
 
     # try invalid password
     new_password = random_string(1)
@@ -105,11 +111,11 @@ def test_reset_password_invalid_new_password(user_service: UserService, api_clie
     response.raise_for_status()
 
 
-def test_reset_password_old_token(user_service: UserService, api_client: TestClient):
-    existing_user, old_password = create_user_with_known_credentials(user_service, api_client)
-    invalid_reset_token = get_password_reset_token(user_service, api_client, existing_user.username)
+def test_reset_password_old_token(api_client: TestClient):
+    existing_user, old_password = create_user_with_known_credentials(api_client)
+    invalid_reset_token = get_password_reset_token(existing_user.username)
     time.sleep(1)  # make sure valid_reset_token replaces invalid_reset_token
-    valid_reset_token = get_password_reset_token(user_service, api_client, existing_user.username)
+    valid_reset_token = get_password_reset_token(existing_user.username)
 
     # try to use invalid token
     new_password = random_password()
@@ -150,9 +156,9 @@ def test_reset_password_old_token(user_service: UserService, api_client: TestCli
     assert response.status_code == 401
 
 
-def test_reset_password_expired_token(user_service: UserService, api_client: TestClient):
-    existing_user, old_password = create_user_with_known_credentials(user_service, api_client)
-    expired_reset_token = get_password_reset_token(user_service, api_client, existing_user.username)
+def test_reset_password_expired_token(api_client: TestClient):
+    existing_user, old_password = create_user_with_known_credentials(api_client)
+    expired_reset_token = get_password_reset_token(existing_user.username)
 
     with freeze_time(datetime.now() + timedelta(days=999)):
         # try to use invalid token

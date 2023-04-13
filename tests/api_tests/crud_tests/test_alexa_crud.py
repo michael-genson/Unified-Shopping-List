@@ -15,20 +15,14 @@ from AppLambda.src.models.alexa import (
 from AppLambda.src.models.core import User
 from AppLambda.src.routes import alexa
 from AppLambda.src.services.alexa import AlexaListService
-from AppLambda.src.services.auth_token import AuthTokenService
 from tests.utils.generators import random_int, random_string
 from tests.utils.users import get_auth_headers
 
 
 def test_alexa_crud_get_all_lists(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked: User, alexa_lists_with_items: list[AlexaListOut]
 ):
-    response = api_client.get(
-        alexa.api_router.url_path_for("get_all_lists"), headers=get_auth_headers(token_service, user_linked)
-    )
+    response = api_client.get(alexa.api_router.url_path_for("get_all_lists"), headers=get_auth_headers(user_linked))
     response.raise_for_status()
 
     # lists fetched via get_all_lists only contain a summary of list data,
@@ -39,25 +33,18 @@ def test_alexa_crud_get_all_lists(
         assert alexa_list.list_id in all_list_ids
 
 
-def test_alexa_crud_get_all_lists_unlinked(
-    token_service: AuthTokenService, api_client: TestClient, user_linked_mealie: User
-):
+def test_alexa_crud_get_all_lists_unlinked(api_client: TestClient, user_linked_mealie: User):
     response = api_client.get(
-        alexa.api_router.url_path_for("get_all_lists"), headers=get_auth_headers(token_service, user_linked_mealie)
+        alexa.api_router.url_path_for("get_all_lists"), headers=get_auth_headers(user_linked_mealie)
     )
     assert response.status_code == 401
 
 
-def test_alexa_crud_get_list(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked: User,
-    alexa_lists_with_items: list[AlexaListOut],
-):
+def test_alexa_crud_get_list(api_client: TestClient, user_linked: User, alexa_lists_with_items: list[AlexaListOut]):
     alexa_list = random.choice(alexa_lists_with_items)
     response = api_client.get(
         alexa.api_router.url_path_for("get_list", list_id=alexa_list.list_id),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 
@@ -66,33 +53,27 @@ def test_alexa_crud_get_list(
 
 
 @pytest.mark.skip  # TODO: un-skip when incorrect list handling is done
-def test_alexa_crud_get_invalid_list(token_service: AuthTokenService, api_client: TestClient, user_linked: User):
+def test_alexa_crud_get_invalid_list(api_client: TestClient, user_linked: User):
     response = api_client.get(
         alexa.api_router.url_path_for("get_list", list_id=random_string()),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     assert response.status_code == 404
 
 
 def test_alexa_crud_get_list_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     alexa_list = random.choice(alexa_lists_with_items)
     response = api_client.get(
         alexa.api_router.url_path_for("get_list", list_id=alexa_list.list_id),
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
 
 def test_alexa_crud_get_list_item(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     alexa_list = random.choice(alexa_lists_with_items)
     assert alexa_list.items
@@ -100,7 +81,7 @@ def test_alexa_crud_get_list_item(
 
     response = api_client.get(
         alexa.api_router.url_path_for("get_list_item", list_id=alexa_list.list_id, item_id=alexa_list_item.id),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 
@@ -109,31 +90,25 @@ def test_alexa_crud_get_list_item(
 
 
 def test_alexa_crud_get_invalid_list_item(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     # TODO: uncomment when incorrect list handling is done
     # response = api_client.get(
     #     alexa.api_router.url_path_for("get_list_item", list_id=random_string(), item_id=random_string()),
-    #     headers=get_auth_headers(token_service, user_linked),
+    #     headers=get_auth_headers(user_linked),
     # )
     # assert response.status_code == 404
 
     alexa_list = random.choice(alexa_lists_with_items)
     response = api_client.get(
         alexa.api_router.url_path_for("get_list_item", list_id=alexa_list.list_id, item_id=random_string()),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     assert response.status_code == 404
 
 
 def test_alexa_crud_get_list_item_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     alexa_list = random.choice(alexa_lists_with_items)
     assert alexa_list.items
@@ -141,13 +116,12 @@ def test_alexa_crud_get_list_item_unlinked(
 
     response = api_client.get(
         alexa.api_router.url_path_for("get_list_item", list_id=alexa_list.list_id, item_id=alexa_list_item.id),
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
 
 def test_alexa_crud_create_list_item(
-    token_service: AuthTokenService,
     alexa_list_service: AlexaListService,
     api_client: TestClient,
     user_linked: User,
@@ -158,7 +132,7 @@ def test_alexa_crud_create_list_item(
     response = api_client.post(
         alexa.api_router.url_path_for("create_list_item", list_id=alexa_list.list_id),
         json=item_to_create.dict(),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 
@@ -171,23 +145,19 @@ def test_alexa_crud_create_list_item(
 
 
 def test_alexa_crud_create_list_item_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     alexa_list = random.choice(alexa_lists_with_items)
     item_to_create = AlexaListItemCreateIn(value=random_string())
     response = api_client.post(
         alexa.api_router.url_path_for("create_list_item", list_id=alexa_list.list_id),
         json=item_to_create.dict(),
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
 
 def test_alexa_crud_create_list_items(
-    token_service: AuthTokenService,
     alexa_list_service: AlexaListService,
     api_client: TestClient,
     user_linked: User,
@@ -198,7 +168,7 @@ def test_alexa_crud_create_list_items(
     response = api_client.post(
         alexa.api_router.url_path_for("create_list_items", list_id=alexa_list.list_id),
         json=[item.dict() for item in items_to_create],
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
 
@@ -216,23 +186,19 @@ def test_alexa_crud_create_list_items(
 
 
 def test_alexa_crud_create_list_items_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     alexa_list = random.choice(alexa_lists_with_items)
     items_to_create = [AlexaListItemCreateIn(value=random_string()) for _ in range(random_int(10, 20))]
     response = api_client.post(
         alexa.api_router.url_path_for("create_list_items", list_id=alexa_list.list_id),
         json=[item.dict() for item in items_to_create],
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
 
 def test_alexa_crud_update_list_item(
-    token_service: AuthTokenService,
     alexa_list_service: AlexaListService,
     api_client: TestClient,
     user_linked: User,
@@ -246,7 +212,7 @@ def test_alexa_crud_update_list_item(
     response = api_client.put(
         alexa.api_router.url_path_for("update_list_item", list_id=original_list.list_id, item_id=original_item.id),
         json=item_to_update.dict(),
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
     updated_item = AlexaListItemOut.parse_obj(response.json())
@@ -267,10 +233,7 @@ def test_alexa_crud_update_list_item(
 
 
 def test_alexa_crud_update_list_item_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     original_list = random.choice(alexa_lists_with_items)
     assert original_list.items
@@ -280,13 +243,12 @@ def test_alexa_crud_update_list_item_unlinked(
     response = api_client.put(
         alexa.api_router.url_path_for("update_list_item", list_id=original_list.list_id, item_id=original_item.id),
         json=item_to_update.dict(),
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
 
 
 def test_alexa_crud_update_list_items(
-    token_service: AuthTokenService,
     alexa_list_service: AlexaListService,
     api_client: TestClient,
     user_linked: User,
@@ -302,7 +264,7 @@ def test_alexa_crud_update_list_items(
     response = api_client.put(
         alexa.api_router.url_path_for("update_list_items", list_id=original_list.list_id),
         json=[item.dict() for item in items_to_update],
-        headers=get_auth_headers(token_service, user_linked),
+        headers=get_auth_headers(user_linked),
     )
     response.raise_for_status()
     updated_items = AlexaListItemCollectionOut.parse_obj(response.json())
@@ -334,10 +296,7 @@ def test_alexa_crud_update_list_items(
 
 
 def test_alexa_crud_update_list_items_unlinked(
-    token_service: AuthTokenService,
-    api_client: TestClient,
-    user_linked_mealie: User,
-    alexa_lists_with_items: list[AlexaListOut],
+    api_client: TestClient, user_linked_mealie: User, alexa_lists_with_items: list[AlexaListOut]
 ):
     original_list = random.choice(alexa_lists_with_items)
     assert original_list.items
@@ -349,6 +308,6 @@ def test_alexa_crud_update_list_items_unlinked(
     response = api_client.put(
         alexa.api_router.url_path_for("update_list_items", list_id=original_list.list_id),
         json=[item.dict() for item in items_to_update],
-        headers=get_auth_headers(token_service, user_linked_mealie),
+        headers=get_auth_headers(user_linked_mealie),
     )
     assert response.status_code == 401
