@@ -40,9 +40,9 @@ def test_mealie_event_handler_send_to_queue(
     use_valid_security_hash: bool,
     should_send_message: bool,
     api_client: TestClient,
-    user_data: MockLinkedUserAndData,
+    user_data_with_items: MockLinkedUserAndData,
 ):
-    linked_user = user_data.user
+    linked_user = user_data_with_items.user
     assert linked_user.is_linked_to_mealie
     assert linked_user.configuration.mealie
 
@@ -54,7 +54,7 @@ def test_mealie_event_handler_send_to_queue(
     if not use_non_null_shopping_list_id:
         shopping_list_id = ""
     else:
-        shopping_list_id = user_data.mealie_list.id
+        shopping_list_id = user_data_with_items.mealie_list.id
 
     if not use_valid_username:
         username = random_string()
@@ -84,11 +84,11 @@ def test_mealie_event_handler_send_to_queue(
         assert mocked_sync_handler.called is should_send_message
 
 
-def test_mealie_event_handler_rate_limit(api_client: TestClient, user_data: MockLinkedUserAndData):
-    user = user_data.user
+def test_mealie_event_handler_rate_limit(api_client: TestClient, user_data_with_items: MockLinkedUserAndData):
+    user = user_data_with_items.user
     assert user.configuration.mealie
     assert not user.is_rate_limit_exempt
-    event = build_mealie_event_notification(MealieEventType.shopping_list_updated, user_data.mealie_list.id)
+    event = build_mealie_event_notification(MealieEventType.shopping_list_updated, user_data_with_items.mealie_list.id)
 
     with pytest.raises(HTTPError) as e_info:
         for _ in range(config.RATE_LIMIT_MINUTELY_SYNC + 1):

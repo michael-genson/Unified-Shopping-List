@@ -19,6 +19,25 @@ def alexa_server() -> MockAlexaServer:
 
 
 @pytest.fixture
+def alexa_lists_with_no_items() -> list[AlexaListOut]:
+    alexa_lists = [
+        AlexaListOut(
+            list_id=str(uuid4()),
+            state=ListState.active,
+            name=random_string(),
+            version=random_int(1, 10),
+            items=[],
+        )
+        for _ in range(10)
+    ]
+
+    for alexa_list in alexa_lists:
+        _mock_alexa_server.db[alexa_list.list_id] = alexa_list.dict()
+
+    return alexa_lists
+
+
+@pytest.fixture
 def alexa_lists_with_items() -> list[AlexaListOut]:
     alexa_lists = [
         AlexaListOut(

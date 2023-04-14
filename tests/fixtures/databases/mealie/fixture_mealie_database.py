@@ -84,6 +84,27 @@ def mealie_recipes() -> list[MealieRecipe]:
 
 
 @pytest.fixture()
+def mealie_shopping_lists_no_items() -> list[MealieShoppingListOut]:
+    shopping_lists: list[MealieShoppingListOut] = []
+    for _ in range(10):
+        list_id = str(uuid4())
+        shopping_lists.append(
+            MealieShoppingListOut(
+                id=list_id,
+                name=random_string(),
+                list_items=[],
+                created_at=datetime.now(),
+                update_at=datetime.now(),
+            )
+        )
+
+    for shopping_list in shopping_lists:
+        _mock_mealie_server._insert_one(MockMealieDBKey.shopping_lists, shopping_list.id, shopping_list.dict())
+
+    return shopping_lists
+
+
+@pytest.fixture()
 def mealie_shopping_lists() -> list[MealieShoppingListOut]:
     shopping_lists: list[MealieShoppingListOut] = []
     for _ in range(10):

@@ -72,9 +72,39 @@ def todoist_data_no_sections(todoist_api: MockTodoistAPI, todoist_server: MockTo
 
 
 @pytest.fixture()
+def todoist_data_no_tasks(todoist_server: MockTodoistServer, todoist_api: MockTodoistAPI) -> list[MockTodoistData]:
+    """
+    Returns a list of projects with sections but no tasks associated to the projects
+    """
+
+    mock_data: list[MockTodoistData] = []
+    existing_projects = todoist_api.get_projects()
+
+    for project_counter in range(10):
+        project_data = {
+            "color": "grey",
+            "comment_count": 0,
+            "is_favorite": random_bool(),
+            "is_inbox_project": False,
+            "is_shared": False,
+            "is_team_inbox": False,
+            "name": random_string(),
+            "order": project_counter + len(existing_projects),
+            "url": random_url(),
+            "view_style": "list",
+        }
+
+        project: Project = todoist_server._add_one(MockTodoistDBKey.projects, project_data)
+        sections = [todoist_api.add_section(name=random_string(), project_id=project.id) for _ in range(10)]
+        mock_data.append(MockTodoistData(project=project, sections=sections, tasks=[]))
+
+    return mock_data
+
+
+@pytest.fixture()
 def todoist_data(todoist_server: MockTodoistServer, todoist_api: MockTodoistAPI) -> list[MockTodoistData]:
     """
-    A list of projects and project tasks with sections
+    Returns a list of projects and project tasks with sections
 
     Every task will have `section_id` set, but some sections may not have any tasks associated with them
     """

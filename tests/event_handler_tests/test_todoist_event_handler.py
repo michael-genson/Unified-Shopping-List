@@ -30,9 +30,9 @@ def test_todoist_event_handler_send_to_queue(
     use_valid_security_header: bool,
     should_send_message: bool,
     api_client: TestClient,
-    user_data: MockLinkedUserAndData,
+    user_data_with_items: MockLinkedUserAndData,
 ):
-    linked_user = user_data.user
+    linked_user = user_data_with_items.user
     assert linked_user.is_linked_to_mealie
     assert linked_user.is_linked_to_todoist
     assert linked_user.todoist_user_id
@@ -45,7 +45,7 @@ def test_todoist_event_handler_send_to_queue(
     if not use_non_null_project_id:
         project_id = ""
     else:
-        project_id = user_data.todoist_data.project.id
+        project_id = user_data_with_items.todoist_data.project.id
 
     webhook = build_todoist_webhook(event_type, linked_user.todoist_user_id, project_id)
     if not use_valid_security_header:
@@ -63,13 +63,13 @@ def test_todoist_event_handler_send_to_queue(
         assert mocked_sync_handler.called is should_send_message
 
 
-def test_todoist_event_handler_rate_limit(api_client: TestClient, user_data: MockLinkedUserAndData):
-    linked_user = user_data.user
+def test_todoist_event_handler_rate_limit(api_client: TestClient, user_data_with_items: MockLinkedUserAndData):
+    linked_user = user_data_with_items.user
     assert linked_user.is_linked_to_mealie
     assert linked_user.is_linked_to_todoist
     assert linked_user.todoist_user_id
     webhook = build_todoist_webhook(
-        TodoistEventType.item_added, linked_user.todoist_user_id, user_data.todoist_data.project.id
+        TodoistEventType.item_added, linked_user.todoist_user_id, user_data_with_items.todoist_data.project.id
     )
 
     with pytest.raises(HTTPError) as e_info:
