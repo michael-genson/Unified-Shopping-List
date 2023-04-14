@@ -21,6 +21,7 @@ from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey
 from tests.utils.generators import random_int, random_string
 
 # TODO: verify service list cache is properly maintained for all operations
+# TODO: verify service list cache is returned as a deep copy, rather than as a reference
 
 
 def test_mealie_list_service_unlinked_user(user: User):

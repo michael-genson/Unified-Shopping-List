@@ -9,6 +9,7 @@ from AppLambda.src.services.alexa import AlexaListService
 from tests.utils.generators import random_int, random_string
 
 # TODO: verify service list cache is properly maintained for all operations
+# TODO: verify service list cache is returned as a deep copy, rather than as a reference
 
 
 def test_alexa_list_service_unlinked_user(user_linked_mealie: User):
