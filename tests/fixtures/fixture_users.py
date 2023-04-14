@@ -3,13 +3,25 @@ import random
 from fastapi.testclient import TestClient
 from pytest import fixture
 
-from AppLambda.src.models.core import User
-from AppLambda.src.models.mealie import AuthToken
+from AppLambda.src.models.alexa import AlexaListOut
+from AppLambda.src.models.core import ListSyncMap, User
+from AppLambda.src.models.mealie import AuthToken, MealieShoppingListOut
 from AppLambda.src.routes import account_linking
 from AppLambda.src.services.user import UserService
+from tests.fixtures.databases.todoist.fixture_todoist_database import MockTodoistData
 
 from ..utils.generators import random_string, random_url
 from ..utils.users import create_user_with_known_credentials, get_auth_headers
+
+
+class MockLinkedUserAndData:
+    def __init__(
+        self, user: User, mealie_list: MealieShoppingListOut, alexa_list: AlexaListOut, todoist_data: MockTodoistData
+    ) -> None:
+        self.user = user
+        self.mealie_list = mealie_list
+        self.alexa_list = alexa_list
+        self.todoist_data = todoist_data
 
 
 @fixture()
@@ -63,3 +75,38 @@ def user_linked(user_service: UserService, api_client: TestClient, user_linked_m
     linked_user = user_service.get_user(user_linked_mealie.username)
     assert linked_user
     return linked_user.cast(User)
+
+
+@fixture()
+def user_data(
+    user_service: UserService,
+    user_linked: User,
+    mealie_shopping_lists_with_foods_labels_units_recipe: list[MealieShoppingListOut],
+    alexa_lists_with_items: list[AlexaListOut],
+    todoist_data: list[MockTodoistData],
+) -> MockLinkedUserAndData:
+    """User that is linked to all services, has pre-populated data, and has a list sync map connecting each list"""
+
+    mealie_list = random.choice(mealie_shopping_lists_with_foods_labels_units_recipe)
+    alexa_list = random.choice(alexa_lists_with_items)
+    todoist_data_single = random.choice(todoist_data)
+
+    # link all lists together
+    user_linked.list_sync_maps = {
+        mealie_list.id: ListSyncMap(
+            mealie_shopping_list_id=mealie_list.id,
+            alexa_list_id=alexa_list.list_id,
+            todoist_project_id=todoist_data_single.project.id,
+        )
+    }
+    user_service.update_user(user_linked)
+    user_out = user_service.get_user(user_linked.username)
+    assert user_out
+    user = user_out.cast(User)
+
+    return MockLinkedUserAndData(
+        user=user,
+        mealie_list=mealie_list,
+        alexa_list=alexa_list,
+        todoist_data=todoist_data_single,
+    )
