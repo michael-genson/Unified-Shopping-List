@@ -18,9 +18,9 @@ class MockSQSFIFO:
         self.queue_url = queue_url
         self.api_client = TestClient(app)
 
-    def _build_message(self, content: str, attributes: Optional[dict[str, str]] = None) -> SQSMessage:
+    def _build_message(self, content: str) -> SQSMessage:
         return SQSMessage(
-            message_id=str(uuid4()), receipt_handle=random_string(), body=content, attributes=attributes or {}
+            message_id=str(uuid4()), receipt_handle=random_string(), body=content, attributes={}, message_attributes={}
         )
 
     def send_message(self, content: str, *args, **kwargs) -> None:
