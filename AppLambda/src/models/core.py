@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from .. import config
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
-from ..clients.aws import SQSFIFO
+from ..clients import aws
 from ._base import APIBase
 from .account_linking import UserAlexaConfiguration, UserMealieConfiguration, UserTodoistConfiguration
 
@@ -124,5 +124,5 @@ class BaseSyncEvent(APIBase):
     def send_to_queue(self, use_dev_route=False) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = SQSFIFO(config.SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else config.SYNC_EVENT_SQS_QUEUE_NAME)
+        sqs = aws.SQSFIFO(config.SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else config.SYNC_EVENT_SQS_QUEUE_NAME)
         sqs.send_message(self.json(), self.event_id, self.group_id)
