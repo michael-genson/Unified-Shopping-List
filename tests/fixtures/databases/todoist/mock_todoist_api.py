@@ -110,7 +110,7 @@ class MockTodoistAPI:
         return True
 
     def close_task(self, task_id: str) -> bool:
-        return self.update_task(task_id, allow_protected_fields=False, is_completed=True)
+        return self.update_task(task_id, allow_protected_fields=True, is_completed=True)
 
     def delete_task(self, task_id: str) -> bool:
         try:

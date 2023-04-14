@@ -72,25 +72,44 @@ def todoist_data_no_sections(todoist_api: MockTodoistAPI, todoist_server: MockTo
 
 
 @pytest.fixture()
-def todoist_data(todoist_api: MockTodoistAPI, todoist_data_no_sections: list[MockTodoistData]) -> list[MockTodoistData]:
+def todoist_data(todoist_server: MockTodoistServer, todoist_api: MockTodoistAPI) -> list[MockTodoistData]:
     """
     A list of projects and project tasks with sections
 
     Every task will have `section_id` set, but some sections may not have any tasks associated with them
     """
 
-    for data in todoist_data_no_sections:
-        sections = [todoist_api.add_section(name=random_string(), project_id=data.project.id) for _ in range(10)]
+    mock_data: list[MockTodoistData] = []
+    existing_projects = todoist_api.get_projects()
 
-        updated_tasks: list[Task] = []
-        for task in data.tasks:
-            assert todoist_api.update_task(task.id, section_id=random.choice(sections).id)
-            updated_tasks.append(todoist_api.get_task(task.id))
+    for project_counter in range(10):
+        project_data = {
+            "color": "grey",
+            "comment_count": 0,
+            "is_favorite": random_bool(),
+            "is_inbox_project": False,
+            "is_shared": False,
+            "is_team_inbox": False,
+            "name": random_string(),
+            "order": project_counter + len(existing_projects),
+            "url": random_url(),
+            "view_style": "list",
+        }
 
-        data.sections = sections
-        data.tasks = updated_tasks
+        project: Project = todoist_server._add_one(MockTodoistDBKey.projects, project_data)
+        sections = [todoist_api.add_section(name=random_string(), project_id=project.id) for _ in range(10)]
+        tasks = [
+            todoist_api.add_task(
+                content=random_string(),
+                project_id=project.id,
+                section_id=random.choice(sections).id,
+            )
+            for _ in range(10)
+        ]
 
-    return todoist_data_no_sections
+        mock_data.append(MockTodoistData(project=project, sections=sections, tasks=tasks))
+
+    return mock_data
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -8,3 +8,4 @@ from .fixture_users import *
 from .services.fixture_alexa_services import *
 from .services.fixture_core_services import *
 from .services.fixture_mealie_services import *
+from .services.fixture_todoist_services import *
