@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import uuid4
 
 import pytest
@@ -26,7 +25,8 @@ class MockSQSFIFO:
     def send_message(self, content: str, *args, **kwargs) -> None:
         if self.queue_url == config.SYNC_EVENT_DEV_SQS_QUEUE_NAME or config.SYNC_EVENT_SQS_QUEUE_NAME:
             self.api_client.post(
-                event_handlers.router.url_path_for("sqs_sync_event_handler"), json=[self._build_message(content).dict()]
+                event_handlers.router.url_path_for("sqs_sync_event_handler"),
+                json={"Records": [self._build_message(content).dict()]},
             )
         else:
             raise NotImplementedError(f"unsupported queue url {self.queue_url}")
