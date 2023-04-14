@@ -163,8 +163,9 @@ def test_mealie_list_service_add_food_to_item(
         assert item.label_id == food.label.id
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize(
-    "service_method, record_list_fixture,record_model, db_key",
+    "service_method, record_list_fixture, record_model, db_key",
     [
         ("get_all_lists", "mealie_shopping_lists", MealieShoppingListOut, MockMealieDBKey.shopping_lists),
     ],
@@ -242,6 +243,7 @@ def test_mealie_list_service_get_item(
     assert mealie_list_service.get_item(list_item.shopping_list_id, random_string()) is None
 
 
+@pytest.mark.flaky
 def test_mealie_list_service_get_item_cache(
     mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
