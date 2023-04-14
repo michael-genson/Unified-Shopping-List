@@ -21,7 +21,6 @@ from tests.fixtures.databases.mealie.mock_mealie_database import MockMealieDBKey
 from tests.utils.generators import random_int, random_string
 
 # TODO: verify service list cache is properly maintained for all operations
-# TODO: verify service list cache is returned as a deep copy, rather than as a reference
 
 
 def test_mealie_list_service_unlinked_user(user: User):
@@ -208,6 +207,20 @@ def test_mealie_list_service_get_all_list_items(
         assert item in expected_items
 
 
+def test_mealie_list_service_get_all_list_items_cache(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    mealie_list = random.choice(mealie_shopping_lists)
+    assert mealie_list.list_items
+
+    # verify items are returned as deep copies, rather than as a reference
+    fetched_items = mealie_list_service.get_all_list_items(mealie_list.id)
+    cached_items = mealie_list_service._list_items_by_list_id[mealie_list.id]
+    assert fetched_items is not cached_items
+    for fetched_item, cached_item in zip(fetched_items, cached_items):
+        assert fetched_item is not cached_item
+
+
 def test_mealie_list_service_get_item(
     mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
@@ -227,6 +240,28 @@ def test_mealie_list_service_get_item(
 
     # verify a random id returns None
     assert mealie_list_service.get_item(list_item.shopping_list_id, random_string()) is None
+
+
+def test_mealie_list_service_get_item_cache(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    mealie_list = random.choice(mealie_shopping_lists)
+    assert mealie_list.list_items
+    mealie_item = random.choice(mealie_list.list_items)
+
+    # verify items are returned as deep copies, rather than as a reference
+    fetched_item = mealie_list_service.get_item(mealie_list.id, mealie_item.id)
+    assert fetched_item
+
+    cached_items = mealie_list_service._list_items_by_list_id[mealie_list.id]
+    cached_item: Optional[MealieShoppingListItemOut] = None
+    for _item in cached_items:
+        if _item.id == mealie_item.id:
+            cached_item = _item
+            break
+
+    assert cached_item
+    assert cached_item is not fetched_item
 
 
 def test_mealie_list_service_get_item_by_extra(
@@ -250,6 +285,36 @@ def test_mealie_list_service_get_item_by_extra(
 
     # verify a random value returns None
     assert mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", random_string()) is None
+
+
+def test_mealie_list_service_get_item_by_extra_cache(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    list_item = random.choice(random.choice(mealie_shopping_lists).list_items)
+
+    # give the item an extra
+    alexa_item_id = random_string()
+    list_item_to_update = list_item.cast(MealieShoppingListItemUpdateBulk)
+    list_item_to_update.checked = False
+    list_item_to_update.extras = MealieShoppingListItemExtras(alexa_item_id=alexa_item_id)
+    mealie_list_service.update_items([list_item_to_update])
+
+    updated_list_item = mealie_list_service.get_item(list_item.shopping_list_id, list_item.id)
+    assert updated_list_item
+
+    # verify items are returned as deep copies, rather than as a reference
+    fetched_item = mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", alexa_item_id)
+    assert fetched_item
+
+    cached_items = mealie_list_service._list_items_by_list_id[updated_list_item.shopping_list_id]
+    cached_item: Optional[MealieShoppingListItemOut] = None
+    for _item in cached_items:
+        if _item.id == list_item.id:
+            cached_item = _item
+            break
+
+    assert cached_item
+    assert cached_item is not fetched_item
 
 
 def test_mealie_list_service_create_items(

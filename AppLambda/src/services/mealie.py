@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import cache, cached_property
 from typing import Iterable, Optional, TypeVar, cast
 
@@ -136,11 +137,14 @@ class MealieListService:
     def get_all_lists(self) -> Iterable[MealieShoppingListOut]:
         return self._client.get_all_shopping_lists()
 
-    def get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
+    def _get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
         """
-        Fetch all list items from Mealie or local cache. May include some checked items
+        Fetch all list items from Mealie or local cache
 
-        Optionally include all checked items queried directly from Mealie
+        Mutations to the list or to any items in the list will
+        modify the local cache
+
+        For a safe list of items, see `get_tasks`
         """
 
         # checked items are not always cached, so we only check the cache if we don't care about them
@@ -151,23 +155,41 @@ class MealieListService:
         self._list_items_by_list_id[list_id] = list_items
         return list_items
 
+    def get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
+        """
+        Fetch all list items from Mealie or local cache that can be safely mutated.
+        May include some checked items
+
+        Optionally include all checked items queried directly from Mealie
+        """
+
+        return deepcopy(self._get_all_list_items(list_id, include_all_checked))
+
     def get_item(self, list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_all_list_items(list_id):
+        """Fetches an item that can be safely mutated"""
+
+        for item in self._get_all_list_items(list_id):
             if item.id == item_id:
-                return item
+                return deepcopy(item)
 
         return None
 
     def get_item_by_extra(
         self, list_id: str, extras_key: str, extras_value: str
     ) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_all_list_items(list_id):
+        """
+        Fetches an item by unique extra that can be safely mutated
+
+        If more than one item shares the same extra, only the first is returned
+        """
+
+        for item in self._get_all_list_items(list_id):
             if not item.extras:
                 continue
 
             extras = item.extras.dict()
             if extras.get(extras_key) == extras_value:
-                return item
+                return deepcopy(item)
 
         return None
 
@@ -176,7 +198,7 @@ class MealieListService:
 
         # created items
         for new_item in items_collection.created_items:
-            list_items = self.get_all_list_items(new_item.shopping_list_id)
+            list_items = self._get_all_list_items(new_item.shopping_list_id)
             list_items.append(new_item)
 
         # updated items
@@ -185,7 +207,7 @@ class MealieListService:
             updated_items_by_list_id.setdefault(updated_item.shopping_list_id, []).append(updated_item)
 
         for list_id, updated_items in updated_items_by_list_id.items():
-            list_items = self.get_all_list_items(list_id)
+            list_items = self._get_all_list_items(list_id)
             item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(list_items)}
             for updated_item in updated_items:
                 # this should never happen since we track all list modifications
@@ -203,7 +225,7 @@ class MealieListService:
 
         for list_id, deleted_items in deleted_items_by_list_id.items():
             deleted_item_ids = [deleted_item.id for deleted_item in deleted_items]
-            list_items = self.get_all_list_items(list_id)
+            list_items = self._get_all_list_items(list_id)
             list_items[:] = [existing_item for existing_item in list_items if existing_item.id not in deleted_item_ids]
 
     def create_items(self, items: list[MealieShoppingListItemCreate]) -> None:

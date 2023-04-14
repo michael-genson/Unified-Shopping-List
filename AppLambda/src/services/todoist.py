@@ -67,7 +67,7 @@ class TodoistTaskService:
         Fetches a list of tasks from Todoist or from local cache
 
         Mutations to the list or to any tasks in the list will
-        modify the local cache.
+        modify the local cache
 
         For a safe list of tasks, see `get_tasks`
         """
