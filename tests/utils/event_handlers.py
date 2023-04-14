@@ -40,9 +40,9 @@ def build_mealie_event_notification(
     )
 
 
-def build_todoist_webhook(event_type: TodoistEventType, user_id: str, project_id: str) -> TodoistWebhook:
+def build_todoist_webhook(event_type: TodoistEventType, todoist_user_id: str, project_id: str) -> TodoistWebhook:
     return TodoistWebhook(
-        version=9, event_name=event_type, user_id=user_id, initiator={}, event_data={"project_id": project_id}
+        version=9, event_name=event_type, user_id=todoist_user_id, initiator={}, event_data={"project_id": project_id}
     )
 
 
@@ -80,7 +80,7 @@ def send_mealie_event_notification(notification: MealieEventNotification, user: 
     response.raise_for_status()
 
 
-def send_todoist_webhook(webhook: TodoistWebhook) -> None:
+def get_todoist_security_headers(webhook: TodoistWebhook) -> dict[str, str]:
     body = json.dumps(jsonable_encoder(webhook.dict())).encode("utf-8")
     hmac_signature = hmac.new(
         key=TODOIST_CLIENT_SECRET.encode("utf-8"),
@@ -89,13 +89,15 @@ def send_todoist_webhook(webhook: TodoistWebhook) -> None:
     )
 
     security_hash = base64.b64encode(hmac_signature.digest()).decode()
+    return {"X-Todoist-Hmac-SHA256": security_hash}
 
+
+def send_todoist_webhook(webhook: TodoistWebhook) -> None:
     api_client = _get_api_client()
-    headers = {"X-Todoist-Hmac-SHA256": security_hash}
     response = api_client.post(
         event_handlers.router.url_path_for("todoist_event_notification_handler"),
-        headers=headers,
-        data=body,
+        headers=get_todoist_security_headers(webhook),
+        json=jsonable_encoder(webhook.dict()),
     )
     response.raise_for_status()
 

@@ -160,12 +160,12 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
     if not users:
         return
 
-    # verify user rate limit; raises 429 error if the rate limit is violated
-    services.rate_limit.verify_rate_limit(user, RateLimitCategory.sync)
-
     # initiate a sync event for each linked user (there should only be one)
     event_id_base = request.headers.get("X-Todoist-Delivery-ID") or str(uuid4())
     for user in users:
+        # verify user rate limit; raises 429 error if the rate limit is violated
+        services.rate_limit.verify_rate_limit(user, RateLimitCategory.sync)
+
         sync_event = TodoistSyncEvent(
             event_id="|".join([user.username, event_id_base]),
             username=user.username,
