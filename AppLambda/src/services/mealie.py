@@ -144,7 +144,7 @@ class MealieListService:
         Mutations to the list or to any items in the list will
         modify the local cache
 
-        For a safe list of items, see `get_tasks`
+        For a safe list of items, see `get_all_list_items`
         """
 
         # checked items are not always cached, so we only check the cache if we don't care about them

@@ -1,9 +1,10 @@
 import random
+from typing import Optional
 
 import pytest
 
 from AppLambda.src.models.account_linking import NotLinkedError
-from AppLambda.src.models.alexa import AlexaListItemCreateIn, AlexaListItemUpdateBulkIn, AlexaListOut
+from AppLambda.src.models.alexa import AlexaListItemCreateIn, AlexaListItemOut, AlexaListItemUpdateBulkIn, AlexaListOut
 from AppLambda.src.models.core import User
 from AppLambda.src.services.alexa import AlexaListService
 from tests.utils.generators import random_int, random_string
@@ -35,6 +36,22 @@ def test_alexa_list_service_get_list(alexa_list_service: AlexaListService, alexa
     assert fetched_list == alexa_list
 
 
+def test_alexa_list_service_get_list_cache(
+    alexa_list_service: AlexaListService, alexa_lists_with_items: list[AlexaListOut]
+):
+    alexa_list = random.choice(alexa_lists_with_items)
+
+    fetched_list = alexa_list_service.get_list(alexa_list.list_id)
+    assert fetched_list.items
+    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    assert cached_list.items
+
+    # verify lists are returned as deep copies, rather than as a reference
+    assert fetched_list is not cached_list
+    for fetched_item, cached_item in zip(fetched_list.items, cached_list.items):
+        assert fetched_item is not cached_item
+
+
 def test_alexa_list_service_get_invalid_list(alexa_list_service: AlexaListService):
     with pytest.raises(Exception):  # TODO: update this to a custom exception type
         alexa_list_service.get_list(random_string())
@@ -50,6 +67,26 @@ def test_alexa_list_service_get_list_item(
     fetched_item = alexa_list_service.get_list_item(alexa_list.list_id, alexa_list_item.id)
     assert fetched_item
     assert fetched_item == alexa_list_item
+
+
+def test_alexa_list_service_get_list_item_cache(
+    alexa_list_service: AlexaListService, alexa_lists_with_items: list[AlexaListOut]
+):
+    alexa_list = random.choice(alexa_lists_with_items)
+    assert alexa_list.items
+    alexa_item = random.choice(alexa_list.items)
+
+    fetched_item = alexa_list_service.get_list_item(alexa_list.list_id, alexa_item.id)
+    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    assert cached_list.items
+    cached_item: Optional[AlexaListItemOut] = None
+    for _cached_item in cached_list.items:
+        if _cached_item.id == alexa_item.id:
+            cached_item = _cached_item
+            break
+
+    assert cached_item
+    assert cached_item is not fetched_item
 
 
 def test_alexa_list_service_get_invalid_list_item(
@@ -83,6 +120,27 @@ def test_alexa_list_service_create_list_items(
     assert fetched_list.items
     for new_item in new_items:
         assert new_item in fetched_list.items
+
+
+def test_alexa_list_service_create_list_items_cache(
+    alexa_list_service: AlexaListService, alexa_lists_with_items: list[AlexaListOut]
+):
+    alexa_list = random.choice(alexa_lists_with_items)
+    items_to_create = [AlexaListItemCreateIn(value=random_string()) for _ in range(random_int(10, 20))]
+    response = alexa_list_service.create_list_items(alexa_list.list_id, items_to_create)
+
+    new_items = response.list_items
+    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    assert cached_list.items
+    for new_item in new_items:
+        cached_item: Optional[AlexaListItemOut] = None
+        for _cached_item in cached_list.items:
+            if _cached_item.id == new_item.id:
+                cached_item = _cached_item
+                break
+
+        assert cached_item
+        assert cached_item is not new_item
 
 
 def test_alexa_list_service_update_list_items(
@@ -121,3 +179,28 @@ def test_alexa_list_service_update_list_items(
             assert fetched_item == updated_items_by_id[fetched_item.id]
         else:
             assert fetched_item in original_list.items
+
+
+def test_alexa_list_service_update_list_items_cache(
+    alexa_list_service: AlexaListService, alexa_lists_with_items: list[AlexaListOut]
+):
+    alexa_list = random.choice(alexa_lists_with_items)
+    assert alexa_list.items
+    items_to_update = [
+        AlexaListItemUpdateBulkIn(id=original_item.id, value=random_string())
+        for original_item in random.sample(alexa_list.items, 5)
+    ]
+    response = alexa_list_service.update_list_items(alexa_list.list_id, items_to_update)
+
+    updated_items = response.list_items
+    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    assert cached_list.items
+    for updated_item in updated_items:
+        cached_item: Optional[AlexaListItemOut] = None
+        for _cached_item in cached_list.items:
+            if _cached_item.id == updated_item.id:
+                cached_item = _cached_item
+                break
+
+        assert cached_item
+        assert cached_item is not updated_item

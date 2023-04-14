@@ -47,7 +47,6 @@ Quality of Life
 
 Development / DevOps
 - add test coverage for event handler logic
-- add test coverage for local cache mutations
 - move config and secrets to env vars and out of codebase
 - implement a proper dev -> main branch workflow
 - implement github actions
