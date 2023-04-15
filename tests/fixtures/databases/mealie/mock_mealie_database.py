@@ -17,9 +17,9 @@ from AppLambda.src.models.mealie import (
     MealieEventNotifierOut,
     MealieShoppingListItemCreate,
     MealieShoppingListItemOut,
+    MealieShoppingListItemRecipeRefOut,
     MealieShoppingListItemsCollectionOut,
     MealieShoppingListItemUpdate,
-    MealieShoppingListRecipeRef,
     Pagination,
     Unit,
 )
@@ -36,6 +36,9 @@ class MockMealieDBKey(Enum):
     shopping_lists = "shopping_lists"
     units = "units"
     user_api_tokens = "user_api_tokens"
+
+
+# TODO: refactor to use actual models instead of dictionaries
 
 
 class MockMealieServer:
@@ -161,7 +164,7 @@ class MockMealieServer:
         label = Label(**self._assert(self.db[MockMealieDBKey.labels].get(item.label_id))) if item.label_id else None
         unit = Unit(**self._assert(self.db[MockMealieDBKey.units].get(item.unit_id))) if item.unit_id else None
         recipe_references = [
-            ref.cast(MealieShoppingListRecipeRef, id=str(uuid4()), shopping_list_item_id=id)
+            ref.cast(MealieShoppingListItemRecipeRefOut, id=str(uuid4()), shopping_list_item_id=id)
             for ref in item.recipe_references
         ]
 
@@ -200,6 +203,11 @@ class MockMealieServer:
             # merge updated data into item
             for key in update_item_data:
                 if key in li:
+                    if key == "recipe_references":
+                        # this prevents updates to recipe references, but
+                        # we don't do that in the app, so it's fine
+                        continue
+
                     li[key] = update_item_data[key]
 
             # update ORM links

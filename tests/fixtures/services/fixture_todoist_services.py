@@ -14,7 +14,9 @@ def todoist_task_service(user_linked: User):
     config.add_recipes_to_task_description = False
 
     user = update_todoist_config(user_linked, config)
-    return TodoistTaskService(user)
+    service = TodoistTaskService(user)
+    yield service
+    service.get_section.cache_clear()
 
 
 @pytest.fixture()
@@ -25,7 +27,9 @@ def todoist_task_service_use_sections(user_linked: User):
     config.add_recipes_to_task_description = False
 
     user = update_todoist_config(user_linked, config)
-    return TodoistTaskService(user)
+    service = TodoistTaskService(user)
+    yield service
+    service.get_section.cache_clear()
 
 
 @pytest.fixture()
@@ -36,4 +40,6 @@ def todoist_task_service_use_sections_and_descriptions(user_linked: User):
     config.add_recipes_to_task_description = True
 
     user = update_todoist_config(user_linked, config)
-    return TodoistTaskService(user)
+    service = TodoistTaskService(user)
+    yield service
+    service.get_section.cache_clear()
