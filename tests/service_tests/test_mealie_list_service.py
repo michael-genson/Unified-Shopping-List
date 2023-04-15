@@ -216,7 +216,7 @@ def test_mealie_list_service_get_all_list_items_cache(
 
     # verify items are returned as deep copies, rather than as a reference
     fetched_items = mealie_list_service.get_all_list_items(mealie_list.id)
-    cached_items = mealie_list_service._list_items_by_list_id[mealie_list.id]
+    cached_items = mealie_list_service._list_items_cache[mealie_list.id]
     assert fetched_items is not cached_items
     for fetched_item, cached_item in zip(fetched_items, cached_items):
         assert fetched_item is not cached_item
@@ -255,7 +255,7 @@ def test_mealie_list_service_get_item_cache(
     fetched_item = mealie_list_service.get_item(mealie_list.id, mealie_item.id)
     assert fetched_item
 
-    cached_items = mealie_list_service._list_items_by_list_id[mealie_list.id]
+    cached_items = mealie_list_service._list_items_cache[mealie_list.id]
     cached_item: Optional[MealieShoppingListItemOut] = None
     for _item in cached_items:
         if _item.id == mealie_item.id:
@@ -308,7 +308,7 @@ def test_mealie_list_service_get_item_by_extra_cache(
     fetched_item = mealie_list_service.get_item_by_extra(list_item.shopping_list_id, "alexa_item_id", alexa_item_id)
     assert fetched_item
 
-    cached_items = mealie_list_service._list_items_by_list_id[updated_list_item.shopping_list_id]
+    cached_items = mealie_list_service._list_items_cache[updated_list_item.shopping_list_id]
     cached_item: Optional[MealieShoppingListItemOut] = None
     for _item in cached_items:
         if _item.id == list_item.id:

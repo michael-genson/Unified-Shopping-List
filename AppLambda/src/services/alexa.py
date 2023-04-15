@@ -37,8 +37,12 @@ class AlexaListService:
         self.user_id: str = cast(str, user.alexa_user_id)
         self.config = cast(UserAlexaConfiguration, user.configuration.alexa)
 
-        self.lists: dict[str, AlexaListOut] = {}
+        self._list_cache: dict[str, AlexaListOut] = {}
         """map of {list_id: list}"""
+
+    def _clear_cache(self) -> None:
+        self._list_cache.clear()
+        self.get_all_lists.cache_clear()
 
     @cache
     def get_all_lists(
@@ -82,8 +86,8 @@ class AlexaListService:
         For a safe list, see `get_list`
         """
 
-        if list_id in self.lists:
-            return self.lists[list_id]
+        if list_id in self._list_cache:
+            return self._list_cache[list_id]
 
         request = MessageRequest(
             operation=Operation.read,
@@ -100,7 +104,7 @@ class AlexaListService:
             # since we only sent one request, we can expect exactly one response
             alexa_list = AlexaListOut.parse_obj(response[0])
 
-            self.lists[alexa_list.list_id] = alexa_list
+            self._list_cache[alexa_list.list_id] = alexa_list
             return alexa_list
 
         except IndexError:

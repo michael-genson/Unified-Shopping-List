@@ -17,12 +17,16 @@ class TodoistTaskService:
         self.config = cast(UserTodoistConfiguration, user.configuration.todoist)
         self._client = self._get_client(self.config.access_token)
 
-        self.project_tasks: dict[str, list[Task]] = {}
+        self._project_tasks_cache: dict[str, list[Task]] = {}
         """map of {project_id: tasks}"""
 
     @classmethod
     def _get_client(cls, token: str) -> TodoistAPI:
         return TodoistAPI(token)
+
+    def _clear_cache(self) -> None:
+        self._project_tasks_cache.clear()
+        self.get_section.cache_clear()
 
     def get_section_by_id(self, section_id: str) -> Section:
         return self._client.get_section(section_id)
@@ -72,11 +76,11 @@ class TodoistTaskService:
         For a safe list of tasks, see `get_tasks`
         """
 
-        if project_id in self.project_tasks:
-            return self.project_tasks[project_id]
+        if project_id in self._project_tasks_cache:
+            return self._project_tasks_cache[project_id]
 
         tasks = self._client.get_tasks(project_id=project_id)
-        self.project_tasks[project_id] = tasks
+        self._project_tasks_cache[project_id] = tasks
         return tasks
 
     def get_tasks(self, project_id: str) -> list[Task]:

@@ -8,4 +8,4 @@ from AppLambda.src.services.alexa import AlexaListService
 def alexa_list_service(user_linked: User):
     service = AlexaListService(user_linked)
     yield service
-    service.get_all_lists.cache_clear()
+    service._clear_cache()

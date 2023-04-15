@@ -152,7 +152,7 @@ def test_todoist_task_service_get_tasks_cache(
 
     # verify task lists are returned as deep copies, rather than as a reference
     fetched_tasks = todoist_task_service.get_tasks(project_id=project.id)
-    cached_tasks = todoist_task_service.project_tasks[project.id]
+    cached_tasks = todoist_task_service._project_tasks_cache[project.id]
     assert fetched_tasks is not cached_tasks
     for fetched_task, cached_task in zip(fetched_tasks, cached_tasks):
         assert fetched_task is not cached_task
@@ -180,7 +180,7 @@ def test_todoist_task_service_get_task_cache(
 
     # verify tasks are returned as deep copies, rather than as a reference
     fetched_task = todoist_task_service.get_task(task.id, project_id=project.id)
-    cached_tasks = todoist_task_service.project_tasks[project.id]
+    cached_tasks = todoist_task_service._project_tasks_cache[project.id]
     cached_task: Optional[Task] = None
     for _task in cached_tasks:
         if _task.id == task.id:
@@ -300,7 +300,7 @@ def test_todoist_task_service_add_task_cache(
     new_task = todoist_task_service.add_task(random_string(), project_id=project.id)
 
     # verify new tasks are returned as deep copies, rather than as a reference
-    cached_tasks = todoist_task_service.project_tasks[project.id]
+    cached_tasks = todoist_task_service._project_tasks_cache[project.id]
     cached_task: Optional[Task] = None
     for _task in cached_tasks:
         if _task.id == new_task.id:
@@ -543,7 +543,7 @@ def test_todoist_task_service_update_task_cache(
     updated_task = todoist_task_service.update_task(task_to_update.id, data.project.id, content=random_string())
 
     # verify updated tasks are returned as deep copies, rather than as a reference
-    cached_tasks = todoist_task_service.project_tasks[data.project.id]
+    cached_tasks = todoist_task_service._project_tasks_cache[data.project.id]
     cached_task: Optional[Task] = None
     for _task in cached_tasks:
         if _task.id == updated_task.id:

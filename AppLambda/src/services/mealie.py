@@ -32,7 +32,7 @@ class MealieListService:
         self.config = cast(UserMealieConfiguration, user.configuration.mealie)
         self._client = MealieClient(self.config.base_url, self.config.auth_token)
 
-        self._list_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        self._list_items_cache: dict[str, list[MealieShoppingListItemOut]] = {}
         """
         map of {shopping_list_id: list[shopping_list_items]}
         
@@ -40,6 +40,15 @@ class MealieListService:
 
         should not be accessed directly; see `get_all_list_items`
         """
+
+    def _clear_cache(self) -> None:
+        for cached_property in ["recipe_store", "food_store", "label_store"]:
+            self.__dict__.pop(cached_property, None)
+
+        self._list_items_cache.clear()
+        self.get_food.cache_clear()
+        self.get_label.cache_clear()
+        self.get_all_lists.cache_clear()
 
     @cached_property
     def recipe_store(self) -> dict[str, MealieRecipe]:
@@ -151,11 +160,11 @@ class MealieListService:
         """
 
         # checked items are not always cached, so we only check the cache if we don't care about them
-        if list_id in self._list_items_by_list_id and not include_all_checked:
-            return self._list_items_by_list_id[list_id]
+        if list_id in self._list_items_cache and not include_all_checked:
+            return self._list_items_cache[list_id]
 
         list_items = list(self._client.get_all_shopping_list_items(list_id, include_all_checked))
-        self._list_items_by_list_id[list_id] = list_items
+        self._list_items_cache[list_id] = list_items
         return list_items
 
     def get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:

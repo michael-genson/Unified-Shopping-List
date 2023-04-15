@@ -16,7 +16,7 @@ def todoist_task_service(user_linked: User):
     user = update_todoist_config(user_linked, config)
     service = TodoistTaskService(user)
     yield service
-    service.get_section.cache_clear()
+    service._clear_cache()
 
 
 @pytest.fixture()
@@ -29,7 +29,7 @@ def todoist_task_service_use_sections(user_linked: User):
     user = update_todoist_config(user_linked, config)
     service = TodoistTaskService(user)
     yield service
-    service.get_section.cache_clear()
+    service._clear_cache()
 
 
 @pytest.fixture()
@@ -42,4 +42,4 @@ def todoist_task_service_use_sections_and_descriptions(user_linked: User):
     user = update_todoist_config(user_linked, config)
     service = TodoistTaskService(user)
     yield service
-    service.get_section.cache_clear()
+    service._clear_cache()

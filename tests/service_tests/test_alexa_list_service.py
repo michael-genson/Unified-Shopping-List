@@ -43,7 +43,7 @@ def test_alexa_list_service_get_list_cache(
 
     fetched_list = alexa_list_service.get_list(alexa_list.list_id)
     assert fetched_list.items
-    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
 
     # verify lists are returned as deep copies, rather than as a reference
@@ -77,7 +77,7 @@ def test_alexa_list_service_get_list_item_cache(
     alexa_item = random.choice(alexa_list.items)
 
     fetched_item = alexa_list_service.get_list_item(alexa_list.list_id, alexa_item.id)
-    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
     cached_item: Optional[AlexaListItemOut] = None
     for _cached_item in cached_list.items:
@@ -130,7 +130,7 @@ def test_alexa_list_service_create_list_items_cache(
     response = alexa_list_service.create_list_items(alexa_list.list_id, items_to_create)
 
     new_items = response.list_items
-    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
     for new_item in new_items:
         cached_item: Optional[AlexaListItemOut] = None
@@ -193,7 +193,7 @@ def test_alexa_list_service_update_list_items_cache(
     response = alexa_list_service.update_list_items(alexa_list.list_id, items_to_update)
 
     updated_items = response.list_items
-    cached_list = alexa_list_service.lists[alexa_list.list_id]
+    cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
     for updated_item in updated_items:
         cached_item: Optional[AlexaListItemOut] = None
