@@ -72,6 +72,9 @@ class MealieListService:
     def get_food(self, food: str) -> Optional[Food]:
         """Compares food to the Mealie food store and finds the closest match within threshold"""
 
+        if not self.food_store:
+            return None
+
         user_food = food.lower()  # food store keys are all lowercase
         if user_food in self.food_store:
             return self.food_store[user_food]
