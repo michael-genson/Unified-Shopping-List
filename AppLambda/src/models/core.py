@@ -115,7 +115,7 @@ class BaseSyncEvent(APIBase):
     timestamp: datetime = datetime.now()
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
     @property
     def group_id(self):

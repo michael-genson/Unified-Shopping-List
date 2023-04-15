@@ -53,7 +53,7 @@ class MessageRequest(BaseModel):
     metadata: Optional[dict[str, Any]]
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
 
 class MessageIn(APIBase):
@@ -100,7 +100,7 @@ class AlexaListItemCreateIn(APIBase):
     status: ListItemState = ListItemState.active
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
 
 class AlexaListItemCreate(AlexaListItemCreateIn):
@@ -135,7 +135,7 @@ class AlexaListItemOut(APIBase):
     updated_time: datetime
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
     @validator("created_time", "updated_time", pre=True)
     def parse_timestamp(cls, v) -> datetime:
@@ -156,7 +156,7 @@ class AlexaReadList(APIBase):
     state: ListState = ListState.active
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
 
 class AlexaListOut(AlexaReadList):
@@ -185,7 +185,7 @@ class AlexaListEvent(APIBase):
     """only populated in list item events"""
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
 
 class AlexaSyncEvent(BaseSyncEvent):

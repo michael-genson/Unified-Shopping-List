@@ -152,7 +152,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                         continue
 
                     alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
-                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                    if not alexa_item or alexa_item.status == ListItemState.completed.value:
                         continue
 
                     mealie_items_to_create.append(
@@ -171,7 +171,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                         continue
 
                     alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
-                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                    if not alexa_item or alexa_item.status == ListItemState.completed.value:
                         mealie_item.checked = True
                         if mealie_item.extras:
                             mealie_item.extras.alexa_item_id = None
