@@ -42,7 +42,6 @@
   ],
   "python.testing.pytestArgs": [
     "--cov=AppLambda/src/",
-    "--no-success-flaky-report",
     "tests/"
   ],
   "python.testing.unittestEnabled": false,
