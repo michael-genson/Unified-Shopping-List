@@ -110,7 +110,7 @@ class MockTodoistAPI:
         return True
 
     def close_task(self, task_id: str) -> bool:
-        return self.update_task(task_id, allow_protected_fields=True, is_completed=True)
+        return self.delete_task(task_id)  # closed tasks can't be fetched by the API anymore
 
     def delete_task(self, task_id: str) -> bool:
         try:

@@ -46,7 +46,6 @@ Quality of Life
 - improve mobile frontend experience
 
 Development / DevOps
-- add test coverage for event handler logic
 - move config and secrets to env vars and out of codebase
 - implement a proper dev -> main branch workflow
 - implement github actions
