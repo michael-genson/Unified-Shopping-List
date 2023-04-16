@@ -116,6 +116,47 @@ def user_data(
 
 
 @fixture()
+def user_data_with_mealie_items(
+    user_service: UserService,
+    user_linked: User,
+    mealie_shopping_lists_with_foods_labels_units_recipe: list[MealieShoppingListOut],
+    alexa_lists_with_no_items: list[AlexaListOut],
+    todoist_data_no_tasks: list[MockTodoistData],
+) -> MockLinkedUserAndData:
+    """
+    User that is linked to all services, has pre-populated lists
+    and Mealie list items, and has a list sync map connecting each list
+
+    Only Mealie has list items, so a sync should result in new items
+    being created in all other services
+    """
+
+    mealie_list = random.choice(mealie_shopping_lists_with_foods_labels_units_recipe)
+    alexa_list = random.choice(alexa_lists_with_no_items)
+    todoist_data_single = random.choice(todoist_data_no_tasks)
+
+    # link all lists together
+    user_linked.list_sync_maps = {
+        mealie_list.id: ListSyncMap(
+            mealie_shopping_list_id=mealie_list.id,
+            alexa_list_id=alexa_list.list_id,
+            todoist_project_id=todoist_data_single.project.id,
+        )
+    }
+    user_service.update_user(user_linked)
+    user_out = user_service.get_user(user_linked.username)
+    assert user_out
+    user = user_out.cast(User)
+
+    return MockLinkedUserAndData(
+        user=user,
+        mealie_list=mealie_list,
+        alexa_list=alexa_list,
+        todoist_data=todoist_data_single,
+    )
+
+
+@fixture()
 def user_data_with_items(
     user_service: UserService,
     user_linked: User,

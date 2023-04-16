@@ -109,19 +109,19 @@ def mealie_shopping_lists() -> list[MealieShoppingListOut]:
     shopping_lists: list[MealieShoppingListOut] = []
     for _ in range(10):
         list_id = str(uuid4())
-        items = [
-            MealieShoppingListItemOut(
+        items: list[MealieShoppingListItemOut] = []
+        for i in range(random_int(10, 20)):
+            note = random_string()
+            new_item = MealieShoppingListItemOut(
                 id=str(uuid4()),
                 shopping_list_id=list_id,
-                checked=random_bool(),
                 position=i,
                 is_food=False,
-                note=random_string(),
+                note=note,
                 quantity=random_int(0, 10),
-                display=random_string(),
+                display=note,
             )
-            for i in range(random_int(10, 20))
-        ]
+            items.append(new_item)
         shopping_lists.append(
             MealieShoppingListOut(
                 id=list_id,
@@ -164,16 +164,16 @@ def mealie_shopping_lists_with_foods_labels_units_recipe(
         items: list[MealieShoppingListItemOut] = []
         for i in range(number_of_items):
             item_id = str(uuid4())
+            note = random_string()
             items.append(
                 MealieShoppingListItemOut(
                     id=item_id,
                     shopping_list_id=list_id,
-                    checked=random_bool(),
                     position=i,
                     is_food=True,
-                    note=random_string(),
+                    note=note,
                     quantity=random.uniform(0, 10),
-                    display=random_string(),
+                    display=note,
                     food_id=food.id,
                     food=food,
                     label_id=food.label.id,

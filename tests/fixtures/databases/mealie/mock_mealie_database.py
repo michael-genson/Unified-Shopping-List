@@ -171,7 +171,7 @@ class MockMealieServer:
         item_out = item.cast(
             MealieShoppingListItemOut,
             id=id,
-            display=id,
+            display=item.note if item.note else "",
             food=food,
             label=label,
             unit=unit,
@@ -209,6 +209,9 @@ class MockMealieServer:
                         continue
 
                     li[key] = update_item_data[key]
+
+            # update display
+            li["display"] = li["note"] if li["note"] else ""
 
             # update ORM links
             for db_key, link in [
