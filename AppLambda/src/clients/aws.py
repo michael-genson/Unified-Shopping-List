@@ -1,23 +1,25 @@
 import json
 import logging
-from typing import Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import boto3
 from dynamodb_json import json_util as ddb_json  # type: ignore
-from mypy_boto3_dynamodb import DynamoDBClient
-from mypy_boto3_secretsmanager import SecretsManagerClient
-from mypy_boto3_sqs import SQSServiceResource
 
 from ..app_secrets import AWS_REGION
 from ..models.aws import DynamoDBAtomicOp
+
+if TYPE_CHECKING:
+    from mypy_boto3_dynamodb import DynamoDBClient
+    from mypy_boto3_secretsmanager import SecretsManagerClient
+    from mypy_boto3_sqs import SQSServiceResource
 
 
 class AWSClientResourceFactory:
     def __init__(self) -> None:
         self._session: Optional[boto3.Session] = None
-        self._ddb: Optional[DynamoDBClient] = None
-        self._secrets: Optional[SecretsManagerClient] = None
-        self._sqs: Optional[SQSServiceResource] = None
+        self._ddb: Optional["DynamoDBClient"] = None
+        self._secrets: Optional["SecretsManagerClient"] = None
+        self._sqs: Optional["SQSServiceResource"] = None
 
     @property
     def session(self):
