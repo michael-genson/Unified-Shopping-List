@@ -2,6 +2,7 @@ from copy import deepcopy
 from functools import cache
 from typing import Optional, cast
 
+from requests import HTTPError
 from todoist_api_python.api import TodoistAPI
 from todoist_api_python.models import Section, Task
 
@@ -32,8 +33,13 @@ class TodoistTaskService:
         return self._client.get_section(section_id)
 
     @cache
-    def get_section(self, section: str, project_id: str) -> Section:
-        """Gets an existing section by name, or creates a new one if one doesn't already exist"""
+    def get_section(self, section: str, project_id: str) -> Optional[Section]:
+        """
+        Gets an existing section by name, or creates a new one if one doesn't already exist
+
+        If a user has too many sections, get the default section. If there is no default
+        section, return None
+        """
 
         user_section = section.strip().lower()
         api_sections = self._client.get_sections(project_id=project_id)
@@ -41,12 +47,28 @@ class TodoistTaskService:
             if api_section.name.strip().lower() == user_section:
                 return api_section
 
-        # projects can only have a max of 20 sections, and throws a 403 error if you try to add another
-        # TODO: when this happens, set the section to the default section (or no section)
-        return self._client.add_section(section, project_id)
+        try:
+            # TODO: add the section in the correct order based on Mealie settings
+            return self._client.add_section(section, project_id)
+        except HTTPError as e:
+            if e.response.status_code != 403:
+                raise
+
+            # when a user has too many sections, a 403 error is thrown,
+            # so we try to set the section as default
+            # TODO: document this limitation
+            for api_section in api_sections:
+                if api_section.name.strip().lower() == self.config.default_section_name:
+                    return api_section
+
+            # if the default section doesn't exist, we can't create it
+            return None
 
     def is_default_section(self, section_id: str, project_id: str) -> bool:
         default_section = self.get_section(self.config.default_section_name, project_id)
+        if not default_section:
+            return False
+
         return section_id == default_section.id
 
     def is_task_section(self, section: Optional[str], task: Task) -> bool:
@@ -66,6 +88,9 @@ class TodoistTaskService:
 
         # compare the input section and the task section
         user_section = self.get_section(section, task.project_id)
+        if not user_section:
+            return False
+
         return user_section.id == task.section_id
 
     def _get_tasks(self, project_id: str) -> list[Task]:
@@ -112,7 +137,8 @@ class TodoistTaskService:
             section_name = section or self.config.default_section_name
 
             api_section = self.get_section(section_name, project_id)
-            kwargs["section_id"] = api_section.id
+            if api_section:
+                kwargs["section_id"] = api_section.id
 
         if labels:
             kwargs["labels"] = labels
@@ -165,7 +191,7 @@ class TodoistTaskService:
 
             section_name = section or self.config.default_section_name
             api_section = self.get_section(section_name, project_id)
-            new_section_id = api_section.id
+            new_section_id = api_section.id if api_section else ""
 
             if new_section_id != task.section_id:
                 # the Todoist API doesn't support changing sections, so we delete and re-create the task instead
@@ -187,6 +213,8 @@ class TodoistTaskService:
         return deepcopy(updated_task)
 
     def close_task(self, task: Task) -> None:
+        # TODO: when the last task in a section is closed, delete the section
+
         is_success = self._client.close_task(task.id)
         if not is_success:
             raise Exception("Unable to close task; rejected by Todoist")

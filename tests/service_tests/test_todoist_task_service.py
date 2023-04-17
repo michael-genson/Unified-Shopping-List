@@ -61,6 +61,7 @@ def test_todoist_task_service_is_default_section(
 
     default_section_name = todoist_task_service.config.default_section_name
     default_section = todoist_task_service.get_section(default_section_name, project_id=data.project.id)
+    assert default_section
     assert todoist_task_service.is_default_section(default_section.id, data.project.id)
 
 
@@ -94,9 +95,11 @@ def test_todoist_task_service_is_task_section(
     default_section = todoist_task_service.get_section(
         todoist_task_service.config.default_section_name, data.project.id
     )
+    assert default_section
     task_with_default_section.section_id = default_section.id
 
     random_section = todoist_task_service.get_section(random_string(), data.project.id)
+    assert random_section
 
     # even when sections don't match, we consider them matching when not using sections,
     # so all of these scenarios should only be True if we are not using sections
@@ -484,6 +487,7 @@ def test_todoist_task_service_update_task_with_new_section(
         assert updated_task.section_id == original_task.section_id
     else:
         new_section = todoist_task_service.get_section(new_section_name, project_id=data.project.id)
+        assert new_section
         assert updated_task.section_id == new_section.id != original_task.section_id
 
         # updating a task's section actually closes/deletes the existing task and adds a new task,

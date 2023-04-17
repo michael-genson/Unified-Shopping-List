@@ -2,7 +2,7 @@ import os
 
 ### About ###
 APP_TITLE = "Unified Shopping List"
-APP_VERSION = "0.3.5"
+APP_VERSION = "0.3.6"
 INTERNAL_APP_NAME = "shopping_list_api"
 
 
