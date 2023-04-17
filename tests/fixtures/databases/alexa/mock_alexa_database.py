@@ -139,7 +139,6 @@ class MockAlexaServer:
         return self.db.get(list_id)
 
     def send_message(self, user_id: str, message: Message, *args, **kwargs) -> None:
-
         # default response if there is no operation + object_type match
         response_body: CallbackData = CallbackData(success=False, detail="invalid operation + object_type parameters")
         try:

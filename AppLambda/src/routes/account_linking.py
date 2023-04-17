@@ -170,10 +170,8 @@ async def handle_sync_map_update_form(request: Request, list_map_data: list[str]
 
         # [{mealie_list_id: {Source.value: external_list.id}}]
         for list_data in parsed_list_data:
-
             # {mealie_list_id: {Source.value: external_list.id}}
             for mealie_list_id, external_list_data in list_data.items():
-
                 list_link_signature = json.dumps(external_list_data)
                 if list_link_signature in seen_list_links:
                     continue

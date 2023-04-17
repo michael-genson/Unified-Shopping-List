@@ -17,7 +17,6 @@ from tests.utils.info import fully_qualified_name
 
 
 def test_bulk_sync_events_only_fire_once(api_client: TestClient, user_data_with_items: MockLinkedUserAndData):
-
     sync_event = MealieSyncEvent(
         username=user_data_with_items.user.username, shopping_list_id=user_data_with_items.mealie_list.id
     )
