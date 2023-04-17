@@ -23,7 +23,7 @@ class ListManagerClient:
     """Manages low-level Alexa Skills API interaction"""
 
     def __init__(self, max_attempts: int = 3, rate_limit_throttle: int = 5) -> None:
-        self.access_token: str
+        self.access_token: Optional[str] = None
         self.expiration: float = -1
         self._event_callback_db: Optional[aws.DynamoDB] = None
 
@@ -67,6 +67,9 @@ class ListManagerClient:
         self.expiration = time.time() + response_json["expires_in"]
 
     def _send_message(self, user_id: str, message: Message, max_attempts=3) -> None:
+        if not self.access_token:
+            self._refresh_token()
+
         url = ALEXA_MESSAGE_API_URL.format(user_id=user_id)
         headers = {"Authorization": f"Bearer {self.access_token}"}
         payload = {"data": message.dict()}
