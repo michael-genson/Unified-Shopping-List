@@ -41,6 +41,8 @@ class TodoistTaskService:
             if api_section.name.strip().lower() == user_section:
                 return api_section
 
+        # projects can only have a max of 20 sections, and throws a 403 error if you try to add another
+        # TODO: when this happens, set the section to the default section (or no section)
         return self._client.add_section(section, project_id)
 
     def is_default_section(self, section_id: str, project_id: str) -> bool:

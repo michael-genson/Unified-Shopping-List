@@ -102,6 +102,7 @@ class MockTodoistAPI:
                         "parent_id",
                         "url",
                         "sync_id",
+                        "section_id",
                     ]
                 setattr(existing_task, k, v)
         except HTTPError:
