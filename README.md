@@ -1,4 +1,4 @@
-# <img src="./AppLambda/src/static/images/favicon.png" width="25px" height="auto"> Unified Shopping List 
+# <img src="./AppLambda/src/static/images/favicon.png" width="25px" height="auto"> Unified Shopping List
 The Unified Shopping List is an open source app to connect your shopping lists in real time. The goal of the USL is to make managing your grocery shopping *easy* and *configurable*.
 This project was born out of a frustration with existing integration tools, for both being a pain (or impossible) to set up, unreliable, and/or having little-to-no configurability.
 

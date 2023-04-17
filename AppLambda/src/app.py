@@ -19,13 +19,13 @@ templates = Jinja2Templates(directory=os.path.join(current_dir, "static/template
 
 
 ### Service Setup ###
-from .services.factory import ServiceFactory
+from .services.factory import ServiceFactory  # noqa: E402
 
 services = ServiceFactory()
 
 
 ### Route Setup ###
-from .routes import account_linking, alexa, auth, core, event_handlers, mealie, todoist
+from .routes import account_linking, alexa, auth, core, event_handlers, mealie, todoist  # noqa: E402
 
 # frontend routes
 app.include_router(core.router, include_in_schema=False)

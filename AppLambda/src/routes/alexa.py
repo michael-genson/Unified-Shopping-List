@@ -5,7 +5,7 @@ import logging
 from datetime import timedelta
 from typing import cast
 
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from requests import PreparedRequest
 

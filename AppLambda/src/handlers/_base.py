@@ -19,7 +19,10 @@ class BaseSyncHandler(ABC):
     @property
     @abstractmethod
     def suppress_additional_messages(self) -> bool:
-        """whether additional messages from this source should be suppressed after a message is successfully processed"""
+        """
+        whether additional messages from this source should be
+        suppressed after a message is successfully processed
+        """
         pass
 
     @classmethod

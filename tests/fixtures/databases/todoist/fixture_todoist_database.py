@@ -146,7 +146,8 @@ def todoist_data(todoist_server: MockTodoistServer, todoist_api: MockTodoistAPI)
 def mock_todoist_api():
     """Replace all Todoist API calls with locally mocked database calls"""
 
-    mock_lambda = lambda *args, **kwargs: MockTodoistAPI(*args, **kwargs)
+    def mock_lambda(*args, **kwargs):
+        return MockTodoistAPI(*args, **kwargs)
 
     mp = MonkeyPatch()
     mp.setattr(account_linking, "_get_todoist_client", mock_lambda)

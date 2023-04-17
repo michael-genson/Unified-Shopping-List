@@ -336,7 +336,7 @@ async def initiate_registration_email(
             disabled=True,
         )
 
-    except (ClientError, UserAlreadyExistsError) as e:
+    except (ClientError, UserAlreadyExistsError):
         return templates.TemplateResponse(
             "register.html",
             {
