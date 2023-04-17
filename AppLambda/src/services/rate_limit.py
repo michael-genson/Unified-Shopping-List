@@ -53,7 +53,10 @@ class RateLimitService:
         return round(time.time()) >= user.rate_limit_map[category.value].expires
 
     def verify_rate_limit(self, user: User, category: RateLimitCategory) -> None:
-        """Updates the rate limit for a particular user and raises an HTTP 429 exception if the rate limit is violated"""
+        """
+        Updates the rate limit for a particular user and
+        raises an HTTP 429 exception if the rate limit is violated
+        """
 
         if user.disabled or user.is_rate_limit_exempt:
             return

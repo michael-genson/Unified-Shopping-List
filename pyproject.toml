@@ -53,6 +53,7 @@ line-length = 120
 line_length = 120
 
 [tool.ruff]
+extend-exclude = ["tests"]
 line-length = 120
 target-version = "py39"
 

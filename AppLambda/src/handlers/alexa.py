@@ -227,8 +227,9 @@ class AlexaSyncHandler(BaseSyncHandler):
                 mealie_items_to_create, mealie_items_to_update, mealie_items_to_delete
             )
 
-        except Exception:
+        except Exception as e:
             logging.error("Unhandled exception when trying to perform bulk CRUD op from Alexa to Mealie")
+            logging.error(f"{type(e).__name__}: {e}")
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.alexa_list_id:
@@ -245,7 +246,8 @@ class AlexaSyncHandler(BaseSyncHandler):
             mealie_item = self.get_mealie_item_by_item_id(mealie_list_id, alexa_item.id)
 
             # if the Mealie item is checked or non-existent, check off Alexa item
-            # TODO: make Mealie retain deleted items for a while, or capture delete events directly so we don't have to rely on timestamps
+            # TODO: make Mealie retain deleted items for a while, or capture
+            # delete events directly so we don't have to rely on timestamps
             if (mealie_item and mealie_item.checked) or (
                 (not mealie_item) and self.can_check_off_alexa_item(sync_event, alexa_item)
             ):
@@ -305,5 +307,6 @@ class AlexaSyncHandler(BaseSyncHandler):
         try:
             self.mealie_service.update_items(mealie_items_to_update)
 
-        except Exception:
+        except Exception as e:
             logging.error("Unhandled exception when trying to bulk update Mealie items with new Alexa ids")
+            logging.error(f"{type(e).__name__}: {e}")

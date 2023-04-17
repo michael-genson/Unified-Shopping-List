@@ -42,8 +42,8 @@ class MealieListService:
         """
 
     def _clear_cache(self) -> None:
-        for cached_property in ["recipe_store", "food_store", "label_store"]:
-            self.__dict__.pop(cached_property, None)
+        for cached_prop in ["recipe_store", "food_store", "label_store"]:
+            self.__dict__.pop(cached_prop, None)
 
         self._list_items_cache.clear()
         self.get_food.cache_clear()

@@ -167,7 +167,8 @@ class UserService:
         operation: DynamoDBAtomicOp = DynamoDBAtomicOp.increment,
     ) -> int:
         """
-        Increments or decrements a field by a given amount and returns the new value. Should not be used if precision is critical
+        Increments or decrements a field by a given amount and returns the new value.
+        Should not be used if precision is critical
 
         For nested fields, use dot notation for the field name (e.g. "stats.counters.likes")
         Raises <botocore.exceptions.ClientError> if the field doesn't exist or the field value isn't an int
