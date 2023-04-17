@@ -5,7 +5,7 @@ from typing import Callable
 
 from fastapi import HTTPException, status
 
-from .. import config
+from ..app import settings
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, RateLimitInterval, User, UserRateLimit
 from .user import UserService
@@ -23,13 +23,13 @@ class RateLimitService:
             raise NotImplementedError("Only minutely rate limits are supported")
 
         if category == RateLimitCategory.read:
-            return config.RATE_LIMIT_MINUTELY_READ
+            return settings.rate_limit_minutely_read
 
         if category == RateLimitCategory.modify:
-            return config.RATE_LIMIT_MINUTELY_MODIFY
+            return settings.rate_limit_minutely_modify
 
         if category == RateLimitCategory.sync:
-            return config.RATE_LIMIT_MINUTELY_SYNC
+            return settings.rate_limit_minutely_sync
 
         raise NotImplementedError(f"Invalid RateLimitCategory {category}")
 

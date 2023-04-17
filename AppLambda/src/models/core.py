@@ -6,8 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .. import config
-from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
+from ..app import secrets, settings
 from ..clients import aws
 from ._base import APIBase
 from .account_linking import UserAlexaConfiguration, UserMealieConfiguration, UserTodoistConfiguration
@@ -108,8 +107,8 @@ class BaseSyncEvent(APIBase):
     username: str
     source: Source
 
-    client_id = APP_CLIENT_ID
-    client_secret = APP_CLIENT_SECRET
+    client_id = secrets.app_client_id
+    client_secret = secrets.app_client_secret
 
     event_id: str = Field(default_factory=lambda: str(uuid4()))
     timestamp: datetime = datetime.now()
@@ -124,5 +123,7 @@ class BaseSyncEvent(APIBase):
     def send_to_queue(self, use_dev_route=False) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = aws.SQSFIFO(config.SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else config.SYNC_EVENT_SQS_QUEUE_NAME)
+        sqs = aws.SQSFIFO(
+            settings.sync_event_dev_sqs_queue_name if use_dev_route else settings.sync_event_sqs_queue_name
+        )
         sqs.send_message(self.json(), self.event_id, self.group_id)

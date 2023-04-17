@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi.encoders import jsonable_encoder
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.clients import aws
 from AppLambda.src.models.alexa import (
     AlexaListItemCreate,
@@ -42,7 +42,7 @@ class MockAlexaServer:
     @property
     def ddb_client(self):
         if not self._ddb_client:
-            self._ddb_client = aws.DynamoDB(config.EVENT_CALLBACK_TABLENAME, config.EVENT_CALLBACK_PK)
+            self._ddb_client = aws.DynamoDB(settings.alexa_event_callback_tablename, settings.alexa_event_callback_pk)
 
         return self._ddb_client
 

@@ -8,9 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from .. import config
-from ..app import app, services, templates
-from ..app_secrets import EMAIL_WHITELIST
+from ..app import app, secrets, services, settings, templates
 from ..models.core import Token, User, WhitelistError
 from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth_token import InvalidTokenError
@@ -213,7 +211,7 @@ async def initiate_password_reset_email(
     if _user_in_db:
         user = _user_in_db.cast(User)
 
-        expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD)
+        expires = timedelta(minutes=settings.access_token_expire_minutes_reset_password)
         reset_token = services.token.create_token(user.username, expires)
 
         user.last_password_reset_token = reset_token.access_token
@@ -326,7 +324,7 @@ async def initiate_registration_email(
     # create disabled user and generate a temporary registration token for them
     try:
         clean_email = form_data.username.strip().lower()
-        if config.USE_WHITELIST and clean_email not in EMAIL_WHITELIST:
+        if settings.use_whitelist and clean_email not in secrets.email_whitelist:
             raise WhitelistError()
 
         new_user = services.user.create_new_user(

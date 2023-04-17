@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import auth, core
 from AppLambda.src.services.user import UserService
@@ -125,7 +125,7 @@ def test_login_not_whitelisted(api_client: TestClient, monkeypatch: MonkeyPatch)
 
     # enable whitelist and try to login
     with monkeypatch.context() as mp:
-        mp.setattr(config, "USE_WHITELIST", True)
+        mp.setattr(settings, "use_whitelist", True)
         response = api_client.post(core.router.url_path_for("log_in"), data=form_data)
         response.raise_for_status()
         assert not response.cookies.get("access_token")

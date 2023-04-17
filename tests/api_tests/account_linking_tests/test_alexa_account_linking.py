@@ -5,8 +5,7 @@ from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
 
-from AppLambda.src import config
-from AppLambda.src.app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET  # TODO: remove secrets dependency
+from AppLambda.src.app import secrets, settings
 from AppLambda.src.models.account_linking import UserAlexaConfiguration
 from AppLambda.src.models.core import Token, User
 from AppLambda.src.routes import account_linking, alexa
@@ -64,7 +63,7 @@ def test_alexa_auth_handshake_authorize(
     new_token = token_service.create_token(user_linked_mealie.username)
     cookies = {"access_token": new_token.access_token}
     params = {
-        "client_id": APP_CLIENT_ID,
+        "client_id": secrets.app_client_id,
         "redirect_uri": redirect_uri,
         "response_type": random_string(),
         "scope": random_string(),
@@ -114,7 +113,7 @@ def test_alexa_auth_handshake_get_token(
     data = {
         "grant_type": random_string(),
         "code": new_token.access_token,
-        "client_id": APP_CLIENT_ID,
+        "client_id": secrets.app_client_id,
         "redirect_uri": random_url(),
     }
     response = api_client.post(alexa.auth_router.url_path_for("get_access_token"), data=data)
@@ -141,13 +140,13 @@ def test_alexa_auth_handshake_get_token_invalid_client_id(
 def test_alexa_auth_handshake_unlink_user(user_service: UserService, api_client: TestClient, user_linked: User):
     assert user_linked.is_linked_to_alexa
     hmac_signature = hmac.new(
-        key=APP_CLIENT_SECRET.encode("utf-8"),
-        msg=APP_CLIENT_ID.encode("utf-8"),
+        key=secrets.app_client_secret.encode("utf-8"),
+        msg=secrets.app_client_id.encode("utf-8"),
         digestmod=hashlib.sha256,
     )
 
     security_hash = base64.b64encode(hmac_signature.digest()).decode()
-    headers = {config.ALEXA_SECRET_HEADER_KEY: security_hash}
+    headers = {settings.alexa_secret_header_key: security_hash}
     url = alexa.auth_router.url_path_for("unlink_user_from_alexa_app") + f"?userId={user_linked.alexa_user_id}"
     response = api_client.delete(url, headers=headers)
     response.raise_for_status()
@@ -169,7 +168,7 @@ def test_alexa_auth_handshake_unlink_user_invalid_security_hash(
     assert user
     assert user.is_linked_to_alexa
 
-    headers = {config.ALEXA_SECRET_HEADER_KEY: random_string()}
+    headers = {settings.alexa_secret_header_key: random_string()}
     response = api_client.delete(url, headers=headers)
     assert response.status_code == 400
     user = user_service.get_user(user_linked.username)

@@ -7,8 +7,7 @@ import requests
 from pydantic import ValidationError
 from requests import HTTPError, Response
 
-from .. import config
-from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET
+from ..app import secrets, settings
 from ..clients import aws
 from ..models.alexa import CallbackData, CallbackEvent, Message, MessageIn
 
@@ -25,8 +24,7 @@ class ListManagerClient:
 
     def __init__(self, max_attempts: int = 3, rate_limit_throttle: int = 5) -> None:
         self.access_token: str
-        self.expiration: float
-        self._refresh_token()
+        self.expiration: float = -1
         self._event_callback_db: Optional[aws.DynamoDB] = None
 
         self.max_attempts = max_attempts
@@ -35,7 +33,9 @@ class ListManagerClient:
     @property
     def event_callback_db(self):
         if not self._event_callback_db:
-            self._event_callback_db = aws.DynamoDB(config.EVENT_CALLBACK_TABLENAME, config.EVENT_CALLBACK_PK)
+            self._event_callback_db = aws.DynamoDB(
+                settings.alexa_event_callback_tablename, settings.alexa_event_callback_pk
+            )
 
         return self._event_callback_db
 
@@ -44,8 +44,8 @@ class ListManagerClient:
     def _refresh_token(self) -> None:
         payload = {
             "grant_type": "client_credentials",
-            "client_id": ALEXA_CLIENT_ID,
-            "client_secret": ALEXA_CLIENT_SECRET,
+            "client_id": secrets.alexa_client_id,
+            "client_secret": secrets.alexa_client_secret,
             "scope": "alexa:skill_messaging",
         }
 

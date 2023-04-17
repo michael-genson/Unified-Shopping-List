@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from botocore.exceptions import ClientError
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.clients.aws import DynamoDB
 from AppLambda.src.models.aws import DynamoDBAtomicOp
 from tests.utils.generators import random_email, random_int, random_string
@@ -12,7 +12,7 @@ from tests.utils.generators import random_email, random_int, random_string
 
 @pytest.fixture()
 def user_client() -> DynamoDB:
-    return DynamoDB(config.USERS_TABLENAME, config.USERS_PK)
+    return DynamoDB(settings.users_tablename, settings.users_pk)
 
 
 def test_get_item(user_client: DynamoDB):

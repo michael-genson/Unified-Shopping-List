@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 import boto3
 from dynamodb_json import json_util as ddb_json  # type: ignore
 
-from ..app_secrets import AWS_REGION
+from ..app import secrets
 from ..models.aws import DynamoDBAtomicOp
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class AWSClientResourceFactory:
     @property
     def session(self):
         if not self._session:
-            self._session = boto3.Session(region_name=AWS_REGION)
+            self._session = boto3.Session(region_name=secrets.aws_region)
 
         return self._session
 

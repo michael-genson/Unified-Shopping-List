@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.models.account_linking import UserMealieConfigurationUpdate, UserTodoistConfigurationUpdate
 from AppLambda.src.models.mealie import (
     Food,
@@ -78,7 +78,7 @@ def test_todoist_sync_created_items(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
         # when configured, tasks with no section will be given a default section
         assert bool(task.section_id) is use_foods
@@ -162,7 +162,7 @@ def test_todoist_sync_updated_items(
         assert mealie_item.display == task.content != original_tasks_by_id[task.id].content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
         assert task.section_id == original_tasks_by_id[task.id].section_id
         should_have_label = (
@@ -397,7 +397,7 @@ def test_todoist_sync_created_and_updated_items(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
 
 @pytest.mark.parametrize("use_sections, use_descriptions", [(False, False), (True, False), (False, True), (True, True)])
@@ -444,7 +444,7 @@ def test_todoist_sync_receive_created_items(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
         should_have_description = use_descriptions and mealie_item.recipe_references
         if should_have_description:
@@ -512,7 +512,7 @@ def test_todoist_sync_receive_updated_items(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
         should_have_description = use_descriptions and mealie_item.recipe_references
         if should_have_description:
@@ -699,7 +699,7 @@ def test_todoist_sync_receive_mixed_items(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels
 
 
 def test_todoist_full_sync(
@@ -739,4 +739,4 @@ def test_todoist_full_sync(
         assert mealie_item.display == task.content
         assert mealie_item.extras
         assert mealie_item.extras.todoist_task_id == task.id
-        assert config.TODOIST_MEALIE_LABEL in task.labels
+        assert settings.todoist_mealie_label in task.labels

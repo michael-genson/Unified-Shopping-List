@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from freezegun import freeze_time
 from pytest import MonkeyPatch
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.models.core import User
 from AppLambda.src.routes import core
 from AppLambda.src.services.user import UserService
@@ -58,7 +58,7 @@ def test_register_existing_user(user_service: UserService, api_client: TestClien
 
 def test_register_user_not_whitelisted(user_service: UserService, api_client: TestClient, monkeypatch: MonkeyPatch):
     with monkeypatch.context() as mp:
-        mp.setattr(config, "USE_WHITELIST", True)
+        mp.setattr(settings, "use_whitelist", True)
         username = random_email()
         form_data = {"username": username, "password": random_string(1)}
         response = api_client.post(core.router.url_path_for("register"), data=form_data)
