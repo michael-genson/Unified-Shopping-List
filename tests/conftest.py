@@ -8,6 +8,7 @@ from AppLambda.src.services.smtp import SMTPService
 
 from .fixtures import *
 
+
 def do_nothing(*args, **kwargs):
     return None
 
