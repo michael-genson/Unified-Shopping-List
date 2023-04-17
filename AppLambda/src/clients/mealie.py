@@ -1,6 +1,5 @@
 import time
 from collections import deque
-from functools import cached_property
 from typing import Any, Iterable, Optional, Union
 
 import requests

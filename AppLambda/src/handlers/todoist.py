@@ -183,8 +183,8 @@ class TodoistSyncHandler(BaseSyncHandler):
                 mealie_items_to_create, mealie_items_to_update, mealie_items_to_delete
             )
 
-        except Exception as e:
-            logging.error(f"Unhandled exception when trying to perform bulk CRUD op from Todoist to Mealie")
+        except Exception:
+            logging.error("Unhandled exception when trying to perform bulk CRUD op from Todoist to Mealie")
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
         if not list_sync_map.todoist_project_id:
@@ -267,5 +267,5 @@ class TodoistSyncHandler(BaseSyncHandler):
         try:
             self.mealie_service.update_items(mealie_items_to_update)
 
-        except Exception as e:
-            logging.error(f"Unhandled exception when trying to bulk update Mealie items with new Todoist task ids")
+        except Exception:
+            logging.error("Unhandled exception when trying to bulk update Mealie items with new Todoist task ids")

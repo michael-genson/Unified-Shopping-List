@@ -8,7 +8,8 @@ from AppLambda.src.services.smtp import SMTPService
 
 from .fixtures import *
 
-do_nothing = lambda *args, **kwargs: None
+def do_nothing(*args, **kwargs):
+    return None
 
 
 @pytest.fixture(scope="session", autouse=True)

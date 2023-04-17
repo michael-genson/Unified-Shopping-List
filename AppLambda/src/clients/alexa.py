@@ -57,11 +57,11 @@ class ListManagerClient:
 
         except JSONDecodeError:
             print(r.content)
-            raise Exception(f"Unable to obtain Alexa Skill Messaging API Token; invalid JSON response")
+            raise Exception("Unable to obtain Alexa Skill Messaging API Token; invalid JSON response")
 
         if "access_token" not in response_json:
             print(response_json)
-            raise Exception(f"Alexa Skill Messaging API Token missing from response")
+            raise Exception("Alexa Skill Messaging API Token missing from response")
 
         self.access_token = response_json["access_token"]
         self.expiration = time.time() + response_json["expires_in"]
