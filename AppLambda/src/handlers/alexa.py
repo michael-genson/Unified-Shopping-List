@@ -152,7 +152,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                         continue
 
                     alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
-                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                    if not alexa_item or alexa_item.status == ListItemState.completed.value:
                         continue
 
                     mealie_items_to_create.append(
@@ -171,7 +171,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                         continue
 
                     alexa_item = self.alexa_service.get_list_item(alexa_list_id, alexa_item_id)
-                    if not alexa_item or alexa_item.status == ListItemState.completed:
+                    if not alexa_item or alexa_item.status == ListItemState.completed.value:
                         mealie_item.checked = True
                         if mealie_item.extras:
                             mealie_item.extras.alexa_item_id = None
@@ -186,6 +186,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                     if alexa_item.value != mealie_item.display:
                         # the content does not match, and we don't have structured item data
                         # in Alexa, so we need to completely replace the item in Mealie
+                        # TODO: we only have to do this if the mealie item is using foods
                         mealie_items_to_delete.append(mealie_item)
                         mealie_items_to_create.append(
                             MealieShoppingListItemCreate(
@@ -217,7 +218,7 @@ class AlexaSyncHandler(BaseSyncHandler):
                     mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
-                logging.error(f"Unhandled exception when trying to {list_event.operation.value} Alexa item in Mealie")
+                logging.error(f"Unhandled exception when trying to {list_event.operation} Alexa item in Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(alexa_item_id)
 
@@ -277,10 +278,10 @@ class AlexaSyncHandler(BaseSyncHandler):
             mealie_items_to_callback.append(mealie_item)
 
         try:
-            new_alexa_items = self.alexa_service.create_list_items(alexa_list_id, alexa_items_to_create)
             updated_alexa_items = self.alexa_service.update_list_items(alexa_list_id, alexa_items_to_update)
+            new_alexa_items = self.alexa_service.create_list_items(alexa_list_id, alexa_items_to_create)
 
-            alexa_items = new_alexa_items.list_items + updated_alexa_items.list_items
+            alexa_items = updated_alexa_items.list_items + new_alexa_items.list_items
             for mealie_item, alexa_item in zip(mealie_items_to_callback, alexa_items):
                 try:
                     if not mealie_item.extras:

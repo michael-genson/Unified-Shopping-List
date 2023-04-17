@@ -7,15 +7,15 @@ import requests
 from pydantic import ValidationError
 from requests import HTTPError, Response
 
-from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET, EVENT_CALLBACK_TABLENAME
-from ..clients.aws import DynamoDB
+from .. import config
+from ..app_secrets import ALEXA_CLIENT_ID, ALEXA_CLIENT_SECRET
+from ..clients import aws
 from ..models.alexa import CallbackData, CallbackEvent, Message, MessageIn
-
-event_callback_db = DynamoDB(EVENT_CALLBACK_TABLENAME)
 
 LWA_URL = "https://api.amazon.com/auth/o2/token"
 ALEXA_MESSAGE_API_URL = "https://api.amazonalexa.com/v1/skillmessages/users/{user_id}"
 
+# TODO: make these inherit from a custom exception type
 NO_RESPONSE_EXCEPTION = "Could not find a response from Alexa"
 NO_RESPONSE_DATA_EXCEPTION = "Alexa returned a response, but there was no response data"
 
@@ -27,9 +27,17 @@ class ListManagerClient:
         self.access_token: str
         self.expiration: float
         self._refresh_token()
+        self._event_callback_db: Optional[aws.DynamoDB] = None
 
         self.max_attempts = max_attempts
         self.rate_limit_throttle = rate_limit_throttle
+
+    @property
+    def event_callback_db(self):
+        if not self._event_callback_db:
+            self._event_callback_db = aws.DynamoDB(config.EVENT_CALLBACK_TABLENAME, config.EVENT_CALLBACK_PK)
+
+        return self._event_callback_db
 
     ### Base ###
 
@@ -93,7 +101,7 @@ class ListManagerClient:
 
         start_time = time.time()
         while True:
-            event = event_callback_db.get("event_id", event_id)
+            event = self.event_callback_db.get(event_id)
             if event:
                 return event
 

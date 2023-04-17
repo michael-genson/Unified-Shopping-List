@@ -12,9 +12,6 @@
   ],
   "explorer.fileNesting.enabled": true,
   "python.formatting.provider": "black",
-  "python.formatting.blackArgs": [
-    "--line-length=120"
-  ],
   "isort.args": [
     "--profile",
     "black"
@@ -42,5 +39,11 @@
   "cSpell.words": [
     "Alexa",
     "todoist"
-  ]
+  ],
+  "python.testing.pytestArgs": [
+    "--cov=AppLambda/src/",
+    "tests/"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

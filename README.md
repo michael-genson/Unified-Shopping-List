@@ -31,7 +31,7 @@ Since we are *just* releasing the Unified Shopping List, we don't support too ma
 
 Supported applications:
 - [Alexa](https://alexa.amazon.com/)
-- [Mealie](https://github.com/hay-kot/mealie) (required, only the *official nightly build* is supported)
+- [Mealie](https://github.com/hay-kot/mealie/) (required, only the *official nightly build* is supported)
 - [Todoist](https://todoist.com/)
 
 
@@ -46,4 +46,8 @@ Quality of Life
 - improve mobile frontend experience
 
 Development / DevOps
-- automated testing
+- move config and secrets to env vars and out of codebase
+- implement a proper dev -> main branch workflow
+- implement github actions
+    - ruff
+    - versioning

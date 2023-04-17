@@ -259,7 +259,11 @@ class MealieEventNotification(BaseModel):
         try:
             # sometimes the JSON string gets URL encoded with +, so we filter those out
             parsed_data: dict[str, Any] = json.loads(self.document_data.replace("+", " "))
-            return str(parsed_data.get("shoppingListId"))
+            shopping_list_id = parsed_data.get("shoppingListId")
+            if shopping_list_id is None:
+                return None
+            else:
+                return str(shopping_list_id)
 
         except JSONDecodeError:
             return None

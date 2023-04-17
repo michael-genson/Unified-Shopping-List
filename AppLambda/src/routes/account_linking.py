@@ -8,14 +8,9 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from fastapi.responses import HTMLResponse, RedirectResponse
 from todoist_api_python.api import TodoistAPI
 
-from ..app import app, rate_limit_service, templates, users_service
+from .. import config
+from ..app import app, services, templates
 from ..clients.mealie import MealieClient
-from ..config import (
-    APP_TITLE,
-    INTERNAL_APP_NAME,
-    MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE,
-    MEALIE_INTEGRATION_ID,
-)
 from ..models.account_linking import (
     SyncMapRender,
     SyncMapRenderList,
@@ -37,6 +32,10 @@ from .core import redirect_if_not_logged_in
 
 frontend_router = APIRouter(prefix="/app/map-shopping-lists", tags=["Account Linking"])
 api_router = APIRouter(prefix="/api/account-linking", tags=["Account Linking"])
+
+
+def _get_todoist_client(token: str) -> TodoistAPI:
+    return TodoistAPI(token)
 
 
 ### Frontend ###
@@ -92,7 +91,7 @@ async def create_shopping_list_sync_map_template(request: Request, user: User, *
     if user.is_linked_to_todoist:
         try:
             todoist_config = cast(UserTodoistConfiguration, user.configuration.todoist)
-            todoist_client = TodoistAPI(todoist_config.access_token)
+            todoist_client = _get_todoist_client(todoist_config.access_token)
             todoist_projects = todoist_client.get_projects()
 
             existing_links = {
@@ -195,7 +194,7 @@ async def handle_sync_map_update_form(request: Request, list_map_data: list[str]
             for mealie_shopping_list_id, external_lists in combined_list_data.items()
         }
 
-        users_service.update_user(user)
+        services.user.update_user(user)
         return await create_shopping_list_sync_map_template(
             request, user, success_message="Successfully updated shopping list maps"
         )
@@ -212,29 +211,29 @@ async def handle_sync_map_update_form(request: Request, list_map_data: list[str]
 
 
 @api_router.post("/alexa", response_model=UserAlexaConfiguration, tags=["Alexa"], include_in_schema=False)
-@rate_limit_service.limit(RateLimitCategory.modify)
-def link_alexa_account(
+@services.rate_limit.limit(RateLimitCategory.modify)
+async def link_alexa_account(
     user: User = Depends(get_current_user),
     alexa_config_input: UserAlexaConfigurationCreate = Depends(),
 ) -> UserAlexaConfiguration:
     user.alexa_user_id = alexa_config_input.user_id
     user.configuration.alexa = alexa_config_input.cast(UserAlexaConfiguration)
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user.configuration.alexa
 
 
 @api_router.delete("/alexa", tags=["Alexa"])
-@rate_limit_service.limit(RateLimitCategory.modify)
-def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
+@services.rate_limit.limit(RateLimitCategory.modify)
+async def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
     # TODO: send unlink request to Alexa; currently this just removes the id from the database
     user.alexa_user_id = None
     user.configuration.alexa = None
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user
 
 
 @api_router.post("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 def link_mealie_account(
     request: Request,
     user: User = Depends(get_current_user),
@@ -247,7 +246,7 @@ def link_mealie_account(
             "Invalid Mealie configuration. Please check your base URL and auth token",
         )
 
-    new_mealie_token = client.create_auth_token(f"{app.title} | {user.username}", MEALIE_INTEGRATION_ID)
+    new_mealie_token = client.create_auth_token(f"{app.title} | {user.username}", config.MEALIE_INTEGRATION_ID)
 
     # create a new notifier
     base_url = str(request.base_url).replace("https://", "").replace("http://", "")[:-1]
@@ -255,7 +254,7 @@ def link_mealie_account(
 
     security_hash = "".join(random.choices(string.ascii_letters + string.digits, k=8))
 
-    notifier_url = MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE.format(
+    notifier_url = config.MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE.format(
         full_path=full_notifier_path,
         username=user.username,
         security_hash=security_hash,
@@ -282,12 +281,12 @@ def link_mealie_account(
         security_hash=security_hash,
     )
 
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user.configuration.mealie
 
 
 @api_router.put("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 def update_mealie_account_link(
     user: User = Depends(get_current_user),
     mealie_config: UserMealieConfigurationUpdate = Depends(),
@@ -299,12 +298,12 @@ def update_mealie_account_link(
     user.configuration.mealie.overwrite_original_item_names = mealie_config.overwrite_original_item_names
     user.configuration.mealie.confidence_threshold = mealie_config.confidence_threshold
 
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user.configuration.mealie
 
 
 @api_router.delete("/mealie", tags=["Mealie"])
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     mealie_config = user.configuration.mealie
     if not mealie_config:
@@ -325,17 +324,18 @@ def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
         pass
 
     user.configuration.mealie = None
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user
 
 
+# this is not included in the schema because it should only be called directly by Todoist
 @api_router.post("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False)
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 def link_todoist_account(
     user: User = Depends(get_current_user),
     config_input: UserTodoistConfigurationCreate = Depends(),
 ) -> UserTodoistConfiguration:
-    client = TodoistAPI(config_input.access_token)
+    client = _get_todoist_client(config_input.access_token)
 
     try:
         # there is no endpoint for fetching a user's id, so we read a task from the inbox
@@ -351,7 +351,7 @@ def link_todoist_account(
                 break
 
             # if there are no tasks, we must create a temporary one
-            temporary_task = client.add_task(f"Sync to {APP_TITLE}")
+            temporary_task = client.add_task(f"Sync to {config.APP_TITLE}")
             user_id = temporary_task.creator_id
             client.delete_task(temporary_task.id)
             break
@@ -359,17 +359,21 @@ def link_todoist_account(
         if not user_id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not determine Todoist user_id")
 
-    except Exception:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not connect to Todoist")
+    except Exception as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not connect to Todoist") from e
 
     user.todoist_user_id = user_id
     user.configuration.todoist = UserTodoistConfiguration(access_token=config_input.access_token)
 
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user.configuration.todoist
 
 
-def update_todoist_account_link(user: User, config_input: UserTodoistConfigurationUpdate) -> UserTodoistConfiguration:
+@api_router.put("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"])
+@services.rate_limit.limit(RateLimitCategory.modify)
+async def update_todoist_account_link(
+    user: User = Depends(get_current_user), config_input: UserTodoistConfigurationUpdate = Depends()
+) -> UserTodoistConfiguration:
     if not user.is_linked_to_todoist:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Todoist")
 
@@ -379,14 +383,14 @@ def update_todoist_account_link(user: User, config_input: UserTodoistConfigurati
     todoist_config.add_recipes_to_task_description = config_input.add_recipes_to_task_description
 
     user.configuration.todoist = todoist_config
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user.configuration.todoist
 
 
 @api_router.delete("/todoist", tags=["Todoist"])
-@rate_limit_service.limit(RateLimitCategory.modify)
-def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
+@services.rate_limit.limit(RateLimitCategory.modify)
+async def unlink_todoist_account(user: User = Depends(get_current_user)) -> User:
     user.todoist_user_id = None
     user.configuration.todoist = None
-    users_service.update_user(user)
+    services.user.update_user(user)
     return user

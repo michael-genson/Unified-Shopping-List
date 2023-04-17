@@ -5,28 +5,13 @@ import logging
 from datetime import timedelta
 from typing import cast
 
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    Response,
-    status,
-)
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from requests import PreparedRequest
 
-from ..app import rate_limit_service, templates, token_service, users_service
+from .. import config
+from ..app import services, templates
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
-from ..config import (
-    ACCESS_TOKEN_EXPIRE_MINUTES_INTEGRATION,
-    ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY,
-    ALEXA_API_SOURCE_ID,
-    ALEXA_SECRET_HEADER_KEY,
-)
 from ..models.alexa import (
     AlexaAuthRequest,
     AlexaListCollectionOut,
@@ -94,7 +79,7 @@ async def delete_alexa_config(request: Request):
     user = logged_in_response
 
     try:
-        user = unlink_alexa_account(user)
+        user = await unlink_alexa_account(user)
         return create_alexa_config_template(
             request,
             user,
@@ -131,8 +116,8 @@ async def authorize_alexa_app(request: Request, auth: AlexaAuthRequest = Depends
         return logged_in_response
 
     user = logged_in_response
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY)
-    user_access_token = token_service.create_token(user.username, access_token_expires)
+    access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_TEMPORARY)
+    user_access_token = services.token.create_token(user.username, access_token_expires)
 
     # add params to redirect uri
     req = PreparedRequest()
@@ -156,13 +141,13 @@ async def get_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_INTEGRATION)
-    return token_service.refresh_token(code, access_token_expires)
+    access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_INTEGRATION)
+    return services.token.refresh_token(code, access_token_expires)
 
 
 @auth_router.delete("/link")
 async def unlink_user_from_alexa_app(request: Request, user_id: str = Query(..., alias="userId")):
-    secret_hash = request.headers.get(ALEXA_SECRET_HEADER_KEY)
+    secret_hash = request.headers.get(config.ALEXA_SECRET_HEADER_KEY)
     if not secret_hash:
         logging.error("Alexa unlink request received without security hash")
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
@@ -178,26 +163,26 @@ async def unlink_user_from_alexa_app(request: Request, user_id: str = Query(...,
         logging.error("Alexa unlink request received with invalid hash")
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
-    usernames = users_service.get_usernames_by_secondary_index("alexa_user_id", user_id)
+    usernames = services.user.get_usernames_by_secondary_index("alexa_user_id", user_id)
     if not usernames:
         return
 
     for username in usernames:
-        _user_in_db = users_service.get_user(username, active_only=False)
+        _user_in_db = services.user.get_user(username, active_only=False)
         if not _user_in_db:
             continue
 
         user = _user_in_db.cast(User)
-        unlink_alexa_account(user)
+        await unlink_alexa_account(user)
 
 
 ### Lists ###
 
 
 @api_router.get("", response_model=AlexaListCollectionOut)
-@rate_limit_service.limit(RateLimitCategory.read)
+@services.rate_limit.limit(RateLimitCategory.read)
 async def get_all_lists(
-    user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID, active_lists_only: bool = True
+    user: User = Depends(get_current_user), source: str = config.ALEXA_API_SOURCE_ID, active_lists_only: bool = True
 ) -> AlexaListCollectionOut:
     """Fetch all lists from Alexa"""
 
@@ -209,9 +194,9 @@ async def get_all_lists(
 
 
 @api_router.get("/{list_id}", response_model=AlexaListOut)
-@rate_limit_service.limit(RateLimitCategory.read)
+@services.rate_limit.limit(RateLimitCategory.read)
 async def get_list(
-    list_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
+    list_id: str, user: User = Depends(get_current_user), source: str = config.ALEXA_API_SOURCE_ID
 ) -> AlexaListOut:
     """Fetch one list from Alexa"""
 
@@ -219,19 +204,19 @@ async def get_list(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    return list_service.get_list(list_id, source=source)
+    return list_service.get_list(list_id, source=source)  # TODO: catch invalid list id and throw 404 error
 
 
 ### List Items ###
 
 
 @api_router.post("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 async def create_list_items(
     list_id: str,
     items: list[AlexaListItemCreateIn],
     user: User = Depends(get_current_user),
-    source: str = ALEXA_API_SOURCE_ID,
+    source: str = config.ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemCollectionOut:
     """Create one or more items on an Alexa list. Item order is preserved"""
 
@@ -243,12 +228,12 @@ async def create_list_items(
 
 
 @api_router.post("/{list_id}/items", response_model=AlexaListItemOut)
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 async def create_list_item(
     list_id: str,
     item: AlexaListItemCreateIn,
     user: User = Depends(get_current_user),
-    source: str = ALEXA_API_SOURCE_ID,
+    source: str = config.ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemOut:
     """Create one item on an Alexa list"""
 
@@ -257,9 +242,9 @@ async def create_list_item(
 
 
 @api_router.get("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
-@rate_limit_service.limit(RateLimitCategory.read)
+@services.rate_limit.limit(RateLimitCategory.read)
 async def get_list_item(
-    list_id: str, item_id: str, user: User = Depends(get_current_user), source: str = ALEXA_API_SOURCE_ID
+    list_id: str, item_id: str, user: User = Depends(get_current_user), source: str = config.ALEXA_API_SOURCE_ID
 ) -> AlexaListItemOut:
     """Fetch one list item from Alexa"""
 
@@ -267,7 +252,7 @@ async def get_list_item(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User is not linked to Alexa")
 
     list_service = AlexaListService(user)
-    item = list_service.get_list_item(list_id, item_id, source)
+    item = list_service.get_list_item(list_id, item_id, source)  # TODO: catch invalid list id and throw 404 error
 
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -276,12 +261,12 @@ async def get_list_item(
 
 
 @api_router.put("/{list_id}/items/bulk", response_model=AlexaListItemCollectionOut)
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 async def update_list_items(
     list_id: str,
     items: list[AlexaListItemUpdateBulkIn],
     user: User = Depends(get_current_user),
-    source: str = ALEXA_API_SOURCE_ID,
+    source: str = config.ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemCollectionOut:
     """Update one or more items on an Alexa list"""
 
@@ -293,13 +278,13 @@ async def update_list_items(
 
 
 @api_router.put("/{list_id}/items/{item_id}", response_model=AlexaListItemOut)
-@rate_limit_service.limit(RateLimitCategory.modify)
+@services.rate_limit.limit(RateLimitCategory.modify)
 async def update_list_item(
     list_id: str,
     item_id: str,
     item: AlexaListItemUpdateIn,
     user: User = Depends(get_current_user),
-    source: str = ALEXA_API_SOURCE_ID,
+    source: str = config.ALEXA_API_SOURCE_ID,
 ) -> AlexaListItemOut:
     """Update one item on an Alexa list"""
 

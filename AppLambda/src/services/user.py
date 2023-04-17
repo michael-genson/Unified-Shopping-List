@@ -3,15 +3,13 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from ..app import USE_WHITELIST
-from ..app_secrets import EMAIL_WHITELIST, USERS_TABLENAME
-from ..clients.aws import DynamoDB
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION, LOGIN_LOCKOUT_ATTEMPTS
+from .. import config
+from ..app_secrets import EMAIL_WHITELIST
+from ..clients import aws
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
 from .auth_token import AuthTokenService
 
-users_db = DynamoDB(USERS_TABLENAME)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -31,15 +29,21 @@ class UserIsDisabledError(Exception):
 
 
 class UserService:
-    def __init__(self, token_service: AuthTokenService, db_primary_key: str = "username") -> None:
+    def __init__(self, token_service: AuthTokenService) -> None:
         self._token_service = token_service
-        self.db_primary_key = db_primary_key
-        self.db = users_db
+        self._db: Optional[aws.DynamoDB] = None
+
+    @property
+    def db(self):
+        if not self._db:
+            self._db = aws.DynamoDB(config.USERS_TABLENAME, config.USERS_PK)
+
+        return self._db
 
     def get_user(self, username: str, active_only=True) -> Optional[UserInDB]:
         """Fetches a user from the database without authentication, if it exists"""
 
-        user_data = self.db.get(self.db_primary_key, username.strip().lower())
+        user_data = self.db.get(username.strip().lower())
         if not user_data:
             return None
 
@@ -52,14 +56,14 @@ class UserService:
     def delete_user(self, username: str) -> None:
         """Removes the user and all user data"""
 
-        self.db.delete(self.db_primary_key, username)
+        self.db.delete(username)
         return None
 
     def get_usernames_by_secondary_index(self, gsi_key: str, gsi_value: str) -> list[str]:
         """Queries database using a global secondary index and returns all usernames with that value"""
 
         user_data = self.db.query(gsi_key, gsi_value)
-        return [str(data.get(self.db_primary_key)) for data in user_data]
+        return [str(data.get(config.USERS_PK)) for data in user_data]
 
     def authenticate_user(self, user: UserInDB, password: str) -> Optional[User]:
         """Validates if a user is successfully authenticated"""
@@ -94,7 +98,7 @@ class UserService:
             else:
                 raise UserIsDisabledError()
 
-        if USE_WHITELIST and user.email not in EMAIL_WHITELIST:
+        if config.USE_WHITELIST and user.email not in EMAIL_WHITELIST:
             raise WhitelistError()
 
         return self.authenticate_user(user, password)
@@ -127,16 +131,16 @@ class UserService:
         )
 
         if disabled:
-            new_user.set_expiration(ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
+            new_user.set_expiration(config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
 
         if create_registration_token:
-            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+            access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
             registration_token = self._token_service.create_token(new_user.username, access_token_expires)
 
             new_user.last_registration_token = registration_token.access_token
 
         self.db.put(new_user.dict(exclude_none=True), allow_update=allow_update)
-        return new_user
+        return new_user.cast(User)
 
     def update_user(self, user: User, remove_expiration: bool = False) -> None:
         """Updates an existing user"""
@@ -170,8 +174,7 @@ class UserService:
         """
 
         return self.db.atomic_op(
-            key=self.db_primary_key,
-            value=user.username.strip().lower(),
+            primary_key_value=user.username.strip().lower(),
             attribute=field,
             attribute_change_value=value,
             op=operation,
@@ -213,7 +216,7 @@ class UserService:
             return user
 
         user.incorrect_login_attempts += 1
-        if user.incorrect_login_attempts < LOGIN_LOCKOUT_ATTEMPTS:
+        if user.incorrect_login_attempts < config.LOGIN_LOCKOUT_ATTEMPTS:
             user.incorrect_login_attempts = self.update_atomic_user_field(user, "incorrect_login_attempts")
 
             return user
@@ -234,7 +237,7 @@ class UserService:
         new_expires: Optional[int] = None,
     ) -> None:
         """
-        Updates a user's rate limit and returns the updates user. Optionall provide a new expires value
+        Updates a user's rate limit and returns the updates user. Optionally provide a new expires value
 
         Raises <botocore.exceptions.ClientError> if the user doesn't already have a rate limit set for this category
         """

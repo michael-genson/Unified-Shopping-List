@@ -1,7 +1,15 @@
+import os
+
 ### About ###
 APP_TITLE = "Unified Shopping List"
-APP_VERSION = "0.3.4"
+APP_VERSION = "0.3.5"
 INTERNAL_APP_NAME = "shopping_list_api"
+
+
+### App ###
+SYNC_EVENT_SQS_QUEUE_NAME = os.getenv("syncEventSQSQueueName", "")
+SYNC_EVENT_DEV_SQS_QUEUE_NAME = os.getenv("syncEventDevSQSQueueName", "")
+USE_WHITELIST = os.getenv("whitelist") == "enabled"
 
 
 ### Database ###
@@ -21,6 +29,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD = 15
 LOGIN_LOCKOUT_ATTEMPTS = 5
 """Number of incorrect login attempts before a user is locked out"""
 
+
+### Database Definition ###
+EVENT_CALLBACK_TABLENAME = "alexa-callback-events"
+EVENT_CALLBACK_PK = "event_id"
+
+USERS_TABLENAME = "shopping-list-api-users"
+USERS_PK = "username"
 
 ### API ###
 RATE_LIMIT_MINUTELY_READ = 60

@@ -1,15 +1,12 @@
 import logging
+from copy import deepcopy
 from functools import cache
 from typing import Any, Optional, cast
 
 from pydantic import ValidationError
 
-from ..clients.alexa import (
-    NO_RESPONSE_DATA_EXCEPTION,
-    NO_RESPONSE_EXCEPTION,
-    ListManagerClient,
-)
-from ..config import ALEXA_INTERNAL_SOURCE_ID
+from .. import config
+from ..clients.alexa import NO_RESPONSE_DATA_EXCEPTION, NO_RESPONSE_EXCEPTION, ListManagerClient
 from ..models.account_linking import NotLinkedError, UserAlexaConfiguration
 from ..models.alexa import (
     AlexaListCollectionOut,
@@ -40,12 +37,16 @@ class AlexaListService:
         self.user_id: str = cast(str, user.alexa_user_id)
         self.config = cast(UserAlexaConfiguration, user.configuration.alexa)
 
-        self.lists: dict[str, AlexaListOut] = {}
+        self._list_cache: dict[str, AlexaListOut] = {}
         """map of {list_id: list}"""
+
+    def _clear_cache(self) -> None:
+        self._list_cache.clear()
+        self.get_all_lists.cache_clear()
 
     @cache
     def get_all_lists(
-        self, source: str = ALEXA_INTERNAL_SOURCE_ID, active_lists_only: bool = True
+        self, source: str = config.ALEXA_INTERNAL_SOURCE_ID, active_lists_only: bool = True
     ) -> AlexaListCollectionOut:
         """Fetch all lists from Alexa"""
 
@@ -73,13 +74,20 @@ class AlexaListService:
         except ValidationError:
             raise Exception("Response from Alexa is not a valid list collection")
 
-    def get_list(
-        self, list_id: str, state: ListState = ListState.active, source: str = ALEXA_INTERNAL_SOURCE_ID
+    def _get_list(
+        self, list_id: str, state: ListState = ListState.active, source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListOut:
-        """Fetch a single list from Alexa"""
+        """
+        Fetch a single list from Alexa or from local cache
 
-        if list_id in self.lists:
-            return self.lists[list_id]
+        Mutations to the list or to any items in the list will
+        modify the local cache
+
+        For a safe list, see `get_list`
+        """
+
+        if list_id in self._list_cache:
+            return self._list_cache[list_id]
 
         request = MessageRequest(
             operation=Operation.read,
@@ -96,7 +104,7 @@ class AlexaListService:
             # since we only sent one request, we can expect exactly one response
             alexa_list = AlexaListOut.parse_obj(response[0])
 
-            self.lists[alexa_list.list_id] = alexa_list
+            self._list_cache[alexa_list.list_id] = alexa_list
             return alexa_list
 
         except IndexError:
@@ -108,27 +116,33 @@ class AlexaListService:
             logging.error(response)
             raise Exception("Response from Alexa is not a valid list")
 
-    def get_list_item(
-        self, list_id: str, item_id: str, source: str = ALEXA_INTERNAL_SOURCE_ID
-    ) -> Optional[AlexaListItemOut]:
-        """Fetch a single list item from Alexa"""
+    def get_list(
+        self, list_id: str, state: ListState = ListState.active, source: str = config.ALEXA_INTERNAL_SOURCE_ID
+    ) -> AlexaListOut:
+        """Fetch a single list from Alexa or from local cache that can be safely mutated"""
+        return deepcopy(self._get_list(list_id, state, source))
 
-        alexa_list = self.get_list(list_id, source=source)
+    def get_list_item(
+        self, list_id: str, item_id: str, source: str = config.ALEXA_INTERNAL_SOURCE_ID
+    ) -> Optional[AlexaListItemOut]:
+        """Fetch a single list item from Alexa that can be safely mutated"""
+
+        alexa_list = self._get_list(list_id, source=source)
         for list_item in alexa_list.items or []:
             if list_item.id == item_id:
-                return list_item
+                return deepcopy(list_item)
 
         return None
 
     def create_list_items(
-        self, list_id: str, items: list[AlexaListItemCreateIn], source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, items: list[AlexaListItemCreateIn], source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListItemCollectionOut:
         """Create one or more items in Alexa. Items order is preserved"""
 
         if not items:
             return AlexaListItemCollectionOut(list_id=list_id, list_items=[])
 
-        alexa_list = self.get_list(list_id, source=source)
+        alexa_list = self._get_list(list_id, source=source)
         requests = [
             MessageRequest(
                 operation=Operation.create,
@@ -164,14 +178,14 @@ class AlexaListService:
         else:
             alexa_list.items.extend(new_items)
 
-        return AlexaListItemCollectionOut(list_id=list_id, list_items=new_items)
+        return AlexaListItemCollectionOut(list_id=list_id, list_items=deepcopy(new_items))
 
     def update_list_items(
-        self, list_id: str, items: list[AlexaListItemUpdateBulkIn], source: str = ALEXA_INTERNAL_SOURCE_ID
+        self, list_id: str, items: list[AlexaListItemUpdateBulkIn], source: str = config.ALEXA_INTERNAL_SOURCE_ID
     ) -> AlexaListItemCollectionOut:
         """Update one or more items in Alexa"""
 
-        alexa_list = self.get_list(list_id, source=source)
+        alexa_list = self._get_list(list_id, source=source)
 
         requests: list[MessageRequest] = []
         updated_items: list[AlexaListItemOut] = []
@@ -207,4 +221,4 @@ class AlexaListService:
         for updated_item in updated_items:
             updated_item.version += 1
 
-        return AlexaListItemCollectionOut(list_id=list_id, list_items=updated_items)
+        return AlexaListItemCollectionOut(list_id=list_id, list_items=deepcopy(updated_items))

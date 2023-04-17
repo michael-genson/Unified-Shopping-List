@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
@@ -9,24 +8,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from requests import PreparedRequest
 
-from ..app import (
-    USE_WHITELIST,
-    app,
-    smtp_service,
-    templates,
-    token_service,
-    users_service,
-)
+from .. import config
+from ..app import app, services, templates
 from ..app_secrets import EMAIL_WHITELIST
-from ..config import ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD
 from ..models.core import Token, User, WhitelistError
 from ..models.email import PasswordResetEmail, RegistrationEmail
 from ..services.auth_token import InvalidTokenError
-from ..services.user import (
-    UserAlreadyExistsError,
-    UserIsDisabledError,
-    UserIsNotRegisteredError,
-)
+from ..services.user import UserAlreadyExistsError, UserIsDisabledError, UserIsNotRegisteredError
 
 router = APIRouter(prefix="/app", tags=["Application"])
 
@@ -39,12 +27,12 @@ async def get_user_session(request: Request) -> Optional[User]:
         return None
 
     try:
-        username = token_service.get_username_from_token(access_token)
+        username = services.token.get_username_from_token(access_token)
 
     except InvalidTokenError:
         return None
 
-    _user_in_db = users_service.get_user(username)
+    _user_in_db = services.user.get_user(username)
     if not _user_in_db:
         return None
 
@@ -91,7 +79,7 @@ async def clear_user_session(response: Response) -> None:
 def send_registration_email(registration_url: str, username: str, email: str):
     try:
         msg = RegistrationEmail()
-        smtp_service.send(msg.message(username, email, registration_url=registration_url))
+        services.smtp.send(msg.message(username, email, registration_url=registration_url))
 
     except Exception as e:
         logging.error(f"Unhandled exception when trying to send a new user ({username}) their registration email")
@@ -101,7 +89,7 @@ def send_registration_email(registration_url: str, username: str, email: str):
 def send_password_reset_email(password_reset_url: str, username: str, email: str):
     try:
         msg = PasswordResetEmail()
-        smtp_service.send(msg.message(username, email, password_reset_url=password_reset_url))
+        services.smtp.send(msg.message(username, email, password_reset_url=password_reset_url))
 
     except Exception as e:
         logging.error(f"Unhandled exception when trying to send a user ({username}) their password reset email")
@@ -149,7 +137,7 @@ async def log_in_user(request: Request, form_data: OAuth2PasswordRequestForm = D
     """Log the user in and store the access token in the user's cookies"""
 
     try:
-        user = users_service.get_authenticated_user(form_data.username, form_data.password)
+        user = services.user.get_authenticated_user(form_data.username, form_data.password)
         if not user:
             return templates.TemplateResponse(
                 "login.html",
@@ -190,7 +178,7 @@ async def log_in_user(request: Request, form_data: OAuth2PasswordRequestForm = D
             },
         )
 
-    token = token_service.create_token(user.username)
+    token = services.token.create_token(user.username)
     redirect = request.cookies.get("redirect")
     response = RedirectResponse(redirect or router.url_path_for("home"), status_code=302)
 
@@ -221,15 +209,15 @@ async def initiate_password_reset_email(
     """Sends a password reset email to the user"""
 
     # if there is no user, we pretend we sent the email anyway
-    _user_in_db = users_service.get_user(username, active_only=False)
+    _user_in_db = services.user.get_user(username, active_only=False)
     if _user_in_db:
         user = _user_in_db.cast(User)
 
-        expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD)
-        reset_token = token_service.create_token(user.username, expires)
+        expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_RESET_PASSWORD)
+        reset_token = services.token.create_token(user.username, expires)
 
         user.last_password_reset_token = reset_token.access_token
-        users_service.update_user(user)
+        services.user.update_user(user)
 
         password_reset_url = (
             str(request.base_url)[:-1]
@@ -258,8 +246,8 @@ async def reset_password(request: Request, reset_token: Optional[str] = None):
         if not reset_token:
             raise InvalidTokenError()
 
-        username = token_service.get_username_from_token(reset_token)
-        _user_in_db = users_service.get_user(username, active_only=False)
+        username = services.token.get_username_from_token(reset_token)
+        _user_in_db = services.user.get_user(username, active_only=False)
 
         if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
             raise InvalidTokenError()
@@ -283,8 +271,8 @@ async def update_password(request: Request, reset_token: Optional[str] = None, p
         if not reset_token:
             raise InvalidTokenError()
 
-        username = token_service.get_username_from_token(reset_token)
-        _user_in_db = users_service.get_user(username, active_only=False)
+        username = services.token.get_username_from_token(reset_token)
+        _user_in_db = services.user.get_user(username, active_only=False)
 
         if not _user_in_db or _user_in_db.last_password_reset_token != reset_token:
             raise InvalidTokenError()
@@ -297,7 +285,7 @@ async def update_password(request: Request, reset_token: Optional[str] = None, p
             status_code=302,
         )
 
-    users_service.change_user_password(user, password)
+    services.user.change_user_password(user, password)
     return RedirectResponse(router.url_path_for("log_in") + "?reset_password=true", status_code=302)
 
 
@@ -338,10 +326,10 @@ async def initiate_registration_email(
     # create disabled user and generate a temporary registration token for them
     try:
         clean_email = form_data.username.strip().lower()
-        if USE_WHITELIST and clean_email not in EMAIL_WHITELIST:
+        if config.USE_WHITELIST and clean_email not in EMAIL_WHITELIST:
             raise WhitelistError()
 
-        new_user = users_service.create_new_user(
+        new_user = services.user.create_new_user(
             username=clean_email,
             email=clean_email,
             password=form_data.password,
@@ -408,8 +396,8 @@ async def complete_registration(registration_token: Optional[str] = None):
         if not registration_token:
             raise InvalidTokenError()
 
-        username = token_service.get_username_from_token(registration_token)
-        _user_in_db = users_service.get_user(username, active_only=False)
+        username = services.token.get_username_from_token(registration_token)
+        _user_in_db = services.user.get_user(username, active_only=False)
         if not _user_in_db or _user_in_db.last_registration_token != registration_token:
             raise InvalidTokenError()
 
@@ -419,8 +407,8 @@ async def complete_registration(registration_token: Optional[str] = None):
     user = _user_in_db.cast(User)
     user.disabled = False
     user.last_registration_token = None
-    users_service.update_user(user, remove_expiration=True)
-    token = token_service.refresh_token(registration_token)
+    services.user.update_user(user, remove_expiration=True)
+    token = services.token.refresh_token(registration_token)
 
     response = RedirectResponse(router.url_path_for("home"), status_code=302)
     await set_user_session(response, token)
@@ -445,6 +433,6 @@ async def delete_user(request: Request, response: Response):
     if not user:
         return response
 
-    users_service.delete_user(user.username)
+    services.user.delete_user(user.username)
     await clear_user_session(response)
     return response

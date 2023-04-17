@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import cache
 from typing import Optional, cast
 
@@ -14,22 +15,34 @@ class TodoistTaskService:
             raise NotLinkedError(user.username, "todoist")
 
         self.config = cast(UserTodoistConfiguration, user.configuration.todoist)
-        self._client = TodoistAPI(self.config.access_token)
+        self._client = self._get_client(self.config.access_token)
 
-        self.project_tasks: dict[str, list[Task]] = {}
+        self._project_tasks_cache: dict[str, list[Task]] = {}
         """map of {project_id: tasks}"""
+
+    @classmethod
+    def _get_client(cls, token: str) -> TodoistAPI:
+        return TodoistAPI(token)
+
+    def _clear_cache(self) -> None:
+        self._project_tasks_cache.clear()
+        self.get_section.cache_clear()
 
     def get_section_by_id(self, section_id: str) -> Section:
         return self._client.get_section(section_id)
 
     @cache
     def get_section(self, section: str, project_id: str) -> Section:
+        """Gets an existing section by name, or creates a new one if one doesn't already exist"""
+
         user_section = section.strip().lower()
         api_sections = self._client.get_sections(project_id=project_id)
         for api_section in api_sections:
             if api_section.name.strip().lower() == user_section:
                 return api_section
 
+        # projects can only have a max of 20 sections, and throws a 403 error if you try to add another
+        # TODO: when this happens, set the section to the default section (or no section)
         return self._client.add_section(section, project_id)
 
     def is_default_section(self, section_id: str, project_id: str) -> bool:
@@ -55,18 +68,34 @@ class TodoistTaskService:
         user_section = self.get_section(section, task.project_id)
         return user_section.id == task.section_id
 
-    def get_tasks(self, project_id: str) -> list[Task]:
-        if project_id in self.project_tasks:
-            return self.project_tasks[project_id]
+    def _get_tasks(self, project_id: str) -> list[Task]:
+        """
+        Fetches a list of tasks from Todoist or from local cache
+
+        Mutations to the list or to any tasks in the list will
+        modify the local cache
+
+        For a safe list of tasks, see `get_tasks`
+        """
+
+        if project_id in self._project_tasks_cache:
+            return self._project_tasks_cache[project_id]
 
         tasks = self._client.get_tasks(project_id=project_id)
-        self.project_tasks[project_id] = tasks
+        self._project_tasks_cache[project_id] = tasks
         return tasks
 
+    def get_tasks(self, project_id: str) -> list[Task]:
+        """Fetches a list of tasks that can be safely mutated"""
+
+        return deepcopy(self._get_tasks(project_id))
+
     def get_task(self, task_id: str, project_id: str) -> Optional[Task]:
-        for task in self.get_tasks(project_id):
+        """Fetches a task that can be safely mutated"""
+
+        for task in self._get_tasks(project_id):
             if task.id == task_id:
-                return task
+                return deepcopy(task)
 
         return None
 
@@ -91,9 +120,10 @@ class TodoistTaskService:
         if description and self.config.add_recipes_to_task_description:
             kwargs["description"] = description
 
+        existing_tasks = self._get_tasks(project_id)
         new_task = self._client.add_task(content=content, project_id=project_id, **kwargs)
-        self.get_tasks(project_id).append(new_task)
-        return new_task
+        existing_tasks.append(new_task)
+        return deepcopy(new_task)
 
     def update_task(
         self,
@@ -112,7 +142,7 @@ class TodoistTaskService:
 
         task: Optional[Task] = None
         task_index_to_update: Optional[int] = None
-        for i, local_task in enumerate(self.get_tasks(project_id)):
+        for i, local_task in enumerate(self._get_tasks(project_id)):
             if local_task.id == task_id:
                 task = local_task
                 task_index_to_update = i
@@ -130,6 +160,9 @@ class TodoistTaskService:
             kwargs["description"] = description
 
         if self.config.map_labels_to_sections:
+            if task.section_id and not section:
+                section = self.get_section_by_id(task.section_id).name
+
             section_name = section or self.config.default_section_name
             api_section = self.get_section(section_name, project_id)
             new_section_id = api_section.id
@@ -150,13 +183,13 @@ class TodoistTaskService:
             raise Exception("Unable to update task; rejected by Todoist")
 
         updated_task = self._client.get_task(task_id)
-        self.get_tasks(project_id)[task_index_to_update] = updated_task
-        return updated_task
+        self._get_tasks(project_id)[task_index_to_update] = updated_task
+        return deepcopy(updated_task)
 
     def close_task(self, task: Task) -> None:
         is_success = self._client.close_task(task.id)
         if not is_success:
             raise Exception("Unable to close task; rejected by Todoist")
 
-        tasks = self.get_tasks(task.project_id)
-        self.get_tasks(task.project_id)[:] = [local_task for local_task in tasks if local_task.id != task.id]
+        tasks = self._get_tasks(task.project_id)
+        self._get_tasks(task.project_id)[:] = [local_task for local_task in tasks if local_task.id != task.id]

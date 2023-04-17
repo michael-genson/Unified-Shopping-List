@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import cache, cached_property
 from typing import Iterable, Optional, TypeVar, cast
 
@@ -31,12 +32,23 @@ class MealieListService:
         self.config = cast(UserMealieConfiguration, user.configuration.mealie)
         self._client = MealieClient(self.config.base_url, self.config.auth_token)
 
-        self.list_items_by_list_id: dict[str, list[MealieShoppingListItemOut]] = {}
+        self._list_items_cache: dict[str, list[MealieShoppingListItemOut]] = {}
         """
         map of {shopping_list_id: list[shopping_list_items]}
         
-        *not guaranteed to store checked items*
+        guaranteed to contain *all* unchecked items, but sometimes contains *some* checked items
+
+        should not be accessed directly; see `get_all_list_items`
         """
+
+    def _clear_cache(self) -> None:
+        for cached_property in ["recipe_store", "food_store", "label_store"]:
+            self.__dict__.pop(cached_property, None)
+
+        self._list_items_cache.clear()
+        self.get_food.cache_clear()
+        self.get_label.cache_clear()
+        self.get_all_lists.cache_clear()
 
     @cached_property
     def recipe_store(self) -> dict[str, MealieRecipe]:
@@ -69,9 +81,12 @@ class MealieListService:
     def get_food(self, food: str) -> Optional[Food]:
         """Compares food to the Mealie food store and finds the closest match within threshold"""
 
+        if not self.food_store:
+            return None
+
         user_food = food.lower()  # food store keys are all lowercase
-        if user_food in self._client.food_store:
-            return self._client.food_store[user_food]
+        if user_food in self.food_store:
+            return self.food_store[user_food]
 
         # if we're only checking for exact matches, stop here
         if self.config.confidence_threshold >= 1:
@@ -79,9 +94,9 @@ class MealieListService:
 
         nearest_match: str
         threshold: int  # score from 0 - 100
-        nearest_match, threshold = process.extractOne(user_food, self._client.food_store.keys())
+        nearest_match, threshold = process.extractOne(user_food, self.food_store.keys())
 
-        return self._client.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
+        return self.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
 
     @cache
     def get_label(self, label: str) -> Optional[Label]:
@@ -100,20 +115,12 @@ class MealieListService:
 
         return None
 
-    def add_food_to_item(self, item: SHOPPING_LIST_ITEM) -> SHOPPING_LIST_ITEM:
+    def add_food_to_item(self, item: MealieShoppingListItemCreate) -> MealieShoppingListItemCreate:
         if not item.note or not self.config.use_foods:
             return item
 
-        # if the item already has a food, we leave the food alone
+        # if the item already has a food, we leave the item alone
         if item.food_id:
-            item.is_food = True
-
-            # Mealie doesn't always add the food's label to the item, so we check the food
-            if not item.label_id:
-                food = self.get_food(item.note)
-                if food and food.label:
-                    item.label_id = food.label.id
-
             return item
 
         food = self.get_food(item.note)
@@ -142,38 +149,59 @@ class MealieListService:
     def get_all_lists(self) -> Iterable[MealieShoppingListOut]:
         return self._client.get_all_shopping_lists()
 
-    def get_all_list_items(self, list_id: str, include_checked: bool = False) -> list[MealieShoppingListItemOut]:
+    def _get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
         """
-        Fetch all list items from Mealie or local cache. Sometimes contains checked items
+        Fetch all list items from Mealie or local cache
+
+        Mutations to the list or to any items in the list will
+        modify the local cache
+
+        For a safe list of items, see `get_all_list_items`
+        """
+
+        # checked items are not always cached, so we only check the cache if we don't care about them
+        if list_id in self._list_items_cache and not include_all_checked:
+            return self._list_items_cache[list_id]
+
+        list_items = list(self._client.get_all_shopping_list_items(list_id, include_all_checked))
+        self._list_items_cache[list_id] = list_items
+        return list_items
+
+    def get_all_list_items(self, list_id: str, include_all_checked: bool = False) -> list[MealieShoppingListItemOut]:
+        """
+        Fetch all list items from Mealie or local cache that can be safely mutated.
+        May include some checked items
 
         Optionally include all checked items queried directly from Mealie
         """
 
-        # checked items are not always cached, so we only check the cache if we don't care about them
-        if list_id in self.list_items_by_list_id and not include_checked:
-            return self.list_items_by_list_id[list_id]
-
-        list_items = list(self._client.get_all_shopping_list_items(list_id, include_checked))
-        self.list_items_by_list_id[list_id] = list_items
-        return list_items
+        return deepcopy(self._get_all_list_items(list_id, include_all_checked))
 
     def get_item(self, list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_all_list_items(list_id):
+        """Fetches an item that can be safely mutated"""
+
+        for item in self._get_all_list_items(list_id):
             if item.id == item_id:
-                return item
+                return deepcopy(item)
 
         return None
 
     def get_item_by_extra(
         self, list_id: str, extras_key: str, extras_value: str
     ) -> Optional[MealieShoppingListItemOut]:
-        for item in self.get_all_list_items(list_id):
+        """
+        Fetches an item by unique extra that can be safely mutated
+
+        If more than one item shares the same extra, only the first is returned
+        """
+
+        for item in self._get_all_list_items(list_id):
             if not item.extras:
                 continue
 
             extras = item.extras.dict()
             if extras.get(extras_key) == extras_value:
-                return item
+                return deepcopy(item)
 
         return None
 
@@ -182,7 +210,7 @@ class MealieListService:
 
         # created items
         for new_item in items_collection.created_items:
-            list_items = self.get_all_list_items(new_item.shopping_list_id)
+            list_items = self._get_all_list_items(new_item.shopping_list_id)
             list_items.append(new_item)
 
         # updated items
@@ -191,7 +219,7 @@ class MealieListService:
             updated_items_by_list_id.setdefault(updated_item.shopping_list_id, []).append(updated_item)
 
         for list_id, updated_items in updated_items_by_list_id.items():
-            list_items = self.get_all_list_items(list_id)
+            list_items = self._get_all_list_items(list_id)
             item_id_by_index = {existing_item.id: i for i, existing_item in enumerate(list_items)}
             for updated_item in updated_items:
                 # this should never happen since we track all list modifications
@@ -209,7 +237,7 @@ class MealieListService:
 
         for list_id, deleted_items in deleted_items_by_list_id.items():
             deleted_item_ids = [deleted_item.id for deleted_item in deleted_items]
-            list_items = self.get_all_list_items(list_id)
+            list_items = self._get_all_list_items(list_id)
             list_items[:] = [existing_item for existing_item in list_items if existing_item.id not in deleted_item_ids]
 
     def create_items(self, items: list[MealieShoppingListItemCreate]) -> None:

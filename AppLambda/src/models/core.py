@@ -6,15 +6,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from ..app import SYNC_EVENT_DEV_SQS_QUEUE_NAME, SYNC_EVENT_SQS_QUEUE_NAME
+from .. import config
 from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET
-from ..clients.aws import SQSFIFO
+from ..clients import aws
 from ._base import APIBase
-from .account_linking import (
-    UserAlexaConfiguration,
-    UserMealieConfiguration,
-    UserTodoistConfiguration,
-)
+from .account_linking import UserAlexaConfiguration, UserMealieConfiguration, UserTodoistConfiguration
 
 
 class WhitelistError(Exception):
@@ -81,15 +77,15 @@ class User(APIBase):
 
     @property
     def is_linked_to_mealie(self):
-        return self.configuration.mealie and self.configuration.mealie.is_valid
+        return bool(self.configuration.mealie and self.configuration.mealie.is_valid)
 
     @property
     def is_linked_to_alexa(self):
-        return self.alexa_user_id and self.configuration.alexa and self.configuration.alexa.is_valid
+        return bool(self.alexa_user_id and self.configuration.alexa and self.configuration.alexa.is_valid)
 
     @property
     def is_linked_to_todoist(self):
-        return self.todoist_user_id and self.configuration.todoist and self.configuration.todoist.is_valid
+        return bool(self.todoist_user_id and self.configuration.todoist and self.configuration.todoist.is_valid)
 
     def set_expiration(self, expiration_in_seconds: int) -> int:
         """Sets expiration time in seconds and returns the TTL value"""
@@ -119,7 +115,7 @@ class BaseSyncEvent(APIBase):
     timestamp: datetime = datetime.now()
 
     class Config:
-        use_enum_values = True
+        use_enum_values = True  # TODO: disable this and replace .dict() with .json()
 
     @property
     def group_id(self):
@@ -128,5 +124,5 @@ class BaseSyncEvent(APIBase):
     def send_to_queue(self, use_dev_route=False) -> None:
         """Queue this event to be processed asynchronously"""
 
-        sqs = SQSFIFO(SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else SYNC_EVENT_SQS_QUEUE_NAME)
+        sqs = aws.SQSFIFO(config.SYNC_EVENT_DEV_SQS_QUEUE_NAME if use_dev_route else config.SYNC_EVENT_SQS_QUEUE_NAME)
         sqs.send_message(self.json(), self.event_id, self.group_id)
