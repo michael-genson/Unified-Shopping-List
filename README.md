@@ -47,7 +47,7 @@ Quality of Life
 
 Development / DevOps
 - move config and secrets to env vars and out of codebase
-- implement a proper dev -> main branch workflow
 - implement github actions
-    - ruff
+    - deployments
+    - pytest
     - versioning
