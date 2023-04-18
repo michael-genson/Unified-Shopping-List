@@ -49,5 +49,4 @@ Development / DevOps
 - remove SAM from dev container
 - implement github actions
     - deployments
-    - pytest
     - versioning
