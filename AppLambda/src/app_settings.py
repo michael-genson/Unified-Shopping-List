@@ -2,6 +2,9 @@ from pydantic import BaseSettings
 
 
 class AppSecrets(BaseSettings):
+    ### AWS ###
+    aws_region: str = "us-east-1"
+
     ### Database ###
     db_secret_key: str = "CHANGE-ME"
     db_algorithm: str = "HS256"
@@ -17,9 +20,6 @@ class AppSecrets(BaseSettings):
     app_client_id: str = "my-app-client-id"
     app_client_secret: str = "my-app-client-secret"
     email_whitelist: list[str] = ["my-email@example.com"]
-
-    ### AWS ###
-    aws_region: str = "us-east-1"
 
     ### Alexa ###
     alexa_client_id: str = "my-alexa-client-id"

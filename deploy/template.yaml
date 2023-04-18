@@ -7,6 +7,9 @@ Parameters:
   ApiLambdaName:
     Type: String
 
+  AwsRegion:
+    Type: String
+
   UsersDDBTableName:
     Type: String
 
@@ -90,6 +93,8 @@ Resources:
       Timeout: 60  # <= SQS VisibilityTimeout / Lambda Event BatchSize
       Environment:
         Variables:
+          aws_region: !Ref AwsRegion
+
           sync_event_sqs_queue_name: !GetAtt SyncEventQueue.QueueName
           sync_event_dev_sqs_queue_name: !Ref SyncEventDevSQSQueueName
           use_whitelist: !Ref Whitelist
@@ -106,8 +111,6 @@ Resources:
           app_client_id: !Ref AppClientId
           app_client_secret: !Ref AppClientSecret
           email_whitelist: !Ref EmailWhitelist
-
-          aws_region: ${AWS::Region}
 
           alexa_client_id: !Ref AlexaClientId
           alexa_client_secret: !Ref AlexaClientSecret
