@@ -1,10 +1,10 @@
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings
 
 
 class AppSecrets(BaseSettings):
     ### Database ###
-    db_secret_key: str = Field("CHANGE-ME")
-    db_algorithm: str = Field("HS256")
+    db_secret_key: str = "CHANGE-ME"
+    db_algorithm: str = "HS256"
 
     ### SMTP ###
     smtp_server: str = "smtp.example.com"
@@ -27,8 +27,8 @@ class AppSecrets(BaseSettings):
     alexa_skill_id: str = "my-alexa-skill-id"
 
     ### Todoist ###
-    todoist_client_id = "my-todoist-client-id"
-    todoist_client_secret = "my-todoist-client-secret"
+    todoist_client_id: str = "my-todoist-client-id"
+    todoist_client_secret: str = "my-todoist-client-secret"
 
 
 class AppSettings(BaseSettings):
@@ -38,9 +38,9 @@ class AppSettings(BaseSettings):
     internal_app_name = "shopping_list_api"
 
     ### App ###
-    sync_event_sqs_queue_name: str = Field("", env="syncEventSQSQueueName")
-    sync_event_dev_sqs_queue_name = Field("", env="syncEventDevSQSQueueName")
-    use_whitelist: bool = Field(False, env="whitelist")
+    sync_event_sqs_queue_name: str = ""
+    sync_event_dev_sqs_queue_name = ""
+    use_whitelist: bool = True
 
     ### Database ###
     access_token_expire_minutes: int = 60 * 24 * 30
@@ -93,4 +93,4 @@ class AppSettings(BaseSettings):
     todoist_scope: str = "data:read_write,data:delete"
     """https://developer.todoist.com/guides/#step-1-authorization-request"""
 
-    todoist_mealie_label = "Mealie"
+    todoist_mealie_label: str = "Mealie"

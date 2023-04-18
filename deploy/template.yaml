@@ -3,6 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: Unified Shopping List Application Stack
 
 Parameters:
+  ### AWS ###
   ApiLambdaName:
     Type: String
 
@@ -18,12 +19,66 @@ Parameters:
   SyncEventDevSQSQueueName:
     Type: String
 
+  ### Settings ###
+
   Whitelist:
     Type: String
-    Default: "disabled"
+    Default: "true"
     AllowedValues:
       - "true"
       - "false"
+
+  ### Secrets ###
+
+  # Database
+  DBSecretKey:
+    Type: String
+
+  DBAlgorithm:
+    Type: String
+
+  # SMTP
+  SmtpServer:
+    Type: String
+
+  SmtpPort:
+    Type: Number
+
+  SmtpSender:
+    Type: String
+
+  SmtpUsername:
+    Type: String
+
+  SmtpPassword:
+    Type: String
+
+  # Access
+  AppClientId:
+    Type: String
+
+  AppClientSecret:
+    Type: String
+
+  EmailWhitelist:
+    Type: String
+
+  # Alexa
+  AlexaClientId:
+    Type: String
+
+  AlexaClientSecret:
+    Type: String
+
+  AlexaSkillId:
+    Type: String
+
+  # Todoist
+  TodoistClientId:
+    Type: String
+
+  TodoistClientSecret:
+    Type: String
 
 Resources:
   Function:
@@ -35,9 +90,33 @@ Resources:
       Timeout: 60  # <= SQS VisibilityTimeout / Lambda Event BatchSize
       Environment:
         Variables:
-          whitelist: !Ref Whitelist
-          syncEventSQSQueueName: !GetAtt SyncEventQueue.QueueName
-          syncEventDevSQSQueueName: !Ref SyncEventDevSQSQueueName
+          sync_event_sqs_queue_name: !GetAtt SyncEventQueue.QueueName
+          sync_event_dev_sqs_queue_name: !Ref SyncEventDevSQSQueueName
+          use_whitelist: !Ref Whitelist
+
+          db_secret_key: !Ref DBSecretKey
+          db_algorithm: !Ref DBAlgorithm
+
+          smtp_server: !Ref SmtpServer
+          smtp_port: !Ref SmtpPort
+          smtp_sender: !Ref SmtpSender
+          smtp_username: !Ref SmtpUsername
+          smtp_password: !Ref SmtpPassword
+
+          app_client_id: !Ref AppClientId
+          app_client_secret: !Ref AppClientSecret
+          email_whitelist: !Ref EmailWhitelist
+
+          aws_region: ${AWS::Region}
+
+          alexa_client_id: !Ref AlexaClientId
+          alexa_client_secret: !Ref AlexaClientSecret
+          alexa_skill_id: !Ref AlexaSkillId
+
+          todoist_client_id: !Ref TodoistClientId
+          todoist_client_secret: !Ref TodoistClientSecret
+
+          
 
       Policies:
         # DDB resources not deployed via SAM
