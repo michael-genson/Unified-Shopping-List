@@ -9,4 +9,4 @@ on:
 jobs:
   pytest:
     name: "Linting and Tests"
-    uses: ./.github/workflows/linting-and-tests.yaml
+    uses: ./.github/workflows/linting-and-tests.yml
