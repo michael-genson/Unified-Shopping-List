@@ -1,0 +1,65 @@
+name: "Linting and Tests"
+
+on:
+  workflow_call:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Check venv cache
+        id: cache-validate
+        if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
+        run: |
+          echo "import black;print('venv good?')" > test.py && poetry run python test.py && echo ::set-output name=cache-hit-success::true
+          rm test.py
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' || steps.cache-validate.outputs.cache-hit-success != 'true'
+
+      - name: Formatting (Black)
+        run: |
+          poetry run black AppLambda --check
+
+      - name: Lint (Ruff)
+        run: |
+          poetry run ruff AppLambda
+
+      - name: Mypy
+        run: |
+          poetry run mypy AppLambda
+
+      - name: Pytest
+        env:
+          RATE_LIMIT_MINUTELY_READ: "60"
+          RATE_LIMIT_MINUTELY_MODIFY: "60"
+          RATE_LIMIT_MINUTELY_SYNC: "60"
+          USE_WHITELIST: "false"
+        run: |
+          poetry run pytest

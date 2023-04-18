@@ -32,9 +32,6 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
     curl \
     build-essential \
-    libpq-dev \
-    libwebp-dev \
-    libsasl2-dev libldap2-dev libssl-dev \
     gnupg gnupg2 gnupg1
 #     && pip install -U --no-cache-dir pip
 
