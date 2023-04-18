@@ -3,8 +3,7 @@ from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
 
-from .. import config
-from ..app_secrets import SMTP_SENDER
+from ..app import secrets, settings
 
 email_templates = Jinja2Templates(directory="./src/static/email_templates")
 
@@ -63,10 +62,10 @@ class RegistrationEmail:
         recipient_email: str,
         registration_url: str,
     ) -> EmailMessage:
-        subject = f"Confirm your email for {config.APP_TITLE}"
+        subject = f"Confirm your email for {settings.app_title}"
         return self.template.message(
             subject,
-            sender=SMTP_SENDER,
+            sender=secrets.smtp_sender,
             recipients=recipient_email,
             name=recipient_username,
             registration_url=registration_url,
@@ -83,10 +82,10 @@ class PasswordResetEmail:
         recipient_email: str,
         password_reset_url: str,
     ) -> EmailMessage:
-        subject = f"Reset your password for {config.APP_TITLE}"
+        subject = f"Reset your password for {settings.app_title}"
         return self.template.message(
             subject,
-            sender=SMTP_SENDER,
+            sender=secrets.smtp_sender,
             recipients=recipient_email,
             name=recipient_username,
             password_reset_url=password_reset_url,

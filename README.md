@@ -46,7 +46,7 @@ Quality of Life
 - improve mobile frontend experience
 
 Development / DevOps
-- move config and secrets to env vars and out of codebase
+- remove SAM from dev container
 - implement github actions
     - deployments
     - pytest

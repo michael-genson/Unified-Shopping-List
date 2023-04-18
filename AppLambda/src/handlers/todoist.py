@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import ValidationError
 from todoist_api_python.models import Task
 
-from .. import config
+from ..app import settings
 from ..models.aws import SQSMessage
 from ..models.core import BaseSyncEvent, ListSyncMap, Source, User
 from ..models.mealie import (
@@ -139,7 +139,7 @@ class TodoistSyncHandler(BaseSyncHandler):
 
                         mealie_items_to_create.append(mealie_item_to_create)
 
-                elif config.TODOIST_MEALIE_LABEL not in task.labels:
+                elif settings.todoist_mealie_label not in task.labels:
                     # the item is not linked, so create the item in Mealie
                     mealie_item_to_create = MealieShoppingListItemCreate(
                         shopping_list_id=mealie_list_id,
@@ -203,7 +203,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     if (
                         mealie_item.display == task.content
                         and self.todoist_service.is_task_section(str(mealie_label) if mealie_label else None, task)
-                        and config.TODOIST_MEALIE_LABEL in task.labels
+                        and settings.todoist_mealie_label in task.labels
                     ):
                         continue
 
@@ -213,7 +213,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                         project_id=project_id,
                         content=mealie_item.display,
                         section=str(mealie_label) if mealie_label else None,
-                        labels=task.labels + [config.TODOIST_MEALIE_LABEL],
+                        labels=task.labels + [settings.todoist_mealie_label],
                         description=self.build_task_description_from_mealie_item(mealie_item),
                     )
 
@@ -226,7 +226,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                         mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
                 # close Todoist task if it used to be linked to a Mealie item
-                elif config.TODOIST_MEALIE_LABEL in task.labels:
+                elif settings.todoist_mealie_label in task.labels:
                     self.todoist_service.close_task(task)
 
             except Exception as e:
@@ -248,7 +248,7 @@ class TodoistSyncHandler(BaseSyncHandler):
                     content=mealie_item.display,
                     project_id=project_id,
                     section=str(mealie_label) if mealie_label else None,
-                    labels=[config.TODOIST_MEALIE_LABEL],
+                    labels=[settings.todoist_mealie_label],
                     description=self.build_task_description_from_mealie_item(mealie_item),
                 )
 

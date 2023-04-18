@@ -7,13 +7,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from mangum import Mangum
 
-from . import config
+from . import app_settings
 from .handlers.mangum import SQS
 
 ### App Setup ###
 current_dir = str(pathlib.Path(__file__).parent.resolve())
 
-app = FastAPI(title=config.APP_TITLE, version=config.APP_VERSION)
+secrets = app_settings.AppSecrets()
+settings = app_settings.AppSettings()
+
+app = FastAPI(title=settings.app_title, version=settings.app_version)
 app.mount("/static", StaticFiles(directory=os.path.join(current_dir, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(current_dir, "static/templates"))
 

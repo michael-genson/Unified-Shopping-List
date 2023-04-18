@@ -1,16 +1,16 @@
 from email.message import EmailMessage
 from smtplib import SMTP
 
-from ..app_secrets import SMTP_PASSWORD, SMTP_PORT, SMTP_SERVER, SMTP_USERNAME
+from ..app import secrets
 
 
 class SMTPService:
     def __init__(
         self,
-        server: str = SMTP_SERVER,
-        port: int = SMTP_PORT,
-        username: str = SMTP_USERNAME,
-        password: str = SMTP_PASSWORD,
+        server: str = secrets.smtp_server,
+        port: int = secrets.smtp_port,
+        username: str = secrets.smtp_username,
+        password: str = secrets.smtp_password,
         use_tls: bool = True,
     ) -> None:
         self.server = server

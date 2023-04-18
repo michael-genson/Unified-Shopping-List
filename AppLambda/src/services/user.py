@@ -3,8 +3,7 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from .. import config
-from ..app_secrets import EMAIL_WHITELIST
+from ..app import secrets, settings
 from ..clients import aws
 from ..models.aws import DynamoDBAtomicOp
 from ..models.core import RateLimitCategory, User, UserInDB, WhitelistError
@@ -36,7 +35,7 @@ class UserService:
     @property
     def db(self):
         if not self._db:
-            self._db = aws.DynamoDB(config.USERS_TABLENAME, config.USERS_PK)
+            self._db = aws.DynamoDB(settings.users_tablename, settings.users_pk)
 
         return self._db
 
@@ -63,7 +62,7 @@ class UserService:
         """Queries database using a global secondary index and returns all usernames with that value"""
 
         user_data = self.db.query(gsi_key, gsi_value)
-        return [str(data.get(config.USERS_PK)) for data in user_data]
+        return [str(data.get(settings.users_pk)) for data in user_data]
 
     def authenticate_user(self, user: UserInDB, password: str) -> Optional[User]:
         """Validates if a user is successfully authenticated"""
@@ -98,7 +97,7 @@ class UserService:
             else:
                 raise UserIsDisabledError()
 
-        if config.USE_WHITELIST and user.email not in EMAIL_WHITELIST:
+        if settings.use_whitelist and user.email not in secrets.email_whitelist:
             raise WhitelistError()
 
         return self.authenticate_user(user, password)
@@ -131,10 +130,10 @@ class UserService:
         )
 
         if disabled:
-            new_user.set_expiration(config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION * 60)
+            new_user.set_expiration(settings.access_token_expire_minutes_registration * 60)
 
         if create_registration_token:
-            access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES_REGISTRATION)
+            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes_registration)
             registration_token = self._token_service.create_token(new_user.username, access_token_expires)
 
             new_user.last_registration_token = registration_token.access_token
@@ -217,7 +216,7 @@ class UserService:
             return user
 
         user.incorrect_login_attempts += 1
-        if user.incorrect_login_attempts < config.LOGIN_LOCKOUT_ATTEMPTS:
+        if user.incorrect_login_attempts < settings.login_lockout_attempts:
             user.incorrect_login_attempts = self.update_atomic_user_field(user, "incorrect_login_attempts")
 
             return user

@@ -93,7 +93,7 @@ async def update_mealie_configuration(
 
     user = logged_in_response
     try:
-        update_mealie_account_link(user, config_input)
+        await update_mealie_account_link(user, config_input)
         return create_mealie_config_template(
             request,
             user,

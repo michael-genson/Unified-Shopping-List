@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from fastapi.responses import HTMLResponse, RedirectResponse
 from todoist_api_python.api import TodoistAPI
 
-from .. import config
-from ..app import app, services, templates
+from ..app import app, services, settings, templates
 from ..clients.mealie import MealieClient
 from ..models.account_linking import (
     SyncMapRender,
@@ -244,7 +243,7 @@ def link_mealie_account(
             "Invalid Mealie configuration. Please check your base URL and auth token",
         )
 
-    new_mealie_token = client.create_auth_token(f"{app.title} | {user.username}", config.MEALIE_INTEGRATION_ID)
+    new_mealie_token = client.create_auth_token(f"{app.title} | {user.username}", settings.mealie_integration_id)
 
     # create a new notifier
     base_url = str(request.base_url).replace("https://", "").replace("http://", "")[:-1]
@@ -252,7 +251,7 @@ def link_mealie_account(
 
     security_hash = "".join(random.choices(string.ascii_letters + string.digits, k=8))
 
-    notifier_url = config.MEALIE_APPRISE_NOTIFIER_URL_TEMPLATE.format(
+    notifier_url = settings.mealie_apprise_notifier_url_template.format(
         full_path=full_notifier_path,
         username=user.username,
         security_hash=security_hash,
@@ -349,7 +348,7 @@ def link_todoist_account(
                 break
 
             # if there are no tasks, we must create a temporary one
-            temporary_task = client.add_task(f"Sync to {config.APP_TITLE}")
+            temporary_task = client.add_task(f"Sync to {settings.app_title}")
             user_id = temporary_task.creator_id
             client.delete_task(temporary_task.id)
             break

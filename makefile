@@ -1,10 +1,13 @@
+SHELL := /bin/bash
+
 ENV ?= dev
 SAM_ROOT = deploy
 
 export AWS_PROFILE := ${ENV}
 
 local-build:
-	cd AppLambda; \
+	source env/secrets/${ENV}.sh && \
+	cd AppLambda && \
 	uvicorn src.app:app --reload --port 9000
 
 deployment:

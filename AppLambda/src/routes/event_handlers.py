@@ -7,9 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from .. import config
-from ..app import services
-from ..app_secrets import APP_CLIENT_ID, APP_CLIENT_SECRET, TODOIST_CLIENT_SECRET
+from ..app import secrets, services, settings
 from ..handlers.core import SQSSyncMessageHandler
 from ..models.account_linking import NotLinkedError
 from ..models.alexa import AlexaListEvent, AlexaSyncEvent
@@ -34,7 +32,7 @@ async def sqs_sync_event_handler(event: SQSEvent) -> None:
             if str(sync_event.source) in processed_event_sources:
                 continue
 
-            if sync_event.client_id != APP_CLIENT_ID or sync_event.client_secret != APP_CLIENT_SECRET:
+            if sync_event.client_id != secrets.app_client_id or sync_event.client_secret != secrets.app_client_secret:
                 logging.error("Received sync event with invalid client id & secret pair, aborting")
                 continue
 
@@ -66,7 +64,7 @@ async def mealie_event_notification_handler(
     if notification.event_type == MealieEventType.invalid:
         return
 
-    if notification.integration_id == config.MEALIE_INTEGRATION_ID:
+    if notification.integration_id == settings.mealie_integration_id:
         return
 
     shopping_list_id = notification.get_shopping_list_id_from_document_data()
@@ -120,7 +118,7 @@ async def todoist_event_notification_handler(request: Request, webhook: TodoistW
         return
 
     hmac_signature = hmac.new(
-        key=TODOIST_CLIENT_SECRET.encode("utf-8"),
+        key=secrets.todoist_client_secret.encode("utf-8"),
         msg=await request.body(),
         digestmod=hashlib.sha256,
     )

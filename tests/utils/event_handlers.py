@@ -8,9 +8,7 @@ from typing import Optional
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 
-from AppLambda.src import config
-from AppLambda.src.app import app
-from AppLambda.src.app_secrets import TODOIST_CLIENT_SECRET  # TODO: remove secrets dependency
+from AppLambda.src.app import app, secrets, settings
 from AppLambda.src.models.alexa import AlexaListEvent, ObjectType, Operation
 from AppLambda.src.models.core import User
 from AppLambda.src.models.mealie import MealieEventNotification, MealieEventType
@@ -35,7 +33,7 @@ def build_mealie_event_notification(
         title=random_string(),
         message=random_string(),
         event_type=event_type,
-        integration_id=config.MEALIE_INTEGRATION_ID if use_internal_integration_id else random_string(),
+        integration_id=settings.mealie_integration_id if use_internal_integration_id else random_string(),
         document_data=json.dumps({"shoppingListId": shopping_list_id}),
     )
 
@@ -83,7 +81,7 @@ def send_mealie_event_notification(notification: MealieEventNotification, user: 
 def get_todoist_security_headers(webhook: TodoistWebhook) -> dict[str, str]:
     body = json.dumps(jsonable_encoder(webhook.dict())).encode("utf-8")
     hmac_signature = hmac.new(
-        key=TODOIST_CLIENT_SECRET.encode("utf-8"),
+        key=secrets.todoist_client_secret.encode("utf-8"),
         msg=body,
         digestmod=hashlib.sha256,
     )

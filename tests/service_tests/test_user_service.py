@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import pytest
 
-from AppLambda.src import config
+from AppLambda.src.app import settings
 from AppLambda.src.models.aws import DynamoDBAtomicOp
 from AppLambda.src.models.core import RateLimitCategory, User, UserRateLimit, WhitelistError
 from AppLambda.src.services.auth_token import AuthTokenService
@@ -157,7 +157,7 @@ def test_get_authenticated_user(user_service: UserService):
     password = random_password()
     user_service.create_new_user(username=username, email=username, password=password, disabled=False)
 
-    config.USE_WHITELIST = True
+    settings.use_whitelist = True
     with pytest.raises(WhitelistError):
         user_service.get_authenticated_user(username, password)
 
@@ -392,8 +392,8 @@ def test_lockout_user_incorrect_login(user_service: UserService):
     password = random_password()
     user_service.create_new_user(username=username, email=username, password=password, disabled=False)
 
-    config.LOGIN_LOCKOUT_ATTEMPTS = random_int(10, 20)
-    for i in range(config.LOGIN_LOCKOUT_ATTEMPTS):
+    settings.login_lockout_attempts = random_int(10, 20)
+    for i in range(settings.login_lockout_attempts):
         with contextlib.suppress(UserIsDisabledError):
             assert not user_service.get_authenticated_user(username, random_password())
 

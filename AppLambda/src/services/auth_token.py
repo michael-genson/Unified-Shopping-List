@@ -3,8 +3,7 @@ from typing import Optional
 
 from jose import JWTError, jwt
 
-from .. import config
-from ..app_secrets import ALGORITHM, SECRET_KEY
+from ..app import secrets, settings
 from ..models.core import Token
 
 
@@ -18,12 +17,12 @@ class AuthTokenService:
         """Creates a new access token for a user"""
 
         if not expires:
-            expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+            expires = timedelta(minutes=settings.access_token_expire_minutes)
 
         expiration = datetime.utcnow() + expires
 
         data = {"sub": username, "exp": expiration}
-        access_token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+        access_token = jwt.encode(data, secrets.db_secret_key, algorithm=secrets.db_algorithm)
         return Token(access_token=access_token, token_type="Bearer")
 
     def get_username_from_token(self, access_token: str) -> str:
@@ -34,7 +33,7 @@ class AuthTokenService:
         """
 
         try:
-            payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(access_token, secrets.db_secret_key, algorithms=[secrets.db_algorithm])
             username: Optional[str] = payload.get("sub")
 
         except JWTError:
