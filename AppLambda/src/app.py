@@ -30,24 +30,25 @@ services = ServiceFactory()
 ### Route Setup ###
 from .routes import account_linking, alexa, auth, core, event_handlers, mealie, todoist  # noqa: E402
 
+# Mypy bugs out when determining the router types, so we ignore the type errors
 # frontend routes
-app.include_router(core.router, include_in_schema=False)
-app.include_router(account_linking.frontend_router, include_in_schema=False)
+app.include_router(core.router, include_in_schema=False)  # type: ignore
+app.include_router(account_linking.frontend_router, include_in_schema=False)  # type: ignore
 
-app.include_router(alexa.frontend_router, include_in_schema=False)
-app.include_router(mealie.router, include_in_schema=False)
-app.include_router(todoist.frontend_router, include_in_schema=False)
+app.include_router(alexa.frontend_router, include_in_schema=False)  # type: ignore
+app.include_router(mealie.router, include_in_schema=False)  # type: ignore
+app.include_router(todoist.frontend_router, include_in_schema=False)  # type: ignore
 
 # internal routes
-app.include_router(event_handlers.router, include_in_schema=False)
+app.include_router(event_handlers.router, include_in_schema=False)  # type: ignore
 
-app.include_router(alexa.auth_router, include_in_schema=False)
-app.include_router(todoist.auth_router, include_in_schema=False)
+app.include_router(alexa.auth_router, include_in_schema=False)  # type: ignore
+app.include_router(todoist.auth_router, include_in_schema=False)  # type: ignore
 
 # api routes
-app.include_router(account_linking.api_router)
-app.include_router(auth.router)
-app.include_router(alexa.api_router)
+app.include_router(account_linking.api_router)  # type: ignore
+app.include_router(auth.router)  # type: ignore
+app.include_router(alexa.api_router)  # type: ignore
 
 
 # default route
