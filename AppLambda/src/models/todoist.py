@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 from todoist_api_python.models import Task
@@ -17,13 +17,13 @@ class TodoistAuthRequest(BaseModel):
 
 
 class TodoistRedirect(BaseModel):
-    code: Optional[str] = None
+    code: str | None = None
     """always provided, unless there is an error"""
 
-    state: Optional[str] = None
+    state: str | None = None
     """always provided, unless there is an error"""
 
-    error: Optional[str] = None
+    error: str | None = None
     """if not null, something went wrong and both code and state will be null"""
 
 
@@ -50,7 +50,7 @@ class TodoistTask(APIBase):
     labels: list[str]
     order: int
     priority: int
-    section_id: Optional[str]
+    section_id: str | None
 
     @classmethod
     def parse_api_task(cls, task: Task):

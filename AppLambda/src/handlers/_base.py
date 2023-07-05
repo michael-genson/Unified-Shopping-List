@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from ..models.aws import SQSMessage
 from ..models.core import BaseSyncEvent, ListSyncMap, User
@@ -38,7 +37,7 @@ class BaseSyncHandler(ABC):
         pass
 
     @abstractmethod
-    def get_sync_map_from_message(self, message: SQSMessage) -> Optional[ListSyncMap]:
+    def get_sync_map_from_message(self, message: SQSMessage) -> ListSyncMap | None:
         """read an SQS message and return the appropriate list map, if there is one"""
         pass
 

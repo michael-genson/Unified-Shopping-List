@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 
 from passlib.context import CryptContext
 
@@ -30,7 +29,7 @@ class UserIsDisabledError(Exception):
 class UserService:
     def __init__(self, token_service: AuthTokenService) -> None:
         self._token_service = token_service
-        self._db: Optional[aws.DynamoDB] = None
+        self._db: aws.DynamoDB | None = None
 
     @property
     def db(self):
@@ -39,7 +38,7 @@ class UserService:
 
         return self._db
 
-    def get_user(self, username: str, active_only=True) -> Optional[UserInDB]:
+    def get_user(self, username: str, active_only=True) -> UserInDB | None:
         """Fetches a user from the database without authentication, if it exists"""
 
         user_data = self.db.get(username.strip().lower())
@@ -64,7 +63,7 @@ class UserService:
         user_data = self.db.query(gsi_key, gsi_value)
         return [str(data.get(settings.users_pk)) for data in user_data]
 
-    def authenticate_user(self, user: UserInDB, password: str) -> Optional[User]:
+    def authenticate_user(self, user: UserInDB, password: str) -> User | None:
         """Validates if a user is successfully authenticated"""
 
         # verify the provided password is correct
@@ -78,7 +77,7 @@ class UserService:
 
         return user.cast(User)
 
-    def get_authenticated_user(self, username: str, password: str) -> Optional[User]:
+    def get_authenticated_user(self, username: str, password: str) -> User | None:
         """
         Fetches a user from the database only if authenticated, if it exists
 
@@ -234,7 +233,7 @@ class UserService:
         category: RateLimitCategory,
         operation: DynamoDBAtomicOp,
         value: int = 1,
-        new_expires: Optional[int] = None,
+        new_expires: int | None = None,
     ) -> None:
         """
         Updates a user's rate limit and returns the updates user. Optionally provide a new expires value

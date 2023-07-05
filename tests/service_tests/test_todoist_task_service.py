@@ -1,5 +1,4 @@
 import random
-from typing import Optional
 
 import pytest
 from todoist_api_python.models import Section, Task
@@ -84,7 +83,7 @@ def test_todoist_task_service_is_task_section(
     task, task_with_no_section, task_with_default_section = random.sample(data.tasks, 3)
 
     assert task.section_id
-    section: Optional[Section] = None
+    section: Section | None = None
     for _section in data.sections:
         if _section.id == task.section_id:
             section = _section
@@ -184,7 +183,7 @@ def test_todoist_task_service_get_task_cache(
     # verify tasks are returned as deep copies, rather than as a reference
     fetched_task = todoist_task_service.get_task(task.id, project_id=project.id)
     cached_tasks = todoist_task_service._project_tasks_cache[project.id]
-    cached_task: Optional[Task] = None
+    cached_task: Task | None = None
     for _task in cached_tasks:
         if _task.id == task.id:
             cached_task = _task
@@ -304,7 +303,7 @@ def test_todoist_task_service_add_task_cache(
 
     # verify new tasks are returned as deep copies, rather than as a reference
     cached_tasks = todoist_task_service._project_tasks_cache[project.id]
-    cached_task: Optional[Task] = None
+    cached_task: Task | None = None
     for _task in cached_tasks:
         if _task.id == new_task.id:
             cached_task = _task
@@ -463,7 +462,7 @@ def test_todoist_task_service_update_task_with_new_section(
     task_to_update = random.choice(data.tasks)
     assert task_to_update.section_id
 
-    section: Optional[Section] = None
+    section: Section | None = None
     for _section in data.sections:
         if _section.id != task_to_update.section_id:
             section = _section
@@ -548,7 +547,7 @@ def test_todoist_task_service_update_task_cache(
 
     # verify updated tasks are returned as deep copies, rather than as a reference
     cached_tasks = todoist_task_service._project_tasks_cache[data.project.id]
-    cached_task: Optional[Task] = None
+    cached_task: Task | None = None
     for _task in cached_tasks:
         if _task.id == updated_task.id:
             cached_task = _task

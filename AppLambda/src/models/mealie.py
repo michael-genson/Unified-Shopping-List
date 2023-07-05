@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from enum import Enum
 from json import JSONDecodeError
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, ValidationError, validator
 from requests import Response
@@ -46,8 +46,8 @@ class Pagination(MealieBase):
     total: int = 0
     total_pages: int = 0
     items: list[dict]
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
 
 
 class MealieRecipe(MealieBase):
@@ -55,7 +55,7 @@ class MealieRecipe(MealieBase):
 
     id: str
     slug: str
-    name: Optional[str] = None
+    name: str | None = None
 
     def __str__(self) -> str:
         return self.name or ""
@@ -73,22 +73,22 @@ class Label(MealieBase):
 class UnitFoodBase(MealieBase):
     name: str
     description: str = ""
-    extras: Optional[dict] = {}
+    extras: dict | None = {}
 
 
 class Unit(UnitFoodBase):
-    id: Optional[str]
+    id: str | None
     fraction: bool
     abbreviation: str
-    use_abbreviation: Optional[bool]
+    use_abbreviation: bool | None
 
     def __str__(self) -> str:
         return self.abbreviation if self.use_abbreviation else self.name
 
 
 class Food(UnitFoodBase):
-    id: Optional[str]
-    label: Optional[Label] = None
+    id: str | None
+    label: Label | None = None
 
     def __str__(self) -> str:
         return self.name
@@ -97,10 +97,10 @@ class Food(UnitFoodBase):
 class MealieShoppingListRecipeRef(MealieBase):
     recipe_id: str
 
-    id: Optional[str]
-    shopping_list_id: Optional[str]
-    recipe_quantity: Optional[float] = 0
-    recipe: Optional[MealieRecipe]
+    id: str | None
+    shopping_list_id: str | None
+    recipe_quantity: float | None = 0
+    recipe: MealieRecipe | None
 
 
 class MealieShoppingListItemRecipeRefCreate(MealieBase):
@@ -108,7 +108,7 @@ class MealieShoppingListItemRecipeRefCreate(MealieBase):
     recipe_quantity: float = 0
     """the quantity of this item in a single recipe (scale == 1)"""
 
-    recipe_scale: Optional[float] = 1
+    recipe_scale: float | None = 1
     """the number of times this recipe has been added"""
 
     @validator("recipe_quantity", pre=True)
@@ -126,11 +126,11 @@ class MealieShoppingListItemRecipeRefOut(MealieShoppingListItemRecipeRefUpdate):
 
 
 class MealieShoppingListItemExtras(MealieBase):
-    original_value: Optional[str]
-    todoist_task_id: Optional[str]
+    original_value: str | None
+    todoist_task_id: str | None
 
-    alexa_item_id: Optional[str]
-    alexa_item_version: Optional[str]
+    alexa_item_id: str | None
+    alexa_item_version: str | None
     """string representation of the Alexa list item's version number (int)"""
 
 
@@ -141,14 +141,14 @@ class MealieShoppingListItemBase(MealieBase):
 
     is_food: bool = False
 
-    note: Optional[str] = ""
+    note: str | None = ""
     quantity: float = 1
 
-    food_id: Optional[str] = None
-    label_id: Optional[str] = None
-    unit_id: Optional[str] = None
+    food_id: str | None = None
+    label_id: str | None = None
+    unit_id: str | None = None
 
-    extras: Optional[MealieShoppingListItemExtras] = None
+    extras: MealieShoppingListItemExtras | None = None
 
 
 class MealieShoppingListItemCreate(MealieShoppingListItemBase):
@@ -156,7 +156,7 @@ class MealieShoppingListItemCreate(MealieShoppingListItemBase):
 
 
 class MealieShoppingListItemUpdate(MealieShoppingListItemBase):
-    recipe_references: list[Union[MealieShoppingListItemRecipeRefCreate, MealieShoppingListItemRecipeRefUpdate]] = []
+    recipe_references: list[MealieShoppingListItemRecipeRefCreate | MealieShoppingListItemRecipeRefUpdate] = []
 
 
 class MealieShoppingListItemUpdateBulk(MealieShoppingListItemUpdate):
@@ -174,9 +174,9 @@ class MealieShoppingListItemOut(MealieShoppingListItemBase):
     Automatically calculated after the object is created
     """
 
-    food: Optional[Food]
-    label: Optional[Label]
-    unit: Optional[Unit]
+    food: Food | None
+    label: Label | None
+    unit: Unit | None
     recipe_references: list[MealieShoppingListItemRecipeRefOut] = []
 
 
@@ -191,12 +191,12 @@ class MealieShoppingListItemsCollectionOut(MealieBase):
 class MealieShoppingListOut(MealieBase):
     id: str
     name: str
-    extras: Optional[dict]
+    extras: dict | None
     list_items: list[MealieShoppingListItemOut] = []
     recipe_references: list[MealieShoppingListRecipeRef] = []
 
-    created_at: Optional[datetime]
-    update_at: Optional[datetime]
+    created_at: datetime | None
+    update_at: datetime | None
 
 
 class MealieEventNotifierOptions(MealieBase):
@@ -216,7 +216,7 @@ class MealieEventNotifierOut(MealieBase):
 
 
 class MealieEventNotifierUpdate(MealieEventNotifierOut):
-    apprise_url: Optional[str] = None
+    apprise_url: str | None = None
     options: MealieEventNotifierOptions
 
 
@@ -255,7 +255,7 @@ class MealieEventNotification(BaseModel):
     document_data: str
     """JSON-encoded string"""
 
-    def get_shopping_list_id_from_document_data(self) -> Optional[str]:
+    def get_shopping_list_id_from_document_data(self) -> str | None:
         try:
             # sometimes the JSON string gets URL encoded with +, so we filter those out
             parsed_data: dict[str, Any] = json.loads(self.document_data.replace("+", " "))

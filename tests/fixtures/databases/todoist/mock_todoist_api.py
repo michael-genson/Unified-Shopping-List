@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from requests import HTTPError
 from todoist_api_python.models import Project, Section, Task
@@ -15,8 +14,8 @@ class MockTodoistAPI:
     def __init__(self, token: str, *args, **kwargs) -> None:
         self.token = token
 
-    def get_project(self, project_id: str) -> Optional[Project]:
-        project: Optional[Project] = _mock_todoist_server._get_one(MockTodoistDBKey.projects, project_id)
+    def get_project(self, project_id: str) -> Project | None:
+        project: Project | None = _mock_todoist_server._get_one(MockTodoistDBKey.projects, project_id)
         return project
 
     def get_projects(self, **kwargs) -> list[Project]:
@@ -26,8 +25,8 @@ class MockTodoistAPI:
 
         return all_projects
 
-    def get_section(self, section_id: str) -> Optional[Section]:
-        section: Optional[Section] = _mock_todoist_server._get_one(MockTodoistDBKey.sections, section_id)
+    def get_section(self, section_id: str) -> Section | None:
+        section: Section | None = _mock_todoist_server._get_one(MockTodoistDBKey.sections, section_id)
         return section
 
     def get_sections(self, **kwargs) -> list[Section]:

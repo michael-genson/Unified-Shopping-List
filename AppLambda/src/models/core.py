@@ -1,7 +1,6 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -36,14 +35,14 @@ class ListSyncMap(APIBase):
     """A collection of shopping lists to keep in sync"""
 
     mealie_shopping_list_id: str
-    alexa_list_id: Optional[str]
-    todoist_project_id: Optional[str]
+    alexa_list_id: str | None
+    todoist_project_id: str | None
 
 
 class UserConfiguration(APIBase):
-    alexa: Optional[UserAlexaConfiguration]
-    mealie: Optional[UserMealieConfiguration]
-    todoist: Optional[UserTodoistConfiguration]
+    alexa: UserAlexaConfiguration | None
+    mealie: UserMealieConfiguration | None
+    todoist: UserTodoistConfiguration | None
 
 
 class UserRateLimit(APIBase):
@@ -56,21 +55,21 @@ class User(APIBase):
     email: str
     disabled: bool
 
-    user_expires: Optional[int] = None
-    last_registration_token: Optional[str] = None
-    last_password_reset_token: Optional[str] = None
-    incorrect_login_attempts: Optional[int] = 0
+    user_expires: int | None = None
+    last_registration_token: str | None = None
+    last_password_reset_token: str | None = None
+    incorrect_login_attempts: int | None = 0
 
-    is_rate_limit_exempt: Optional[bool] = False  # TODO: migrate and make this required
-    rate_limit_map: Optional[dict[str, UserRateLimit]] = {}  # TODO: migrate and make this required
+    is_rate_limit_exempt: bool | None = False  # TODO: migrate and make this required
+    rate_limit_map: dict[str, UserRateLimit] | None = {}  # TODO: migrate and make this required
     """Map of `RateLimitCategory` to `UserRateLimit`"""
 
     configuration: UserConfiguration = UserConfiguration()
     list_sync_maps: dict[str, ListSyncMap] = {}
     """Map of `mealie_shopping_list_id` to `ListSyncMap`"""
 
-    alexa_user_id: Optional[str] = None
-    todoist_user_id: Optional[str] = None
+    alexa_user_id: str | None = None
+    todoist_user_id: str | None = None
 
     use_developer_routes: bool = False
 

@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 from jose import JWTError, jwt
 
@@ -13,7 +12,7 @@ class InvalidTokenError(Exception):
 
 
 class AuthTokenService:
-    def create_token(self, username: str, expires: Optional[timedelta] = None) -> Token:
+    def create_token(self, username: str, expires: timedelta | None = None) -> Token:
         """Creates a new access token for a user"""
 
         if not expires:
@@ -34,7 +33,7 @@ class AuthTokenService:
 
         try:
             payload = jwt.decode(access_token, secrets.db_secret_key, algorithms=[secrets.db_algorithm])
-            username: Optional[str] = payload.get("sub")
+            username: str | None = payload.get("sub")
 
         except JWTError:
             raise InvalidTokenError()
@@ -44,7 +43,7 @@ class AuthTokenService:
 
         return username
 
-    def refresh_token(self, access_token: str, expires: Optional[timedelta] = None) -> Token:
+    def refresh_token(self, access_token: str, expires: timedelta | None = None) -> Token:
         """Takes a valid access token and returns a new one"""
 
         username = self.get_username_from_token(access_token)

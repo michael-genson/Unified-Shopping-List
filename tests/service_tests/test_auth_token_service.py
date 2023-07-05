@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 from freezegun import freeze_time
 from jose import jwt
@@ -29,12 +28,12 @@ def test_auth_token_service_refresh_token(token_service: AuthTokenService):
     token = token_service.create_token(username)
 
     decoded_token = jwt.decode(token.access_token, secrets.db_secret_key, secrets.db_algorithm)
-    initial_expiration: Optional[datetime] = decoded_token.get("exp")
+    initial_expiration: datetime | None = decoded_token.get("exp")
     assert initial_expiration
 
     with freeze_time(datetime.now() + timedelta(seconds=10)):
         new_token = token_service.refresh_token(token.access_token)
         decoded_token = jwt.decode(new_token.access_token, secrets.db_secret_key, secrets.db_algorithm)
-        new_expiration: Optional[datetime] = decoded_token.get("exp")
+        new_expiration: datetime | None = decoded_token.get("exp")
         assert new_expiration
         assert new_expiration > initial_expiration

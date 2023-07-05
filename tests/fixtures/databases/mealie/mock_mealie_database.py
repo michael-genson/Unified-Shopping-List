@@ -3,7 +3,7 @@ import math
 import re
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import Any, Callable, TypeVar, cast
 from uuid import uuid4
 
 from requests import HTTPError, Response
@@ -53,7 +53,7 @@ class MockMealieServer:
         return url.split("/")[-1]
 
     @classmethod
-    def _assert(cls, data: Optional[T]) -> T:
+    def _assert(cls, data: T | None) -> T:
         if not data:
             response = Response()
             response.status_code = 404
@@ -61,7 +61,7 @@ class MockMealieServer:
 
         return data
 
-    def _validate_headers(self, headers: Optional[dict]) -> dict:
+    def _validate_headers(self, headers: dict | None) -> dict:
         if headers is None:
             headers = {}
 
@@ -192,10 +192,10 @@ class MockMealieServer:
         update_item_data = update_item.dict()
 
         shopping_list = self._get_one(MockMealieDBKey.shopping_lists, update_item.shopping_list_id)
-        list_items_data = cast(Optional[list[dict[str, Any]]], shopping_list.get("list_items"))
+        list_items_data = cast(list[dict[str, Any]] | None, shopping_list.get("list_items"))
         assert list_items_data
 
-        item_data: Optional[dict[str, Any]] = None
+        item_data: dict[str, Any] | None = None
         for i, li in enumerate(list_items_data):
             if id != li.get("id"):
                 continue
@@ -237,7 +237,7 @@ class MockMealieServer:
 
     def _delete_shopping_list_item(self, item_id: str) -> dict[str, Any]:
         shopping_lists = self.get_all_records(MockMealieDBKey.shopping_lists)
-        deleted_item_data: Optional[dict[str, Any]] = None
+        deleted_item_data: dict[str, Any] | None = None
         for shopping_list in shopping_lists.values():
             list_items_data = cast(list[dict[str, Any]], shopping_list["list_items"])
             for i, li in enumerate(list_items_data):
@@ -272,7 +272,7 @@ class MockMealieServer:
 
         return self.db[record_type]
 
-    def get_record_by_id(self, record_type: MockMealieDBKey, id: str) -> Optional[dict[str, Any]]:
+    def get_record_by_id(self, record_type: MockMealieDBKey, id: str) -> dict[str, Any] | None:
         """
         Fetch a single record by id and record type, if it exists
 
@@ -285,9 +285,9 @@ class MockMealieServer:
         self,
         method: str,
         url: str,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
-        json: Optional[Union[list, dict]] = None,
+        headers: dict | None = None,
+        params: dict | None = None,
+        json: list | dict | None = None,
         *args,
         **kwargs,
     ) -> Response:
@@ -297,7 +297,7 @@ class MockMealieServer:
         params = params or {}
         payload = json or {}
 
-        def is_route(route: Union[str, Callable]) -> bool:
+        def is_route(route: str | Callable) -> bool:
             endpoint = url[len(self.base_url) :]  # all random URLs are the same length
             if isinstance(route, str):
                 return route == endpoint
@@ -307,7 +307,7 @@ class MockMealieServer:
 
         try:
             method = method.upper()
-            data: Optional[Union[str, list, dict]] = None
+            data: str | list | dict | None = None
             if is_route(Routes.FOODS):
                 if method == "GET":
                     data = self._get_all(MockMealieDBKey.foods, params)
@@ -339,7 +339,7 @@ class MockMealieServer:
             elif is_route(Routes.GROUPS_SHOPPING_ITEMS):
                 if method == "GET":
                     assert "queryFilter" in params
-                    shopping_list_id: Optional[str] = None
+                    shopping_list_id: str | None = None
                     include_checked = True
 
                     filters = cast(list[str], params["queryFilter"].split())

@@ -1,6 +1,6 @@
 import time
 from collections import deque
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable
 
 import requests
 from requests import HTTPError, Response
@@ -91,9 +91,9 @@ class MealieBaseClient:
         self,
         method: str,
         endpoint: str,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
-        payload: Optional[Union[list, dict]] = None,
+        headers: dict | None = None,
+        params: dict | None = None,
+        payload: list | dict | None = None,
     ) -> Response:
         if not endpoint or endpoint == "/":
             raise ValueError("endpoint must not be empty")
@@ -129,10 +129,10 @@ class MealieBaseClient:
                 time.sleep(self.rate_limit_throttle)
                 continue
 
-    def get(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Response:
+    def get(self, endpoint: str, headers: dict | None = None, params: dict | None = None) -> Response:
         return self._request("GET", endpoint, headers, params)
 
-    def get_all(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Iterable[dict]:
+    def get_all(self, endpoint: str, headers: dict | None = None, params: dict | None = None) -> Iterable[dict]:
         """Paginate through all records, making additional API calls as needed"""
 
         if params is None:
@@ -159,42 +159,42 @@ class MealieBaseClient:
 
             yield records.pop()
 
-    def head(self, endpoint: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> Response:
+    def head(self, endpoint: str, headers: dict | None = None, params: dict | None = None) -> Response:
         return self._request("HEAD", endpoint, headers, params)
 
     def patch(
         self,
         endpoint: str,
-        payload: Optional[Union[list, dict]] = None,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
+        payload: list | dict | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
     ) -> Response:
         return self._request("PATCH", endpoint, headers, params, payload)
 
     def post(
         self,
         endpoint: str,
-        payload: Optional[Union[list, dict]] = None,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
+        payload: list | dict | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
     ) -> Response:
         return self._request("POST", endpoint, headers, params, payload)
 
     def put(
         self,
         endpoint: str,
-        payload: Optional[Union[list, dict]] = None,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
+        payload: list | dict | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
     ) -> Response:
         return self._request("PUT", endpoint, headers, params, payload)
 
     def delete(
         self,
         endpoint: str,
-        payload: Optional[Union[list, dict]] = None,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
+        payload: list | dict | None = None,
+        headers: dict | None = None,
+        params: dict | None = None,
     ) -> Response:
         return self._request("DELETE", endpoint, headers, params, payload)
 
@@ -216,7 +216,7 @@ class MealieClient:
         except HTTPError:
             return False
 
-    def create_auth_token(self, name: str, integration_id: Optional[str] = None) -> AuthToken:
+    def create_auth_token(self, name: str, integration_id: str | None = None) -> AuthToken:
         response = self.client.post(Routes.USERS_API_TOKENS, payload={"name": name, "integrationId": integration_id})
         return AuthToken.parse_obj(response.json())
 
@@ -254,7 +254,7 @@ class MealieClient:
         return MealieShoppingListOut.parse_response(response)
 
     def get_all_shopping_list_items(
-        self, shopping_list_id: str, include_checked: bool = False, params: Optional[dict[str, Any]] = None
+        self, shopping_list_id: str, include_checked: bool = False, params: dict[str, Any] | None = None
     ) -> Iterable[MealieShoppingListItemOut]:
         query_filter = f"shopping_list_id={shopping_list_id}"
         if not include_checked:

@@ -1,6 +1,6 @@
 import time
 from json import JSONDecodeError
-from typing import Any, Optional, cast
+from typing import Any, cast
 from uuid import uuid4
 
 import requests
@@ -23,9 +23,9 @@ class ListManagerClient:
     """Manages low-level Alexa Skills API interaction"""
 
     def __init__(self, max_attempts: int = 3, rate_limit_throttle: int = 5) -> None:
-        self.access_token: Optional[str] = None
+        self.access_token: str | None = None
         self.expiration: float = -1
-        self._event_callback_db: Optional[aws.DynamoDB] = None
+        self._event_callback_db: aws.DynamoDB | None = None
 
         self.max_attempts = max_attempts
         self.rate_limit_throttle = rate_limit_throttle
@@ -115,7 +115,7 @@ class ListManagerClient:
             time.sleep(poll_frequency)
             continue
 
-    def call_api(self, user_id: str, message: MessageIn) -> Optional[list[dict[str, Any]]]:
+    def call_api(self, user_id: str, message: MessageIn) -> list[dict[str, Any]] | None:
         """Call the Alexa API and optionally wait for a response"""
 
         if not message.event_id:

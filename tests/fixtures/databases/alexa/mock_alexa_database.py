@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 from uuid import uuid4
 
 from fastapi.encoders import jsonable_encoder
@@ -30,10 +30,10 @@ class ServiceException(Exception):
 class MockAlexaServer:
     def __init__(self) -> None:
         self.db: dict[str, dict[str, Any]] = {}
-        self._ddb_client: Optional[aws.DynamoDB] = None
+        self._ddb_client: aws.DynamoDB | None = None
 
     @classmethod
-    def _assert(cls, data: Optional[T]) -> T:
+    def _assert(cls, data: T | None) -> T:
         if not data:
             raise ServiceException("data cannot be empty")
 
@@ -46,7 +46,7 @@ class MockAlexaServer:
 
         return self._ddb_client
 
-    def _get_list(self, request_data: Optional[dict[str, Any]]) -> dict[str, Any]:
+    def _get_list(self, request_data: dict[str, Any] | None) -> dict[str, Any]:
         request_data = self._assert(request_data)
         list_id: str = self._assert(request_data.get("list_id"))
         list_state: str = self._assert(request_data.get("state"))
@@ -66,7 +66,7 @@ class MockAlexaServer:
 
         return data
 
-    def _get_list_item(self, request_data: Optional[dict[str, Any]]) -> dict[str, Any]:
+    def _get_list_item(self, request_data: dict[str, Any] | None) -> dict[str, Any]:
         request_data = self._assert(request_data)
         list_id: str = self._assert(request_data.get("list_id"))
         item_id: str = self._assert(request_data.get("item_id"))
@@ -75,7 +75,7 @@ class MockAlexaServer:
         items_data = list_data.get("items", [])
         assert isinstance(items_data, list)
 
-        item_data: Optional[dict[str, Any]] = None
+        item_data: dict[str, Any] | None = None
         for item in items_data:
             if not isinstance(item, dict):
                 continue
@@ -86,7 +86,7 @@ class MockAlexaServer:
 
         return self._assert(item_data)
 
-    def _create_list_item(self, request_data: Optional[dict[str, Any]]) -> dict[str, Any]:
+    def _create_list_item(self, request_data: dict[str, Any] | None) -> dict[str, Any]:
         create_list_item = AlexaListItemCreate.parse_obj(self._assert(request_data))
         new_list_item = create_list_item.cast(
             AlexaListItemOut, id=str(uuid4()), version=1, created_time=datetime.now(), updated_time=datetime.now()
@@ -96,10 +96,10 @@ class MockAlexaServer:
         self._assert(self.db.get(create_list_item.list_id)).get("items", []).append(new_list_item_data)
         return new_list_item_data
 
-    def _update_list_item(self, request_data: Optional[dict[str, Any]]) -> dict[str, Any]:
+    def _update_list_item(self, request_data: dict[str, Any] | None) -> dict[str, Any]:
         update_list_item = AlexaListItemUpdate.parse_obj(self._assert(request_data))
 
-        existing_item_data: Optional[dict[str, Any]] = None
+        existing_item_data: dict[str, Any] | None = None
         existing_item_index: int = -1
         for i, item in enumerate(self.db.get(update_list_item.list_id, {}).get("items", [])):
             if item.get("id") == update_list_item.item_id:
@@ -129,7 +129,7 @@ class MockAlexaServer:
 
         return list(self.db.values())
 
-    def get_list_by_id(self, list_id: str) -> Optional[dict[str, Any]]:
+    def get_list_by_id(self, list_id: str) -> dict[str, Any] | None:
         """
         Fetch a single list by id, if it exists
 
@@ -144,7 +144,7 @@ class MockAlexaServer:
         try:
             responses: list[dict[str, Any]] = []
             for request in message.requests:
-                response: Optional[dict[str, Any]] = None
+                response: dict[str, Any] | None = None
 
                 if request.operation == Operation.read_all.value:
                     if request.object_type == ObjectType.list.value:

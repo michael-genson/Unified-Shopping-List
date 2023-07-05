@@ -1,6 +1,5 @@
 import contextlib
 import logging
-from typing import Optional
 
 from pydantic import ValidationError
 from pytz import UTC
@@ -63,7 +62,7 @@ class AlexaSyncHandler(BaseSyncHandler):
             if list_sync_map.alexa_list_id == list_id:
                 return list_sync_map
 
-    def get_mealie_item_by_item_id(self, mealie_list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
+    def get_mealie_item_by_item_id(self, mealie_list_id: str, item_id: str) -> MealieShoppingListItemOut | None:
         return self.mealie_service.get_item_by_extra(mealie_list_id, self.extras_item_id_key, item_id)
 
     def get_mealie_item_version_number(self, mealie_item: MealieShoppingListItemOut) -> int:

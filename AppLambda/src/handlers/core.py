@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Type
 
 from pydantic import ValidationError
 
@@ -33,7 +33,7 @@ class SQSSyncMessageHandler:
             handler = registered_handler(self.user, self.mealie)
             handler.receive_changes_from_mealie(sync_event, list_sync_map)
 
-    def handle_message(self, message: SQSMessage) -> Optional[Source]:
+    def handle_message(self, message: SQSMessage) -> Source | None:
         """
         Parse SQS message and handle its sync event
 
@@ -46,7 +46,7 @@ class SQSSyncMessageHandler:
         except ValidationError:
             raise Exception("Unable to process SQS sync event message. Are you sure this is a sync event?")
 
-        list_sync_map: Optional[ListSyncMap] = None
+        list_sync_map: ListSyncMap | None = None
 
         # sync to all external systems
         if base_sync_event.source == Source.mealie.value:
@@ -61,7 +61,7 @@ class SQSSyncMessageHandler:
             return base_sync_event.source  # mealie always skips additional events if a sync is successful
 
         # sync the event's source system to Mealie
-        response: Optional[Source] = None
+        response: Source | None = None
         for registered_handler in self.registered_handlers:
             if not registered_handler.can_handle_message(message):
                 continue

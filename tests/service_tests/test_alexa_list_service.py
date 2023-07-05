@@ -1,5 +1,4 @@
 import random
-from typing import Optional
 
 import pytest
 
@@ -79,7 +78,7 @@ def test_alexa_list_service_get_list_item_cache(
     fetched_item = alexa_list_service.get_list_item(alexa_list.list_id, alexa_item.id)
     cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
-    cached_item: Optional[AlexaListItemOut] = None
+    cached_item: AlexaListItemOut | None = None
     for _cached_item in cached_list.items:
         if _cached_item.id == alexa_item.id:
             cached_item = _cached_item
@@ -133,7 +132,7 @@ def test_alexa_list_service_create_list_items_cache(
     cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
     for new_item in new_items:
-        cached_item: Optional[AlexaListItemOut] = None
+        cached_item: AlexaListItemOut | None = None
         for _cached_item in cached_list.items:
             if _cached_item.id == new_item.id:
                 cached_item = _cached_item
@@ -196,7 +195,7 @@ def test_alexa_list_service_update_list_items_cache(
     cached_list = alexa_list_service._list_cache[alexa_list.list_id]
     assert cached_list.items
     for updated_item in updated_items:
-        cached_item: Optional[AlexaListItemOut] = None
+        cached_item: AlexaListItemOut | None = None
         for _cached_item in cached_list.items:
             if _cached_item.id == updated_item.id:
                 cached_item = _cached_item

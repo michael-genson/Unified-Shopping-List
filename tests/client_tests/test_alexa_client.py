@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional
+from typing import Any
 
 from AppLambda.src.clients.alexa import ListManagerClient
 from AppLambda.src.models.alexa import AlexaListOut, AlexaReadList, Message, MessageRequest, ObjectType, Operation
@@ -9,7 +9,7 @@ from tests.utils.generators import random_string
 def create_message(
     operation: Operation,
     object_type: ObjectType,
-    object_data: Optional[dict[str, Any]] = None,
+    object_data: dict[str, Any] | None = None,
     send_callback=True,
 ) -> Message:
     request = MessageRequest(operation=operation, object_type=object_type, object_data=object_data)
