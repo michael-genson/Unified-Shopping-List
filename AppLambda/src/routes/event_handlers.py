@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import logging
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
@@ -59,7 +58,7 @@ async def sqs_sync_event_handler(event: SQSEvent) -> None:
 
 @router.post("/mealie")
 async def mealie_event_notification_handler(
-    notification: MealieEventNotification, username: str, security_hash: Optional[str] = None
+    notification: MealieEventNotification, username: str, security_hash: str | None = None
 ) -> None:
     if notification.event_type == MealieEventType.invalid:
         return

@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import boto3
 from dynamodb_json import json_util as ddb_json  # type: ignore
@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 
 class AWSClientResourceFactory:
     def __init__(self) -> None:
-        self._session: Optional[boto3.Session] = None
-        self._ddb: Optional["DynamoDBClient"] = None
-        self._secrets: Optional["SecretsManagerClient"] = None
-        self._sqs: Optional["SQSServiceResource"] = None
+        self._session: boto3.Session | None = None
+        self._ddb: DynamoDBClient | None = None
+        self._secrets: SecretsManagerClient | None = None
+        self._sqs: SQSServiceResource | None = None
 
     @property
     def session(self):
@@ -71,7 +71,7 @@ class DynamoDB:
         self.tablename = tablename
         self.pk = primary_key
 
-    def get(self, primary_key_value: str) -> Optional[dict[str, Any]]:
+    def get(self, primary_key_value: str) -> dict[str, Any] | None:
         """Gets a single item by primary key"""
 
         data = _aws.ddb.get_item(TableName=self.tablename, Key={self.pk: {"S": primary_key_value}})
@@ -143,7 +143,7 @@ class DynamoDB:
             ReturnValues="UPDATED_NEW",
         )
 
-        data: Union[dict, int] = ddb_json.loads(response_data["Attributes"])
+        data: dict | int = ddb_json.loads(response_data["Attributes"])
         data = cast(dict, data)
 
         # we need to unpack the data to get the final nested key, so we recursively drill-down into the data

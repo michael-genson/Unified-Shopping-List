@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from pydantic import ValidationError
 from todoist_api_python.models import Task
@@ -56,10 +55,10 @@ class TodoistSyncHandler(BaseSyncHandler):
             if list_sync_map.todoist_project_id == project_id:
                 return list_sync_map
 
-    def get_mealie_item_by_task_id(self, mealie_list_id: str, task_id: str) -> Optional[MealieShoppingListItemOut]:
+    def get_mealie_item_by_task_id(self, mealie_list_id: str, task_id: str) -> MealieShoppingListItemOut | None:
         return self.mealie_service.get_item_by_extra(mealie_list_id, self.extras_key, task_id)
 
-    def get_mealie_label_by_task(self, task: Task) -> Optional[Label]:
+    def get_mealie_label_by_task(self, task: Task) -> Label | None:
         if not task.section_id:
             return None
 

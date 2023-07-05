@@ -1,5 +1,4 @@
 import random
-from typing import Optional
 
 import pytest
 from pytest import MonkeyPatch
@@ -15,7 +14,7 @@ from .mock_todoist_database import MockTodoistDBKey, MockTodoistServer
 
 class MockTodoistData:
     def __init__(
-        self, project: Project, sections: Optional[list[Section]] = None, tasks: Optional[list[Task]] = None
+        self, project: Project, sections: list[Section] | None = None, tasks: list[Task] | None = None
     ) -> None:
         self.project = project
         self.sections = sections or []

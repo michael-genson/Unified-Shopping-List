@@ -1,5 +1,5 @@
 import random
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import pytest
 
@@ -136,7 +136,7 @@ def test_mealie_list_service_add_food_to_item(
 
     food = random.choice(mealie_foods_with_labels)
     assert food.label
-    label: Optional[Label] = None
+    label: Label | None = None
     while label is None or label == food.label:
         label = random.choice(mealie_labels)
 
@@ -225,7 +225,7 @@ def test_mealie_list_service_get_item(
     mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
 ):
     # get a list item that isn't checked
-    list_item: Optional[MealieShoppingListItemOut] = None
+    list_item: MealieShoppingListItemOut | None = None
     for shopping_list in mealie_shopping_lists:
         for li in shopping_list.list_items:
             if not li.checked:
@@ -254,7 +254,7 @@ def test_mealie_list_service_get_item_cache(
     assert fetched_item
 
     cached_items = mealie_list_service._list_items_cache[mealie_list.id]
-    cached_item: Optional[MealieShoppingListItemOut] = None
+    cached_item: MealieShoppingListItemOut | None = None
     for _item in cached_items:
         if _item.id == mealie_item.id:
             cached_item = _item
@@ -307,7 +307,7 @@ def test_mealie_list_service_get_item_by_extra_cache(
     assert fetched_item
 
     cached_items = mealie_list_service._list_items_cache[updated_list_item.shopping_list_id]
-    cached_item: Optional[MealieShoppingListItemOut] = None
+    cached_item: MealieShoppingListItemOut | None = None
     for _item in cached_items:
         if _item.id == list_item.id:
             cached_item = _item

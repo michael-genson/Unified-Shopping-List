@@ -1,5 +1,4 @@
 from email.message import EmailMessage
-from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
 
@@ -17,9 +16,9 @@ class GenericEmailTemplate:
         self,
         subject: str,
         sender: str,
-        recipients: Union[str, list[str]],
-        cc: Optional[Union[str, list[str]]] = None,
-        bcc: Optional[Union[str, list[str]]] = None,
+        recipients: str | list[str],
+        cc: str | list[str] | None = None,
+        bcc: str | list[str] | None = None,
         **kwargs,
     ) -> EmailMessage:
         """Constructs a message to be sent via SMTP. Provide merge fields as kwargs"""

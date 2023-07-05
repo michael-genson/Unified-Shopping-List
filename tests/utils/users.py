@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 
 from fastapi.testclient import TestClient
 
@@ -13,7 +13,7 @@ from AppLambda.src.services.user import UserService
 from .generators import random_email, random_password
 
 
-def get_auth_headers(user: User, expires: Optional[timedelta] = None) -> dict[str, str]:
+def get_auth_headers(user: User, expires: timedelta | None = None) -> dict[str, str]:
     token_service = AuthTokenService()
     if not expires:
         expires = timedelta(hours=1)

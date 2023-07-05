@@ -1,7 +1,6 @@
 import random
 import time
 from datetime import datetime
-from typing import Optional
 
 import pytest
 from fastapi import HTTPException
@@ -46,7 +45,7 @@ def test_rate_limit_service_check_if_expired(rate_limit_service: RateLimitServic
 
 
 def test_rate_limit_service_verify_rate_limit(
-    rate_limit_service: RateLimitService, user_service: UserService, user: Optional[User]
+    rate_limit_service: RateLimitService, user_service: UserService, user: User | None
 ):
     assert user
     category = random.choice(ALL_RATE_LIMIT_CATEGORIES)

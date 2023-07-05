@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import cache, cached_property
-from typing import Iterable, Optional, TypeVar, cast
+from typing import Iterable, TypeVar, cast
 
 from fuzzywuzzy import process
 
@@ -68,7 +68,7 @@ class MealieListService:
 
         return {label.name.lower(): label for label in self._client.get_all_labels()}
 
-    def get_recipe_url(self, recipe_id: str) -> Optional[str]:
+    def get_recipe_url(self, recipe_id: str) -> str | None:
         """Constructs a recipe's frontend URL using its id"""
 
         recipe = self.recipe_store.get(recipe_id)
@@ -78,7 +78,7 @@ class MealieListService:
         return f"{self.config.base_url}/recipe/{recipe.slug}"
 
     @cache
-    def get_food(self, food: str) -> Optional[Food]:
+    def get_food(self, food: str) -> Food | None:
         """Compares food to the Mealie food store and finds the closest match within threshold"""
 
         if not self.food_store:
@@ -99,12 +99,12 @@ class MealieListService:
         return self.food_store[nearest_match] if threshold >= self.config.confidence_threshold * 100 else None
 
     @cache
-    def get_label(self, label: str) -> Optional[Label]:
+    def get_label(self, label: str) -> Label | None:
         """Compares label to the Mealie label store and finds an exact match"""
 
         return self.label_store.get(label.lower())
 
-    def get_label_from_item(self, item: MealieShoppingListItemOut) -> Optional[Label]:
+    def get_label_from_item(self, item: MealieShoppingListItemOut) -> Label | None:
         if item.label:
             return item.label
 
@@ -177,7 +177,7 @@ class MealieListService:
 
         return deepcopy(self._get_all_list_items(list_id, include_all_checked))
 
-    def get_item(self, list_id: str, item_id: str) -> Optional[MealieShoppingListItemOut]:
+    def get_item(self, list_id: str, item_id: str) -> MealieShoppingListItemOut | None:
         """Fetches an item that can be safely mutated"""
 
         for item in self._get_all_list_items(list_id):
@@ -186,9 +186,7 @@ class MealieListService:
 
         return None
 
-    def get_item_by_extra(
-        self, list_id: str, extras_key: str, extras_value: str
-    ) -> Optional[MealieShoppingListItemOut]:
+    def get_item_by_extra(self, list_id: str, extras_key: str, extras_value: str) -> MealieShoppingListItemOut | None:
         """
         Fetches an item by unique extra that can be safely mutated
 

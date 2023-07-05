@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Type, TypeVar
 from uuid import uuid4
 
 from requests import HTTPError, Response
@@ -52,7 +52,7 @@ class MockTodoistServer:
             raise NotImplementedError(f"{key} does not have a mapped type")
 
     @classmethod
-    def _assert(cls, data: Optional[T]) -> T:
+    def _assert(cls, data: T | None) -> T:
         if not data:
             response = Response()
             response.status_code = 404
@@ -69,7 +69,7 @@ class MockTodoistServer:
     def _get_all(self, key: MockTodoistDBKey) -> list[Any]:
         return list(self.db[key].values())
 
-    def _get_one(self, key: MockTodoistDBKey, id: str) -> Optional[Any]:
+    def _get_one(self, key: MockTodoistDBKey, id: str) -> Any | None:
         return self.db[key].get(id)
 
     def _add_one(self, key: MockTodoistDBKey, data: dict[str, Any]) -> Any:

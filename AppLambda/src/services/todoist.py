@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import cache
-from typing import Optional, cast
+from typing import cast
 
 from requests import HTTPError
 from todoist_api_python.api import TodoistAPI
@@ -33,7 +33,7 @@ class TodoistTaskService:
         return self._client.get_section(section_id)
 
     @cache
-    def get_section(self, section: str, project_id: str) -> Optional[Section]:
+    def get_section(self, section: str, project_id: str) -> Section | None:
         """
         Gets an existing section by name, or creates a new one if one doesn't already exist
 
@@ -71,7 +71,7 @@ class TodoistTaskService:
 
         return section_id == default_section.id
 
-    def is_task_section(self, section: Optional[str], task: Task) -> bool:
+    def is_task_section(self, section: str | None, task: Task) -> bool:
         """Returns whether a given section name matches a task's current section"""
 
         # if we don't care about sections, consider them matching
@@ -115,7 +115,7 @@ class TodoistTaskService:
 
         return deepcopy(self._get_tasks(project_id))
 
-    def get_task(self, task_id: str, project_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str, project_id: str) -> Task | None:
         """Fetches a task that can be safely mutated"""
 
         for task in self._get_tasks(project_id):
@@ -128,9 +128,9 @@ class TodoistTaskService:
         self,
         content: str,
         project_id: str,
-        section: Optional[str] = None,
-        labels: Optional[list[str]] = None,
-        description: Optional[str] = None,
+        section: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
         **kwargs,
     ) -> Task:
         if self.config.map_labels_to_sections:
@@ -155,9 +155,9 @@ class TodoistTaskService:
         self,
         task_id: str,
         project_id: str,
-        section: Optional[str] = None,
-        labels: Optional[list[str]] = None,
-        description: Optional[str] = None,
+        section: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
         **kwargs,
     ) -> Task:
         """
@@ -166,8 +166,8 @@ class TodoistTaskService:
         May also delete the existing task and create a new one with a new task id
         """
 
-        task: Optional[Task] = None
-        task_index_to_update: Optional[int] = None
+        task: Task | None = None
+        task_index_to_update: int | None = None
         for i, local_task in enumerate(self._get_tasks(project_id)):
             if local_task.id == task_id:
                 task = local_task

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractproperty
-from typing import Callable, ClassVar, Optional
+from typing import Callable, ClassVar
 
 from pydantic import BaseModel
 
@@ -25,7 +25,7 @@ class UserConfigurationBase(ABC, APIBase):
 class SyncMapRender(BaseModel):
     list_id: str
     list_name: str
-    selected_mealie_list_id: Optional[str]
+    selected_mealie_list_id: str | None
 
 
 class SyncMapRenderList(BaseModel):
@@ -61,8 +61,8 @@ class UserMealieConfigurationCreate(APIBase):
 class UserMealieConfigurationUpdate(APIBase):
     as_form: ClassVar[Callable[..., UserMealieConfigurationCreate]]
 
-    use_foods: Optional[bool] = False
-    overwrite_original_item_names: Optional[bool] = False
+    use_foods: bool | None = False
+    overwrite_original_item_names: bool | None = False
     confidence_threshold: float = 0.8
 
 
@@ -91,10 +91,10 @@ class UserTodoistConfigurationCreate(APIBase):
 class UserTodoistConfigurationUpdate(APIBase):
     as_form: ClassVar[Callable[..., UserTodoistConfigurationUpdate]]
 
-    map_labels_to_sections: Optional[bool] = False
+    map_labels_to_sections: bool | None = False
     default_section_name: str = "Uncategorized"
 
-    add_recipes_to_task_description: Optional[bool] = False
+    add_recipes_to_task_description: bool | None = False
 
 
 class UserTodoistConfiguration(UserTodoistConfigurationCreate, UserTodoistConfigurationUpdate, UserConfigurationBase):

@@ -135,7 +135,7 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !Ref SyncEventDevSQSQueueName
 
-      Runtime: python3.9
+      Runtime: python3.10
       Events:
         Api:
           Type: HttpApi

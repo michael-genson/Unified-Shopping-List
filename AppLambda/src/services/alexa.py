@@ -1,7 +1,7 @@
 import logging
 from copy import deepcopy
 from functools import cache
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from pydantic import ValidationError
 
@@ -124,7 +124,7 @@ class AlexaListService:
 
     def get_list_item(
         self, list_id: str, item_id: str, source: str = settings.alexa_internal_source_id
-    ) -> Optional[AlexaListItemOut]:
+    ) -> AlexaListItemOut | None:
         """Fetch a single list item from Alexa that can be safely mutated"""
 
         alexa_list = self._get_list(list_id, source=source)

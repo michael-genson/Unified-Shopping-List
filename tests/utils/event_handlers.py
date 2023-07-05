@@ -3,7 +3,6 @@ import hashlib
 import hmac
 import json
 from datetime import datetime
-from typing import Optional
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
@@ -45,7 +44,7 @@ def build_todoist_webhook(event_type: TodoistEventType, todoist_user_id: str, pr
 
 
 def build_alexa_list_event(
-    operation: Operation, object_type: ObjectType, list_id: str, list_item_ids: Optional[list[str]] = None
+    operation: Operation, object_type: ObjectType, list_id: str, list_item_ids: list[str] | None = None
 ) -> AlexaListEvent:
     if not list_item_ids:
         if object_type is object_type.list_item:

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from dateutil.parser import parse as parse_date
 from pydantic import BaseModel, validator
@@ -48,9 +48,9 @@ class ObjectType(Enum):
 class MessageRequest(BaseModel):
     operation: Operation
     object_type: ObjectType
-    object_data: Optional[dict[str, Any]]
+    object_data: dict[str, Any] | None
 
-    metadata: Optional[dict[str, Any]]
+    metadata: dict[str, Any] | None
 
     class Config:
         use_enum_values = True  # TODO: disable this and replace .dict() with .json()
@@ -58,11 +58,11 @@ class MessageRequest(BaseModel):
 
 class MessageIn(APIBase):
     source: str
-    event_id: Optional[str]
+    event_id: str | None
     requests: list[MessageRequest]
 
-    metadata: Optional[dict[str, Any]]
-    send_callback_response: Optional[bool]
+    metadata: dict[str, Any] | None
+    send_callback_response: bool | None
 
 
 class Message(MessageIn):
@@ -78,8 +78,8 @@ class CallbackEvent(APIBase):
 
 class CallbackData(APIBase):
     success: bool
-    detail: Optional[str]
-    data: Optional[list[dict[str, Any]]]
+    detail: str | None
+    data: list[dict[str, Any]] | None
 
     def raise_for_status(self):
         """Raise an exception if the API call was unsuccessful"""
@@ -109,7 +109,7 @@ class AlexaListItemCreate(AlexaListItemCreateIn):
 
 class AlexaListItemUpdateIn(APIBase):
     value: str
-    status: Optional[ListItemState] = None
+    status: ListItemState | None = None
     """If null, the state will read from Alexa"""
 
 
@@ -164,7 +164,7 @@ class AlexaListOut(AlexaReadList):
     version: int
     """This is incremented every time the item is updated. When created, it is set to 1"""
 
-    items: Optional[list[AlexaListItemOut]]
+    items: list[AlexaListItemOut] | None
     """Only populated when a single list is fetched"""
 
 
@@ -181,7 +181,7 @@ class AlexaListEvent(APIBase):
     object_type: ObjectType
 
     list_id: str
-    list_item_ids: Optional[list[str]] = []
+    list_item_ids: list[str] | None = []
     """only populated in list item events"""
 
     class Config:

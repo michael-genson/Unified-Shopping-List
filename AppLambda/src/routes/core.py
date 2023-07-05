@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, Response
@@ -17,7 +17,7 @@ from ..services.user import UserAlreadyExistsError, UserIsDisabledError, UserIsN
 router = APIRouter(prefix="/app", tags=["Application"])
 
 
-async def get_user_session(request: Request) -> Optional[User]:
+async def get_user_session(request: Request) -> User | None:
     """Authenticate the user using their access token cookie"""
 
     access_token = request.cookies.get("access_token")
@@ -38,8 +38,8 @@ async def get_user_session(request: Request) -> Optional[User]:
 
 
 async def redirect_if_not_logged_in(
-    request: Request, redirect_path: Optional[str] = None, params: Optional[dict] = None
-) -> Union[Response, User]:
+    request: Request, redirect_path: str | None = None, params: dict | None = None
+) -> Response | User:
     """Return a user if logged in, or a redirect response"""
 
     if params is None:
@@ -237,7 +237,7 @@ async def initiate_password_reset_email(
 
 
 @router.get("/login/reset-password", response_class=HTMLResponse)
-async def reset_password(request: Request, reset_token: Optional[str] = None):
+async def reset_password(request: Request, reset_token: str | None = None):
     """Renders the password reset form, if the user is authenticated"""
 
     try:
@@ -260,7 +260,7 @@ async def reset_password(request: Request, reset_token: Optional[str] = None):
 
 
 @router.post("/login/reset-password", response_class=HTMLResponse)
-async def update_password(request: Request, reset_token: Optional[str] = None, password: str = Form()):
+async def update_password(request: Request, reset_token: str | None = None, password: str = Form()):
     """Updates the user's password"""
     if len(password) < 8:
         return templates.TemplateResponse("change_password.html", {"request": request})
@@ -387,7 +387,7 @@ async def initiate_registration_email(
 
 
 @router.get("/complete_registration", response_class=HTMLResponse)
-async def complete_registration(registration_token: Optional[str] = None):
+async def complete_registration(registration_token: str | None = None):
     """Enables a user and logs them in"""
 
     try:
