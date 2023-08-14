@@ -163,7 +163,7 @@ async def authorize_todoist(request: Request, auth: TodoistRedirect = Depends())
         r.raise_for_status()
         token_response = TodoistTokenResponse.parse_obj(r.json())
 
-        user.configuration.todoist = link_todoist_account(
+        user.configuration.todoist = await link_todoist_account(
             user, UserTodoistConfigurationCreate(access_token=token_response.access_token)
         )
 

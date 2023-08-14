@@ -63,7 +63,7 @@ async def create_mealie_configuration(
 
     user = logged_in_response
     try:
-        link_mealie_account(request, user, mealie_config_input)
+        await link_mealie_account(request, user, mealie_config_input)
         return create_mealie_config_template(
             request,
             user,
@@ -121,7 +121,7 @@ async def delete_mealie_configuration(request: Request):
     # TODO: handle exceptions
     user = logged_in_response
     try:
-        user = unlink_mealie_account(user)
+        user = await unlink_mealie_account(user)
         return create_mealie_config_template(
             request,
             user,

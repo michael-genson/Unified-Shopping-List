@@ -231,7 +231,7 @@ async def unlink_alexa_account(user: User = Depends(get_current_user)) -> User:
 
 @api_router.post("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
 @services.rate_limit.limit(RateLimitCategory.modify)
-def link_mealie_account(
+async def link_mealie_account(
     request: Request,
     user: User = Depends(get_current_user),
     config_input: UserMealieConfigurationCreate = Depends(),
@@ -284,7 +284,7 @@ def link_mealie_account(
 
 @api_router.put("/mealie", response_model=UserMealieConfiguration, tags=["Mealie"])
 @services.rate_limit.limit(RateLimitCategory.modify)
-def update_mealie_account_link(
+async def update_mealie_account_link(
     user: User = Depends(get_current_user),
     mealie_config: UserMealieConfigurationUpdate = Depends(),
 ) -> UserMealieConfiguration:
@@ -301,7 +301,7 @@ def update_mealie_account_link(
 
 @api_router.delete("/mealie", tags=["Mealie"])
 @services.rate_limit.limit(RateLimitCategory.modify)
-def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
+async def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
     mealie_config = user.configuration.mealie
     if not mealie_config:
         return user
@@ -328,7 +328,7 @@ def unlink_mealie_account(user: User = Depends(get_current_user)) -> User:
 # this is not included in the schema because it should only be called directly by Todoist
 @api_router.post("/todoist", response_model=UserTodoistConfiguration, tags=["Todoist"], include_in_schema=False)
 @services.rate_limit.limit(RateLimitCategory.modify)
-def link_todoist_account(
+async def link_todoist_account(
     user: User = Depends(get_current_user),
     config_input: UserTodoistConfigurationCreate = Depends(),
 ) -> UserTodoistConfiguration:
