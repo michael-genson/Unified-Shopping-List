@@ -110,7 +110,7 @@ class BaseSyncEvent(APIBase):
     client_secret = secrets.app_client_secret
 
     event_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = datetime.utcnow()
 
     class Config:
         use_enum_values = True  # TODO: disable this and replace .dict() with .json()

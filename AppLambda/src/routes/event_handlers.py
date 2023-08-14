@@ -94,7 +94,7 @@ async def mealie_event_notification_handler(
         event_id=notification.event_id,
         username=user.username,
         shopping_list_id=shopping_list_id,
-        timestamp=notification.timestamp,
+        # timestamp=notification.timestamp, default to now instead; TODO: figure out why this is unreliable
     )
 
     sync_event.send_to_queue(use_dev_route=user.use_developer_routes)
