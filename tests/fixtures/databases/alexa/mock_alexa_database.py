@@ -89,7 +89,7 @@ class MockAlexaServer:
     def _create_list_item(self, request_data: dict[str, Any] | None) -> dict[str, Any]:
         create_list_item = AlexaListItemCreate.parse_obj(self._assert(request_data))
         new_list_item = create_list_item.cast(
-            AlexaListItemOut, id=str(uuid4()), version=1, created_time=datetime.now(), updated_time=datetime.now()
+            AlexaListItemOut, id=str(uuid4()), version=1, created_time=datetime.utcnow(), updated_time=datetime.utcnow()
         )
 
         new_list_item_data = new_list_item.dict()

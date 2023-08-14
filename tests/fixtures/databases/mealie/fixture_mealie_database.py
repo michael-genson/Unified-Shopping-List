@@ -93,8 +93,8 @@ def mealie_shopping_lists_no_items() -> list[MealieShoppingListOut]:
                 id=list_id,
                 name=random_string(),
                 list_items=[],
-                created_at=datetime.now(),
-                update_at=datetime.now(),
+                created_at=datetime.utcnow(),
+                update_at=datetime.utcnow(),
             )
         )
 
@@ -127,8 +127,8 @@ def mealie_shopping_lists() -> list[MealieShoppingListOut]:
                 id=list_id,
                 name=random_string(),
                 list_items=items,
-                created_at=datetime.now(),
-                update_at=datetime.now(),
+                created_at=datetime.utcnow(),
+                update_at=datetime.utcnow(),
             )
         )
 
@@ -198,8 +198,8 @@ def mealie_shopping_lists_with_foods_labels_units_recipe(
                 name=random_string(),
                 list_items=items,
                 recipe_references=recipe_references,
-                created_at=datetime.now(),
-                update_at=datetime.now(),
+                created_at=datetime.utcnow(),
+                update_at=datetime.utcnow(),
             )
         )
 

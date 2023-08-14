@@ -51,8 +51,8 @@ def alexa_lists_with_items() -> list[AlexaListOut]:
                     value=random_string(),
                     status=ListItemState.active if random_bool() else ListItemState.completed,
                     version=random_int(1, 10),
-                    created_time=datetime.now(),
-                    updated_time=datetime.now(),
+                    created_time=datetime.utcnow(),
+                    updated_time=datetime.utcnow(),
                 )
                 for _ in range(random_int(10, 20))
             ],
