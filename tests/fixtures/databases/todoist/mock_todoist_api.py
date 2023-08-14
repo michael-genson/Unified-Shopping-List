@@ -72,7 +72,7 @@ class MockTodoistAPI:
             "comment_count": 0,
             "is_completed": False,
             "content": content,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.utcnow().isoformat(),
             "creator_id": self.token,
             "description": "",
             "labels": [],

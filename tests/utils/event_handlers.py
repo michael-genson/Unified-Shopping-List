@@ -27,7 +27,7 @@ def build_mealie_event_notification(
 ) -> MealieEventNotification:
     return MealieEventNotification(
         event_id=random_string(),
-        timestamp=datetime.now(),
+        timestamp=datetime.utcnow(),
         version="nightly",
         title=random_string(),
         message=random_string(),
@@ -54,7 +54,7 @@ def build_alexa_list_event(
 
     return AlexaListEvent(
         request_id=random_string(),
-        timestamp=datetime.now(),
+        timestamp=datetime.utcnow(),
         operation=operation,
         object_type=object_type,
         list_id=list_id,
