@@ -137,7 +137,7 @@ class MealieShoppingListItemExtras(MealieBase):
 class MealieShoppingListItemBase(MealieBase):
     shopping_list_id: str
     checked: bool = False
-    position: int = 0
+    position: int | None = None
 
     is_food: bool = False
 
@@ -156,6 +156,7 @@ class MealieShoppingListItemCreate(MealieShoppingListItemBase):
 
 
 class MealieShoppingListItemUpdate(MealieShoppingListItemBase):
+    position: int
     recipe_references: list[MealieShoppingListItemRecipeRefCreate | MealieShoppingListItemRecipeRefUpdate] = []
 
 
@@ -177,6 +178,7 @@ class MealieShoppingListItemOut(MealieShoppingListItemBase):
     food: Food | None
     label: Label | None
     unit: Unit | None
+    position: int
     recipe_references: list[MealieShoppingListItemRecipeRefOut] = []
 
 
