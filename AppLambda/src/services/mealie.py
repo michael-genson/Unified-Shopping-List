@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from functools import cache, cached_property
 from typing import Iterable, TypeVar, cast
@@ -241,6 +242,29 @@ class MealieListService:
     def create_items(self, items: list[MealieShoppingListItemCreate]) -> None:
         if not items:
             return
+
+        # fix null positions
+        max_position_by_list_id = defaultdict[str, int](lambda: -1)
+        for item in items:
+            if item.position is not None:
+                continue
+
+            if max_position_by_list_id[item.shopping_list_id] < 0:
+                # calculate max position from item data
+                try:
+                    new_max = max(
+                        existing_item.position
+                        for existing_item in self.get_all_list_items(item.shopping_list_id)
+                        if not existing_item.checked
+                    )
+                except (TypeError, ValueError):
+                    new_max = -1  # this will get incremented, making the position of the first item zero
+
+                max_position_by_list_id[item.shopping_list_id] = new_max
+
+            new_max = max_position_by_list_id[item.shopping_list_id] + 1
+            max_position_by_list_id[item.shopping_list_id] = new_max
+            item.position = new_max
 
         if self.config.use_foods:
             for item in items:
