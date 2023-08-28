@@ -432,3 +432,34 @@ def test_mealie_list_service_bulk_handle_items(
         else:
             assert item.id in original_item_map
             assert item == original_item_map[item.id]
+
+
+def test_mealie_list_service_item_positions(
+    mealie_list_service: MealieListService, mealie_shopping_lists: list[MealieShoppingListOut]
+):
+    shopping_list = random.choice(mealie_shopping_lists)
+    known_notes = [random_string(100) for _ in range((random_int(3, 10)))]
+    items_to_create = [
+        MealieShoppingListItemCreate(
+            shopping_list_id=shopping_list.id,
+            checked=False,
+            note=note,
+            quantity=random.uniform(1, 10),
+        )
+        for note in known_notes
+    ]
+
+    mealie_list_service.create_items(items_to_create)
+    fetched_list_items = mealie_list_service.get_all_list_items(shopping_list.id)
+
+    # verify all items have unique positions
+    seen_item_positions = set[int]()
+    for item in fetched_list_items:
+        assert item.position not in seen_item_positions
+        seen_item_positions.add(item.position)
+
+    # verify the new items are at the end of the list when sorted by position
+    fetched_list_items.sort(key=lambda x: x.position)
+    new_items = fetched_list_items[len(fetched_list_items) - len(known_notes) :]
+    for new_item, note in zip(new_items, known_notes, strict=True):
+        assert new_item.note == note
