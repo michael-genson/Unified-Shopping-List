@@ -50,6 +50,9 @@ async def sqs_sync_event_handler(event: SQSEvent) -> None:
                 processed_event_sources.add(str(processed_event_source))
 
         except Exception as e:
+            if settings.debug:
+                raise
+
             # TODO: handle this in a DLQ and add support for partial-retries
             logging.error("Unhandled exception when trying to process a message from SQS")
             logging.error(f"{type(e).__name__}: {e}")
