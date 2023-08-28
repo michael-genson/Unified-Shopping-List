@@ -4,6 +4,7 @@ import logging
 from pydantic import ValidationError
 from pytz import UTC
 
+from ..app import settings
 from ..models.alexa import (
     AlexaListItemCreateIn,
     AlexaListItemOut,
@@ -217,6 +218,9 @@ class AlexaSyncHandler(BaseSyncHandler):
                     mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
+                if settings.debug:
+                    raise
+
                 logging.error(f"Unhandled exception when trying to {list_event.operation} Alexa item in Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(alexa_item_id)
@@ -227,6 +231,9 @@ class AlexaSyncHandler(BaseSyncHandler):
             )
 
         except Exception as e:
+            if settings.debug:
+                raise
+
             logging.error("Unhandled exception when trying to perform bulk CRUD op from Alexa to Mealie")
             logging.error(f"{type(e).__name__}: {e}")
 
@@ -293,11 +300,17 @@ class AlexaSyncHandler(BaseSyncHandler):
                     mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
                 except Exception as e:
+                    if settings.debug:
+                        raise
+
                     logging.error("Unhandled exception when trying to write Alexa changes back to Mealie")
                     logging.error(f"{type(e).__name__}: {e}")
                     logging.error(mealie_item)
 
         except Exception as e:
+            if settings.debug:
+                raise
+
             logging.error("Unhandled exception when trying to bulk create/update Mealie items in Alexa")
             logging.error(f"{type(e).__name__}: {e}")
             logging.error(f"create: {alexa_items_to_create}")
@@ -307,5 +320,8 @@ class AlexaSyncHandler(BaseSyncHandler):
             self.mealie_service.update_items(mealie_items_to_update)
 
         except Exception as e:
+            if settings.debug:
+                raise
+
             logging.error("Unhandled exception when trying to bulk update Mealie items with new Alexa ids")
             logging.error(f"{type(e).__name__}: {e}")

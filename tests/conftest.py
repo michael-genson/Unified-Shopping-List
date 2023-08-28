@@ -27,4 +27,5 @@ def api_client():
 
 @pytest.fixture(autouse=True)
 def reset_config():
+    settings.debug = True
     settings.use_whitelist = False

@@ -40,6 +40,7 @@ class AppSettings(BaseSettings):
     ### App ###
     sync_event_sqs_queue_name: str = ""
     sync_event_dev_sqs_queue_name = ""
+    debug: bool = False
     use_whitelist: bool = True
 
     ### Database ###

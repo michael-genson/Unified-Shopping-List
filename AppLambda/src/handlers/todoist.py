@@ -154,6 +154,9 @@ class TodoistSyncHandler(BaseSyncHandler):
                     mealie_items_to_create.append(mealie_item_to_create)
 
             except Exception as e:
+                if settings.debug:
+                    raise
+
                 logging.error("Unhandled exception when trying to sync Todoist item to Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(task)
@@ -173,6 +176,9 @@ class TodoistSyncHandler(BaseSyncHandler):
                     mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
+                if settings.debug:
+                    raise
+
                 logging.error("Unhandled exception when trying to sync Todoist item to Mealie")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)
@@ -183,6 +189,9 @@ class TodoistSyncHandler(BaseSyncHandler):
             )
 
         except Exception:
+            if settings.debug:
+                raise
+
             logging.error("Unhandled exception when trying to perform bulk CRUD op from Todoist to Mealie")
 
     def receive_changes_from_mealie(self, sync_event: BaseSyncEvent, list_sync_map: ListSyncMap):
@@ -229,6 +238,9 @@ class TodoistSyncHandler(BaseSyncHandler):
                     self.todoist_service.close_task(task)
 
             except Exception as e:
+                if settings.debug:
+                    raise
+
                 logging.error("Unhandled exception when trying to receive Mealie change in Todoist")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(task)
@@ -259,6 +271,9 @@ class TodoistSyncHandler(BaseSyncHandler):
                 mealie_items_to_update.append(mealie_item.cast(MealieShoppingListItemUpdateBulk))
 
             except Exception as e:
+                if settings.debug:
+                    raise
+
                 logging.error("Unhandled exception when trying to receive Mealie change in Todoist")
                 logging.error(f"{type(e).__name__}: {e}")
                 logging.error(mealie_item)
@@ -267,4 +282,7 @@ class TodoistSyncHandler(BaseSyncHandler):
             self.mealie_service.update_items(mealie_items_to_update)
 
         except Exception:
+            if settings.debug:
+                raise
+
             logging.error("Unhandled exception when trying to bulk update Mealie items with new Todoist task ids")
