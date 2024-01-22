@@ -2,7 +2,7 @@
 The Unified Shopping List is an open source app to connect your shopping lists in real time. The goal of the USL is to make managing your grocery shopping *easy* and *configurable*.
 This project was born out of a frustration with existing integration tools, for both being a pain (or impossible) to set up, unreliable, and/or having little-to-no configurability.
 
-The USL relies heavily on [Mealie](https://github.com/hay-kot/mealie), the open source, self-hosted recipe manager developed by hay-kot. This app *does not work* without an instance of Mealie to back it up, so [be sure to check it out](https://nightly.mealie.io/) if you haven't already! The app piggybacks heavily on the Mealie API, and much of the dev environment was pulled directly from the work done over there. ***As this application is still in development, we only officially support the latest RC/nightly builds***.
+The USL relies heavily on [Mealie](https://github.com/hay-kot/mealie), the open source, self-hosted recipe manager developed by hay-kot. This app *does not work* without an instance of Mealie to back it up, so [be sure to check it out](https://nightly.mealie.io/) if you haven't already! The app piggybacks heavily on the Mealie API, and much of the dev environment was pulled directly from the work done over there. ***We only officially support the v1 releases of Mealie, as well as the latest release***.
 
 To get started, head over to https://shopping-lists.genson.dev and register.
 
@@ -31,7 +31,7 @@ Since we are *just* releasing the Unified Shopping List, we don't support too ma
 
 Supported applications:
 - [Alexa](https://alexa.amazon.com/)
-- [Mealie](https://github.com/hay-kot/mealie/) (required, only the *official RC/nightly builds* are supported)
+- [Mealie](https://github.com/hay-kot/mealie/) (required, only the *official v1 releases* and *latest release* are supported)
 - [Todoist](https://todoist.com/)
 
 
