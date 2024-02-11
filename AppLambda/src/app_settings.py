@@ -34,7 +34,7 @@ class AppSecrets(BaseSettings):
 class AppSettings(BaseSettings):
     ### About ###
     app_title = "Unified Shopping List"
-    app_version = "0.3.10"
+    app_version = "0.3.11"
     internal_app_name = "shopping_list_api"
 
     ### App ###

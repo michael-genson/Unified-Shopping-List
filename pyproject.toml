@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Unified Shopping List"
-version = "0.3.10"
+version = "0.3.11"
 description = "Open source app to connect your shopping lists in real time"
 authors = ["Michael Genson <71845777+michael-genson@users.noreply.github.com>"]
 license = "GNU"
