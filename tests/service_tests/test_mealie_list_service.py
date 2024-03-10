@@ -48,7 +48,7 @@ def test_mealie_list_service_label_store(mealie_list_service: MealieListService,
 
 def test_mealie_list_service_get_recipe_url(mealie_list_service: MealieListService, mealie_recipes: list[MealieRecipe]):
     for recipe in mealie_recipes:
-        expected_url = f"{mealie_list_service.config.base_url}/recipe/{recipe.slug}"
+        expected_url = f"{mealie_list_service.config.base_url}recipe/{recipe.slug}"
         recipe_url = mealie_list_service.get_recipe_url(recipe.id)
         assert recipe_url
         assert recipe_url == expected_url
