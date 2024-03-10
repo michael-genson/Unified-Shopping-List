@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractproperty
 from typing import Callable, ClassVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from ._base import APIBase, as_form
 
@@ -74,6 +74,19 @@ class UserMealieConfiguration(UserMealieConfigurationUpdate, UserConfigurationBa
     notifier_id: str
     security_hash: str
     """Unencrypted random hash to verify notifications"""
+
+    @validator("base_url")
+    def validate_base_url(cls, v: str):
+        if not v:
+            raise ValueError("base_url must not be empty")
+
+        if v[-1] != "/":
+            v += "/"
+
+        if "http" not in v:
+            v = "https://" + v
+
+        return v
 
     @property
     def is_valid(self):
