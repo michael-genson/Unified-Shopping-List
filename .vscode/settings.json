@@ -1,21 +1,5 @@
 {
-  "python.linting.pylintEnabled": true,
-  "python.linting.enabled": true,
-  "python.linting.mypyArgs": [
-    "--follow-imports=silent",
-    "--show-column-numbers",
-    "--disallow-untyped-defs",
-    "--disallow-untyped-calls",
-  ],
-  "python.linting.pylintArgs": [
-    "--enable=W0614"
-  ],
   "explorer.fileNesting.enabled": true,
-  "python.formatting.provider": "black",
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
   "explorer.fileNesting.patterns": {
     "package.json": "package-lock.json, yarn.lock, .eslintrc.js, tsconfig.json, .prettierrc, .editorconfig",
     "pyproject.toml": "poetry.lock, alembic.ini, .pylintrc, .flake8, .bumpversion.cfg",
