@@ -85,11 +85,22 @@ class Label(MealieBase):
         return self.name
 
 
+class UnitFoodAlias(MealieBase):
+    name: str
+
+
 class UnitFoodBase(MealieBase):
     name: str
     plural_name: str | None = None
     description: str = ""
     extras: dict | None = {}
+
+    aliases: list[UnitFoodAlias] | None = None
+    """
+    List of aliases for this unit/food
+
+    Only available in v1.0.0-RC2 and later
+    """
 
 
 class Unit(UnitFoodBase):

@@ -61,7 +61,14 @@ class MealieListService:
     def food_store(self) -> dict[str, Food]:
         """Dictionary of { food.name.lower(): Food }"""
 
-        return {food.name.lower(): food for food in self._client.get_all_foods()}
+        store: dict[str, Food] = {}
+        all_foods = self._client.get_all_foods()
+        for food in all_foods:
+            store[food.name.lower()] = food
+            for alias in food.aliases or []:
+                store[alias.name.lower()] = food
+
+        return store
 
     @cached_property
     def label_store(self) -> dict[str, Label]:
