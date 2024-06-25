@@ -4,6 +4,10 @@
 {% block content %}
 
 <div>
+  <div class="alert alert-warning" role="alert">
+    Starting July 1, 2024, <a href="https://developer.amazon.com/en-US/docs/alexa/custom-skills/access-the-alexa-shopping-and-to-do-lists.html">Amazon is removing all support for integrating with Alexa lists</a>.
+    Since USL depends on these features to integrate with Alexa, support for Alexa will be removed.
+  </div>
   {% if user %}
   Welcome to the Unified Shopping List! Add or change your integration configurations above.
   {% if docs_url %}
