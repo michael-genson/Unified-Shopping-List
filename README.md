@@ -1,3 +1,5 @@
+[Amazon ended support for shopping list integrations](https://developer.amazon.com/en-US/docs/alexa/custom-skills/access-the-alexa-shopping-and-to-do-lists.html), so I've decided to archive this repo as I no longer have any use for it. Thanks for all of the support while it lasted.
+
 # <img src="./AppLambda/src/static/images/favicon.png" width="25px" height="auto"> Unified Shopping List
 The Unified Shopping List is an open source app to connect your shopping lists in real time. The goal of the USL is to make managing your grocery shopping *easy* and *configurable*.
 This project was born out of a frustration with existing integration tools, for both being a pain (or impossible) to set up, unreliable, and/or having little-to-no configurability.
